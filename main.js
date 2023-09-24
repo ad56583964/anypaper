@@ -5,15 +5,24 @@ import Konva from 'konva';
 const width = window.innerWidth;
 const height = window.innerHeight - 25;
 
-// 创建 Konva 舞台和图层
+// 创建 Konva 舞台
 const stage = new Konva.Stage({
-  container: 'container',
+  container: 'konva-container',
   width: width,
   height: height,
 });
 
-const layer = new Konva.Layer();
-stage.add(layer);
+
+// layer1 init
+// 创建 Konva 图层
+const layer1 = new Konva.Layer();
+
+function init_layer(){
+  
+  stage.add(layer1);
+}
+
+init_layer();
 
 let isPaint = false;
 let mode = 'brush';
@@ -29,9 +38,11 @@ stage.on('mousedown touchstart', (e) => {
       mode === 'brush' ? 'source-over' : 'destination-out',
     lineCap: 'round',
     lineJoin: 'round',
+    // tension: 0.8,
+    // bezier: true,
     points: [pos.x, pos.y, pos.x, pos.y],
   });
-  layer.add(lastLine);
+  layer1.add(lastLine);
 });
 
 stage.on('mouseup touchend', () => {
