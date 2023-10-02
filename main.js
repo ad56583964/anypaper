@@ -1,66 +1,123 @@
-// 导入 Konva
 import Konva from 'konva';
 
-// 获取窗口宽高
-const width = window.innerWidth;
-const height = window.innerHeight - 25;
+class DrawingApp {
+    constructor(containerId, toolSelectorId, paperWidth, paperHeight) {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.paperWidth = paperWidth || 300;
+        this.paperHeight = paperHeight || 400;
+        this.toolSelectorId = toolSelectorId;
 
-// 创建 Konva 舞台
-const stage = new Konva.Stage({
-  container: 'konva-container',
-  width: width,
-  height: height,
-});
+        // Setup the stage
+        this.stage = new Konva.Stage({
+            container: containerId,
+            width: this.width,
+            height: this.height,
+        });
 
+        // Setup the layers
+        this.layer = new Konva.Layer();
+        this.stage.add(this.layer);
 
-// layer1 init
-// 创建 Konva 图层
-const layer1 = new Konva.Layer();
+        // Draw table and paper
+        this.drawTable();
+        this.drawPaper();
 
-function init_layer(){
-  
-  stage.add(layer1);
+        this.isPainting = false;
+        this.lastLine = null;
+        this.mode = 'brush';  // or 'eraser'
+
+        // Event listeners for drawing
+        this.stage.on('mousedown touchstart', (e) => this.startPainting(e));
+        this.stage.on('mouseup touchend', () => this.stopPainting());
+        this.stage.on('mousemove touchmove', (e) => this.paint(e));
+        this.stage.on('wheel', (e) => this.handleWheel(e));
+
+        // Event listener for tool change
+        document.getElementById(toolSelectorId).addEventListener('change', (e) => {
+            this.mode = e.target.value;
+        });
+    }
+
+    drawTable() {
+        const table = new Konva.Rect({
+            width: this.width,
+            height: this.height,
+            fill: '#ddd',
+        });
+        this.layer.add(table);
+        this.layer.draw();
+    }
+
+    drawPaper() {
+        this.paper = new Konva.Rect({
+            x: (this.width - this.paperWidth) / 2,
+            y: (this.height - this.paperHeight) / 2,
+            width: this.paperWidth,
+            height: this.paperHeight,
+            fill: '#fff',
+        });
+        this.layer.add(this.paper);
+        this.layer.draw();
+    }
+
+    startPainting(e) {
+        this.isPainting = true;
+        const pos = this.stage.getPointerPosition();
+        
+        if(pos.x > this.paper.x() && pos.x < this.paper.x() + this.paperWidth &&
+           pos.y > this.paper.y() && pos.y < this.paper.y() + this.paperHeight) {
+            this.lastLine = new Konva.Line({
+                stroke: '#df4b26',
+                strokeWidth: 5,
+                globalCompositeOperation: this.mode === 'brush' ? 'source-over' : 'destination-out',
+                lineCap: 'round',
+                lineJoin: 'round',
+                points: [pos.x, pos.y],
+            });
+            this.layer.add(this.lastLine);
+        } else {
+            this.isPainting = false;
+        }
+    }
+
+    stopPainting() {
+        this.isPainting = false;
+    }
+
+    paint(e) {
+        if (!this.isPainting) {
+            return;
+        }
+        const pos = this.stage.getPointerPosition();
+        if(pos.x > this.paper.x() && pos.x < this.paper.x() + this.paperWidth &&
+           pos.y > this.paper.y() && pos.y < this.paper.y() + this.paperHeight) {
+            const newPoints = this.lastLine.points().concat([pos.x, pos.y]);
+            this.lastLine.points(newPoints);
+            this.layer.batchDraw();
+        } else {
+            this.stopPainting();
+        }
+    }
+
+    handleWheel(e) {
+        e.evt.preventDefault();
+        const oldScale = this.stage.scaleX();
+        const pointer = this.stage.getPointerPosition();
+        const mousePointTo = {
+            x: (pointer.x - this.stage.x()) / oldScale, 
+            y: (pointer.y - this.stage.y()) / oldScale,
+        };
+        const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
+        this.stage.scale({ x: newScale, y: newScale });
+        const newPos = {
+            x: pointer.x - mousePointTo.x * newScale,
+            y: pointer.y - mousePointTo.y * newScale,
+        };
+        this.stage.position(newPos);
+        this.stage.batchDraw();
+    }
 }
 
-init_layer();
-
-let isPaint = false;
-let mode = 'brush';
-let lastLine;
-
-stage.on('mousedown touchstart', (e) => {
-  isPaint = true;
-  const pos = stage.getPointerPosition();
-  lastLine = new Konva.Line({
-    stroke: '#df4b26',
-    strokeWidth: 5,
-    globalCompositeOperation:
-      mode === 'brush' ? 'source-over' : 'destination-out',
-    lineCap: 'round',
-    lineJoin: 'round',
-    // tension: 0.8,
-    // bezier: true,
-    points: [pos.x, pos.y, pos.x, pos.y],
-  });
-  layer1.add(lastLine);
-});
-
-stage.on('mouseup touchend', () => {
-  isPaint = false;
-});
-
-stage.on('mousemove touchmove', (e) => {
-  if (!isPaint) {
-    return;
-  }
-
-  e.evt.preventDefault();
-  const pos = stage.getPointerPosition();
-  const newPoints = lastLine.points().concat([pos.x, pos.y]);
-  lastLine.points(newPoints);
-});
-
-const select = document.getElementById('tool');
-select.addEventListener('change', () => {
-  mode = select.value;
-});
+// Usage:
+const myDrawingApp = new DrawingApp('konva-container', 'tool', 300, 400);
