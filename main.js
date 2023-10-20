@@ -8,6 +8,7 @@ class DrawingApp {
         this.paperHeight = paperHeight || 400;
         this.toolSelectorId = toolSelectorId;
 
+
         // Setup the stage
         this.stage = new Konva.Stage({
             container: containerId,
@@ -121,3 +122,4 @@ class DrawingApp {
 
 // Usage:
 const myDrawingApp = new DrawingApp('konva-container', 'tool', 300, 400);
+
