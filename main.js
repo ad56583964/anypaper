@@ -116,26 +116,20 @@ class DrawingApp {
   }
 
   paint(e) {
-    if (!this.isPainting) return;
-    
-    this.pointer.pos = this.getScaledPointerPosition();
+    if (!this.isPainting) {
+      return;
+    }
+
+    this.pointer.pos = this.stage.getPointerPosition();
     const pos = this.pointer.pos;
+
     const posEvent = new CustomEvent('posChanged', { detail: { pos } });
     document.dispatchEvent(posEvent);
-  
-    if (
-      pos.x > this.paper.x() &&
-      pos.x < this.paper.x() + this.paper.width() &&
-      pos.y > this.paper.y() &&
-      pos.y < this.paper.y() + this.paper.height()
-    ) {
-      const newPoints = this.lastLine.points().concat([pos.x, pos.y]);
-      this.lastLine.points(newPoints);
-      this.layer.batchDraw();
-    } else {
-      this.stopPainting();
-    }
-  }
+
+    const newPoints = this.lastLine.points().concat([pos.x, pos.y]);
+    this.lastLine.points(newPoints);
+    this.layer.batchDraw();
+}
   
   stopPainting() {
     this.isPainting = false;
