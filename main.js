@@ -120,7 +120,7 @@ class DrawingApp {
       return;
     }
 
-    this.pointer.pos = this.stage.getPointerPosition();
+    this.pointer.pos = this.getScaledPointerPosition();
     const pos = this.pointer.pos;
 
     const posEvent = new CustomEvent('posChanged', { detail: { pos } });
