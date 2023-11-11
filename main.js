@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import AnyA4Tool from './commands';
 
 let theme = {
   background_color: "#ddd"
@@ -196,3 +197,5 @@ class DrawingApp {
 // Usage:
 const myDrawingApp = new DrawingApp('konva-container', 'tool', 300, 400);
 DEBUG_INFO("Hello there")
+
+window.a4Tool = new AnyA4Tool(myDrawingApp);
