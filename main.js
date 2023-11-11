@@ -1,5 +1,11 @@
 import Konva from 'konva';
 
+let theme = {
+  background_color: "#ddd"
+}
+
+let DEBUG_INFO = console.log
+
 class DrawingApp {
   constructor(containerId, toolSelectorId, paperWidth, paperHeight) {
     this.width = window.innerWidth;
@@ -22,7 +28,7 @@ class DrawingApp {
       height: this.height,
     });
 
-    this.stage.container().style.backgroundColor = "#ddd";
+    this.stage.container().style.backgroundColor = theme.background_color;
 
     // Setup the layers
     this.layer = new Konva.Layer();
@@ -42,15 +48,8 @@ class DrawingApp {
     this.stage.on('mousemove touchmove', (e) => this.paint(e));
     this.stage.on('wheel', (e) => this.handleWheel(e));
 
-    // Event listener for tool change
-    document
-      .getElementById(toolSelectorId)
-      .addEventListener('change', (e) => {
-        this.mode = e.target.value;
-      });
-
     document.addEventListener('posChanged', function (e) {
-      console.log(e.detail.pos);
+        DEBUG_INFO(e.detail.pos);
     });
   }
 
@@ -65,15 +64,31 @@ class DrawingApp {
   }
 
   drawPaper() {
-    this.paper = new Konva.Rect({
+  // Create a new layer for the paper with a clipping region
+  this.paperLayer = new Konva.Layer({
+    clip: {
       x: (this.width - this.paperWidth) / 2,
       y: (this.height - this.paperHeight) / 2,
       width: this.paperWidth,
       height: this.paperHeight,
-      fill: '#fff',
-    });
-    this.layer.add(this.paper);
-    this.layer.draw();
+    }
+  });
+
+  // Add paper layer to the stage
+  this.stage.add(this.paperLayer);
+
+  // Create the white paper rectangle
+  this.paper = new Konva.Rect({
+    x: (this.width - this.paperWidth) / 2,
+    y: (this.height - this.paperHeight) / 2,
+    width: this.paperWidth,
+    height: this.paperHeight,
+    fill: '#fff',
+  });
+
+  // Add the paper rectangle to the paper layer
+  this.paperLayer.add(this.paper);
+  this.paperLayer.draw();
   }
 
   startPainting(e) {
@@ -99,7 +114,7 @@ class DrawingApp {
         lineJoin: 'round',
         points: [pos.x, pos.y],
       });
-      this.layer.add(this.lastLine);
+      this.paperLayer.add(this.lastLine);
     } else {
       this.isPainting = false;
     }
@@ -128,7 +143,7 @@ class DrawingApp {
 
     const newPoints = this.lastLine.points().concat([pos.x, pos.y]);
     this.lastLine.points(newPoints);
-    this.layer.batchDraw();
+    this.paperLayer.batchDraw();
 }
   
   stopPainting() {
@@ -152,7 +167,6 @@ class DrawingApp {
     this.table.moveToBottom();
     this.layer.draw();
     }
-
 
   handleWheel(e) {
     e.evt.preventDefault();
@@ -181,3 +195,4 @@ class DrawingApp {
 
 // Usage:
 const myDrawingApp = new DrawingApp('konva-container', 'tool', 300, 400);
+DEBUG_INFO("Hello there")
