@@ -13,6 +13,7 @@ export default class DrawingApp {
             x: 0,
             y: 0
         }
+        this.currentSize = 1
 
         // Setup the stage (global enviroment)
         this.stage = new Konva.Stage({
@@ -32,6 +33,11 @@ export default class DrawingApp {
                 y: 0,
             },
         };
+
+        this.block = {
+            width: 20,
+            height: 40
+        }
 
         this.stage.container().style.cursor = 'crosshair'
 
@@ -54,7 +60,8 @@ export default class DrawingApp {
 
         // Event listeners for drawing
         // this.stage.on("mouseup touchend", () => this.stopPainting());
-        window.addEventListener("resize", (e) => this.handleWheel(e));
+        window.addEventListener("resize", (e) => this.handleResize(e));
+        window.addEventListener("wheel", (e) => this.handleWheel(e));
         window.addEventListener("pointermove", (e) => this.handleMove(e));
         window.addEventListener("pointerdown", (e) => this.handleClick(e));
         window.addEventListener("keydown", (e) => this.handleKey(e));
@@ -92,33 +99,70 @@ export default class DrawingApp {
         this.gridGroup.cache()
         this.gLayer.add(this.gridGroup)
 
+        // debug shape
+        this.hit = new Konva.Rect({
+            width: 10,
+            height: 10,
+            fill:"red",
+        })
+
+        this.gLayer.add(this.hit);
+
         this.gLayer.draw();
+    }
+
+    handleResize() {
+        DEBUG_INFO("Enter handleResize");
+        this.gState = "zoom";
+        if (this.gState == "zoom") {
+            // 这两个 都要 单独设置 ？？
+            // debug pointer
+
+            let resizeTable = () => {
+                DEBUG_INFO("Enter resizeTable");
+                this.table.setAttrs({
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                });
+                this.stage.setAttrs({
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                });
+                DEBUG_INFO(this.stage.getAttr("width"));
+                this.stage.batchDraw();
+            }
+            resizeTable()
+        }
     }
 
     handleWheel() {
         DEBUG_INFO("Enter handleWheel");
-        this.gState = "zoom";
-        if (this.gState == "zoom") {
-            // 这两个 都要 单独设置 ？？
-            this.table.setAttrs({
-                width: window.innerWidth,
-                height: window.innerHeight,
-            });
-            this.stage.setAttrs({
-                width: window.innerWidth,
-                height: window.innerHeight,
-            });
-            DEBUG_INFO(this.stage.getAttr("width"));
-            this.stage.batchDraw();
-        }
+        this.hit.setAttrs({
+            x: this.currentPointer.x,
+            y: this.currentPointer.y
+        })
     }
 
     handleMove(e) {
         DEBUG_INFO("Enter handleMove");
+
+        this.currentPointer = {
+            x:e.clientX - 12,
+            y:e.clientY - 12
+        }
+
+        this.currentBlock = {
+            // -2 to fit the block margin
+            x:Math.floor((this.currentPointer.x) / this.block.width),
+            y:Math.floor((this.currentPointer.y) / this.block.height)
+        }
+
         this.hangingBlock.setAttrs({
-            x: Math.round(e.clientX / 20) * 20 - 20 ,
-            y: Math.round(e.clientY / 40) * 40 - 40
+            x: this.currentBlock.x * this.block.width,
+            y: this.currentBlock.y * this.block.height
         })
+        
+        DEBUG_INFO("currentBlock:",this.currentBlock);
     }
 
     handleClick(e){
