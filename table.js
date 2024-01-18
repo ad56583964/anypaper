@@ -146,6 +146,7 @@ export default class DrawingApp {
     handleMove(e) {
         DEBUG_INFO("Enter handleMove");
 
+        // the only e.client entrypoint
         this.currentPointer = {
             x:e.clientX - 12,
             y:e.clientY - 12
@@ -171,7 +172,7 @@ export default class DrawingApp {
         if(this.gState == "idle" || "typing"){
             DEBUG_INFO("Enter state idle");
             this.gState = 'typing'
-            this.selectBlock(e.clientX,e.clientY);
+            this.selectBlock();
 
             // init note
             this.note = {
@@ -232,14 +233,10 @@ export default class DrawingApp {
         }
     }
 
-    selectBlock(x,y){
-        this.currentBlock = {
-            x: Math.round(x / 20) * 20 - 20,
-            y: Math.round(y / 40) * 40 - 40
-        }
+    selectBlock(){
         this.selectedBlock.setAttrs({
-            x: Math.round(x / 20) * 20 - 20 ,
-            y: Math.round(y / 40) * 40 - 40
+            x: this.currentBlock.x * this.block.width,
+            y: this.currentBlock.y * this.block.height,
         })
         this.gLayer.add(this.selectedBlock)
     }
