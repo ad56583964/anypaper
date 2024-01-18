@@ -135,12 +135,21 @@ export default class DrawingApp {
         }
     }
 
-    handleWheel() {
+    handleWheel(e) {
         DEBUG_INFO("Enter handleWheel");
         this.hit.setAttrs({
             x: this.currentPointer.x,
             y: this.currentPointer.y
         })
+
+        if(e.deltaY > 0)
+            this.currentSize += 0.1
+            this.gLayer.scaleX(this.currentSize)
+            this.gLayer.scaleY(this.currentSize)
+        if(e.deltaY < 0)
+            this.currentSize -= 0.1
+            this.gLayer.scaleX(this.currentSize)
+            this.gLayer.scaleY(this.currentSize)
     }
 
     handleMove(e) {
