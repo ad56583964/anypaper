@@ -142,14 +142,20 @@ export default class DrawingApp {
             y: this.currentPointer.y
         })
 
-        if(e.deltaY > 0)
+        const zoom_max = 2
+        const zoom_min = 0.5
+         
+        if(e.deltaY > 0)        
             this.currentSize += 0.1
-            this.gLayer.scaleX(this.currentSize)
-            this.gLayer.scaleY(this.currentSize)
-        if(e.deltaY < 0)
+        else if(e.deltaY < 0)   
             this.currentSize -= 0.1
-            this.gLayer.scaleX(this.currentSize)
-            this.gLayer.scaleY(this.currentSize)
+
+        if(this.currentSize < zoom_min)
+            this.currentSize = zoom_min
+        if(this.currentSize > zoom_max)
+            this.currentSize = zoom_max
+        this.gLayer.scaleX(this.currentSize)
+        this.gLayer.scaleY(this.currentSize)
     }
 
     handleMove(e) {
@@ -194,8 +200,8 @@ export default class DrawingApp {
                 fill: '#333',
                 fontFamily: "monospace",
                 text: this.note.currentNote,
-                x: this.currentBlock.x,
-                y: this.currentBlock.y,
+                x: this.currentBlock.x * this.block.width,
+                y: this.currentBlock.y * this.block.height,
                 align: "right",
                 letterSpacing: 0,
                 fontSize: 40
@@ -254,8 +260,8 @@ export default class DrawingApp {
         DEBUG_INFO("create paper");
           // Create a new layer for the paper with a clipping region
         this.paper = new Konva.Rect({
-            x: this.currentBlock.x,
-            y: this.currentBlock.y,
+            x: this.currentBlock.x * this.block.width,
+            y: this.currentBlock.y * this.block.height,
             width: 300,
             height: 400,
             fill: '#fff',
