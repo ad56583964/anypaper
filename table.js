@@ -163,8 +163,8 @@ export default class DrawingApp {
 
         // the only e.client entrypoint
         this.currentPointer = {
-            x:e.clientX - 12,
-            y:e.clientY - 12
+            x:(e.clientX - 12)/this.currentSize,
+            y:(e.clientY - 12)/this.currentSize
         }
 
         this.currentBlock = {
