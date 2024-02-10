@@ -145,9 +145,9 @@ export default class DrawingApp {
         const zoom_max = 2
         const zoom_min = 0.5
          
-        if(e.deltaY > 0)        
+        if(e.deltaY < 0)        
             this.currentSize += 0.1
-        else if(e.deltaY < 0)   
+        else if(e.deltaY > 0)   
             this.currentSize -= 0.1
 
         if(this.currentSize < zoom_min)
@@ -215,6 +215,8 @@ export default class DrawingApp {
 
         switch(this.gState) {
             case 'typing':
+                
+                this.selectBlock();
                 if(e.key == 'Shift'){
 
                 }
