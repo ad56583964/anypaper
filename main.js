@@ -1,5 +1,5 @@
 import DrawingApp from "./table.js";
-
+import './style.css'
 // let DEBUG_INFO = console.log;
 
 var theme = {
