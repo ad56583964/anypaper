@@ -1,13 +1,14 @@
 import Konva from "konva";
 import AnyA4Tool from "./commands";
+import TableEvent from "./event";
+import PaperTool from "./paper";
 
 let DEBUG_INFO = console.log;
 
-export default class DrawingApp {
-    constructor(containerId, toolSelectorId, theme) {
+export default class GridTable {
+    constructor(containerId, theme) {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
-        this.toolSelectorId = toolSelectorId;
 
         this.currentBlock = {
             x: 0,
@@ -57,15 +58,9 @@ export default class DrawingApp {
 
         // Draw table
         this.initTable();
-
-        // Event listeners for drawing
-        // this.stage.on("mouseup touchend", () => this.stopPainting());
-        window.addEventListener("resize", (e) => this.handleResize(e));
-        window.addEventListener("wheel", (e) => this.handleWheel(e));
-        window.addEventListener("pointermove", (e) => this.handleMove(e));
-        window.addEventListener("pointerdown", (e) => this.handleClick(e));
-        window.addEventListener("keydown", (e) => this.handleKey(e));
-        // this.stage.
+        this.event = new TableEvent()
+        this.paperTool = new PaperTool
+        
     }
 
     initTable() {
@@ -258,17 +253,5 @@ export default class DrawingApp {
         this.gLayer.add(this.selectedBlock)
     }
 
-    createPaper(x,y){
-        DEBUG_INFO("create paper");
-          // Create a new layer for the paper with a clipping region
-        this.paper = new Konva.Rect({
-            x: this.currentBlock.x * this.block.width,
-            y: this.currentBlock.y * this.block.height,
-            width: 300,
-            height: 400,
-            fill: '#fff',
-          });
-
-        this.gLayer.add(this.paper);
-    }
+    // paper.create
 }

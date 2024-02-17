@@ -10,6 +10,5 @@ window.addEventListener('wheel', function (event) {
     // 阻止默认行为
     event.preventDefault();
 }, { passive: false });
-const myDrawingApp = new DrawingApp('konva-container', 'tool', 300, 400, theme);
+const myDrawingApp = new DrawingApp('a4-table');
 
-// window.a4Tool = new AnyA4Tool(myDrawingApp);
