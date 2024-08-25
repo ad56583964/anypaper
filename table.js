@@ -48,16 +48,12 @@ export default class GridTable {
             height: 40,
             // it's yellow
             fill: "green",
-            offsetX: 10,
-            offsetY: 20,
         })
 
         this.selectedBlock = new Konva.Rect({
             width: 20,
             height: 40,
             fill: "orange",
-            offsetX: 10,
-            offsetY: 20,
         })
 
         this.gLayer.add(this.hangingBlock)
@@ -145,6 +141,7 @@ export default class GridTable {
         
         var oldScale = this.currentSize
 
+        // limit the zoom range
         if(scroll < 0)        
             this.currentSize += 0.1
         else if(scroll > 0)
@@ -155,13 +152,13 @@ export default class GridTable {
         if(this.currentSize > zoom_max)
             this.currentSize = zoom_max
         
+        // step1: scale the glayer
         this.gLayer.scaleX(this.currentSize)
         this.gLayer.scaleY(this.currentSize)
 
-        // transform glayer
+        // step2: move the glayer
+        // question: scale 改变了什么？ 哪个变量会随之改变呢 ？ x，y好像不会随之改变额
         const pointer = this.stage.getPointerPosition();
-        // const {x:_px,y:_py} = this.gLayer.getPosition();
-
         const mousePointTo = {
             x: (pointer.x - this.gLayer.x()) / oldScale,
             y: (pointer.y - this.gLayer.y()) / oldScale,
@@ -185,26 +182,38 @@ export default class GridTable {
         })
     }
 
+    getBlock(){
+        
+    }
+
     move(e){
         // the only e.client entrypoint
-        this.currentPointer = this.stage.getPointerPosition();
+        this.gPointer = this.stage.getPointerPosition();
         
         var gLayerPos = this.gLayer.getAbsolutePosition()
         var gLayerPointer = this.gLayer.getpo
 
-        this.currentBlock = {
+        this.currentPointer = {
             // +4 to fit the block margin
-            x:(this.currentPointer.x - gLayerPos.x) / this.currentSize,
-            y:(this.currentPointer.y - gLayerPos.y) / this.currentSize,
+            x:(this.gPointer.x - gLayerPos.x) / this.currentSize,
+            y:(this.gPointer.y - gLayerPos.y) / this.currentSize,
         }
 
-        DEBUG_INFO("currentBlock:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
+        this.currentBlock = {
+            // -2 to fit the block margin
+            x:Math.floor((this.currentPointer.x) / this.block.width),
+            y:Math.floor((this.currentPointer.y) / this.block.height)
+        }
+
+        // 此处的 currentBlock 实际是指 gLayer 为坐标系起点
+        DEBUG_INFO("currentPointer:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
         
         this.hangingBlock.setAttrs({
-            x: this.currentBlock.x,
-            y: this.currentBlock.y
+            x: this.currentBlock.x * this.block.width,
+            y: this.currentBlock.y * this.block.height,
         })
         
+        // this.updateHit();
         // this.middleX = window.innerWidth/2
         // this.middleY = window.innerHeight/2
         // DEBUG_INFO("MiddlePoint",this.middleX,this.middleY);
