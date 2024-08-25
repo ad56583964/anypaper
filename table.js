@@ -6,6 +6,7 @@ import PaperTool from "./paper";
 let DEBUG_INFO = console.log;
 
 export default class GridTable {
+    
     constructor(containerId, theme) {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
@@ -26,7 +27,7 @@ export default class GridTable {
         // Setup the layers
         this.gLayer = new Konva.Layer();
         this.stage.add(this.gLayer);
-        this.gState = "idle";
+        this.state = "idle";
 
         this.pointer = {
             pos: {
@@ -45,22 +46,27 @@ export default class GridTable {
         this.hangingBlock = new Konva.Rect({
             width: 20,
             height: 40,
-            fill: "#ffd"
+            // it's yellow
+            fill: "green",
+            offsetX: 10,
+            offsetY: 20,
         })
 
         this.selectedBlock = new Konva.Rect({
             width: 20,
             height: 40,
-            fill: "orange"
+            fill: "orange",
+            offsetX: 10,
+            offsetY: 20,
         })
 
         this.gLayer.add(this.hangingBlock)
 
         // Draw table
         this.initTable();
-        this.event = new TableEvent()
         this.paperTool = new PaperTool
         
+        this.eventManage = new TableEvent(this)
     }
 
     initTable() {
@@ -71,12 +77,14 @@ export default class GridTable {
         });
 
         this.gLayer.add(this.table);
-        // 确保背景在其他元素的下方
+        // 确保背景在其他元素的下方(konva api)
         this.table.moveToBottom();
 
         this.gridGroup = new Konva.Group({
             listening: false
         })
+
+        //使用这个方式描述 点阵背景会有运行时开销吗 ？
         // draw grid background
         // need many circles ??
         for (let i = 0; i < window.innerWidth / 20; i++) {
@@ -99,6 +107,8 @@ export default class GridTable {
             width: 10,
             height: 10,
             fill:"red",
+            offsetX: 5,
+            offsetY: 5,
         })
 
         this.gLayer.add(this.hit);
@@ -106,146 +116,22 @@ export default class GridTable {
         this.gLayer.draw();
     }
 
-    handleResize() {
-        DEBUG_INFO("Enter handleResize");
-        this.gState = "zoom";
-        if (this.gState == "zoom") {
-            // 这两个 都要 单独设置 ？？
-            // debug pointer
-
-            let resizeTable = () => {
-                DEBUG_INFO("Enter resizeTable");
-                this.table.setAttrs({
-                    width: window.innerWidth,
-                    height: window.innerHeight,
-                });
-                this.stage.setAttrs({
-                    width: window.innerWidth,
-                    height: window.innerHeight,
-                });
-                DEBUG_INFO(this.stage.getAttr("width"));
-                this.stage.batchDraw();
-            }
-            resizeTable()
-        }
+    resizeTable(width,height) {
+        this.stage.setAttrs({
+            width: width,
+            height: height,
+        });
     }
 
-    handleWheel(e) {
-        DEBUG_INFO("Enter handleWheel");
-        this.hit.setAttrs({
-            x: this.currentPointer.x,
-            y: this.currentPointer.y
-        })
-
-        const zoom_max = 2
-        const zoom_min = 0.5
-         
-        if(e.deltaY < 0)        
-            this.currentSize += 0.1
-        else if(e.deltaY > 0)   
-            this.currentSize -= 0.1
-
-        if(this.currentSize < zoom_min)
-            this.currentSize = zoom_min
-        if(this.currentSize > zoom_max)
-            this.currentSize = zoom_max
-        this.gLayer.scaleX(this.currentSize)
-        this.gLayer.scaleY(this.currentSize)
+    fitWindow() {
+        DEBUG_INFO("Enter fitWindow");
+        this.stage.setAttrs({
+            width: window.innerWidth,
+            height: window.innerHeight,
+        });
     }
 
-    handleMove(e) {
-        DEBUG_INFO("Enter handleMove");
-
-        // the only e.client entrypoint
-        this.currentPointer = {
-            x:(e.clientX - 12)/this.currentSize,
-            y:(e.clientY - 12)/this.currentSize
-        }
-
-        this.currentBlock = {
-            // -2 to fit the block margin
-            x:Math.floor((this.currentPointer.x) / this.block.width),
-            y:Math.floor((this.currentPointer.y) / this.block.height)
-        }
-
-        this.hangingBlock.setAttrs({
-            x: this.currentBlock.x * this.block.width,
-            y: this.currentBlock.y * this.block.height
-        })
-        
-        DEBUG_INFO("currentBlock:",this.currentBlock);
-    }
-
-    handleClick(e){
-        DEBUG_INFO("Enter handleClick");
-        
-        if(this.gState == "idle" || "typing"){
-            DEBUG_INFO("Enter state idle");
-            this.gState = 'typing'
-            this.selectBlock();
-
-            // init note
-            this.note = {
-                currentNote: "",
-                lastNote: ""
-            }
-            // init textline
-            DEBUG_INFO("Enter textline");
-            this.textline = new Konva.Text({
-                fill: '#333',
-                fontFamily: "monospace",
-                text: this.note.currentNote,
-                x: this.currentBlock.x * this.block.width,
-                y: this.currentBlock.y * this.block.height,
-                align: "right",
-                letterSpacing: 0,
-                fontSize: 40
-            })
-            this.gLayer.add(this.textline)
-        }
-    }
-
-    handleKey(e){
-        DEBUG_INFO("Enter handleKey");
-
-        switch(this.gState) {
-            case 'typing':
-                
-                this.selectBlock();
-                if(e.key == 'Shift'){
-
-                }
-                else if(e.key == 'Backspace'){
-                    DEBUG_INFO("remove text")
-                    this.note.currentNote = this.note.currentNote.slice(0, -1);
-                    this.textline.setAttrs({
-                        text: this.note.currentNote,
-                    })
-                }
-                else if(e.key == 'Escape'){
-                    DEBUG_INFO("remove selectedBlock")
-                    this.selectedBlock.remove()
-                    this.gState = 'idle';
-                }
-                else{
-                    DEBUG_INFO("add text")
-                    this.note.currentNote += e.key
-                    this.textline.setAttrs({
-                        text: this.note.currentNote,
-                    })
-                }
-                break;
-            // 你可以根据需要添加其他的情况
-            // case 'anotherState':
-            //   ...
-            //   break;
-            default:
-                // 如果没有匹配的情况, 这里是默认的处理方式
-                break;
-        }
-    }
-
-    selectBlock(){
+    selectBlock(x,y){
         this.selectedBlock.setAttrs({
             x: this.currentBlock.x * this.block.width,
             y: this.currentBlock.y * this.block.height,
@@ -253,5 +139,78 @@ export default class GridTable {
         this.gLayer.add(this.selectedBlock)
     }
 
-    // paper.create
+    zoom(scroll){
+        const zoom_max = 2
+        const zoom_min = 0.5
+        
+        var oldScale = this.currentSize
+
+        if(scroll < 0)        
+            this.currentSize += 0.1
+        else if(scroll > 0)
+            this.currentSize -= 0.1
+
+        if(this.currentSize < zoom_min)
+            this.currentSize = zoom_min
+        if(this.currentSize > zoom_max)
+            this.currentSize = zoom_max
+        
+        this.gLayer.scaleX(this.currentSize)
+        this.gLayer.scaleY(this.currentSize)
+
+        // transform glayer
+        const pointer = this.stage.getPointerPosition();
+        // const {x:_px,y:_py} = this.gLayer.getPosition();
+
+        const mousePointTo = {
+            x: (pointer.x - this.gLayer.x()) / oldScale,
+            y: (pointer.y - this.gLayer.y()) / oldScale,
+          };
+
+        // DEBUG_INFO("gLayerXY",_px,_py);
+        this.gLayer.setAttrs({
+            x: pointer.x - mousePointTo.x * this.currentSize,
+            y: pointer.y - mousePointTo.y * this.currentSize,
+        })
+        // this.gLayer.x = this.panX*this.currentSize
+        // this.gLayer.y = this.panY*this.currentSize
+        // panX = this
+
+    }
+
+    updateHit(){
+        this.hit.setAttrs({
+            x: this.currentPointer.x,
+            y: this.currentPointer.y
+        })
+    }
+
+    move(e){
+        // the only e.client entrypoint
+        this.currentPointer = this.stage.getPointerPosition();
+        
+        var gLayerPos = this.gLayer.getAbsolutePosition()
+        var gLayerPointer = this.gLayer.getpo
+
+        this.currentBlock = {
+            // +4 to fit the block margin
+            x:(this.currentPointer.x - gLayerPos.x) / this.currentSize,
+            y:(this.currentPointer.y - gLayerPos.y) / this.currentSize,
+        }
+
+        DEBUG_INFO("currentBlock:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
+        
+        this.hangingBlock.setAttrs({
+            x: this.currentBlock.x,
+            y: this.currentBlock.y
+        })
+        
+        // this.middleX = window.innerWidth/2
+        // this.middleY = window.innerHeight/2
+        // DEBUG_INFO("MiddlePoint",this.middleX,this.middleY);
+
+        // DEBUG_INFO("clientXY",e.clientX,e.clientY);
+        // DEBUG_INFO("this.gLayer position:",this.gLayer.getAbsolutePosition());
+        // DEBUG_INFO("this.currentPointer: ",this.currentPointer);
+    }
 }

@@ -1,5 +1,6 @@
-Thanks ! tldraw [https://github.com/tldraw/tldraw] help me a lot in whiteboard editor understanding
-
+Thanks ! 
+- tldraw [https://github.com/tldraw/tldraw] help me a lot in whiteboard editor understanding
+- suika [https://github.com/F-star/suika.git] 没有西瓜哥，我可能早弃坑了，现在模块部分基本就是对着它抄一遍
 AnyA4
 
 致力于提供多端平滑使用的"保持简易"的块状白板工具
@@ -16,7 +17,7 @@ AnyA4
 
 2.无限但有界
 为什么取名为 A4,就是希望无论你想要画什么展开衍生的单位都是 一个 A4(即一个"原子"单位大小的版面) 纸的大小。
-一方面其有助于"分发","脱离",同时好"归档","重组"(目前还不太好分类和表述它能带来的特性，但算是自己在体验一些 whiteboard 应用中感受到需要的一些东西)
+一方面其有助于"分发","脱离",同时好"归档","重组"(目前还不太好分类和表述它能带来的特性，自己在体验一些 whiteboard 应用中感觉它是需要的一个东西)
 
 3.提供较好的 预览 和 查询 方式(还有归档 ??)
 (用用 tag ? timeline ??)
@@ -25,6 +26,6 @@ AnyA4
 
 使用的技术选型
 
-目前是 vite + javascript + konva + chatgpt... ,希望能借此先理顺接触 事件处理 问题
+目前是 vite + javascript + konva + chatgpt...(不是提供AI能力,而是托它的福我才坚持写下去) ,希望能借此先理顺接触 事件处理 问题
 
-(这算是一个工作之余的学习项目，以及自己的一个为电子化笔记的心愿)
+(这算是一个工作之余的学习项目，以及自己的一个实现电子化笔记的心愿)

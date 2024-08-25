@@ -10,5 +10,5 @@ window.addEventListener('wheel', function (event) {
     // 阻止默认行为
     event.preventDefault();
 }, { passive: false });
-const myDrawingApp = new DrawingApp('a4-table');
 
+const myDrawingApp = new DrawingApp('a4-table');

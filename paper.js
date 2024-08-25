@@ -1,5 +1,3 @@
-
-
 export default class PaperTool {
     constructor(table){
 
