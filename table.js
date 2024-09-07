@@ -136,8 +136,8 @@ export default class GridTable {
     }
 
     zoom(scroll){
-        const zoom_max = 2
-        const zoom_min = 0.5
+        const zoom_max = 3
+        const zoom_min = 0.1
         
         var oldScale = this.currentSize
 
@@ -182,8 +182,11 @@ export default class GridTable {
         })
     }
 
-    getBlock(){
-        
+    getcurrentBlock(){
+        return {
+            x:Math.floor((this.currentPointer.x) / this.block.width),
+            y:Math.floor((this.currentPointer.y) / this.block.height)
+        }
     }
 
     move(e){
@@ -199,27 +202,14 @@ export default class GridTable {
             y:(this.gPointer.y - gLayerPos.y) / this.currentSize,
         }
 
-        this.currentBlock = {
-            // -2 to fit the block margin
-            x:Math.floor((this.currentPointer.x) / this.block.width),
-            y:Math.floor((this.currentPointer.y) / this.block.height)
-        }
-
+        this.currentBlock = this.getcurrentBlock()
         // 此处的 currentBlock 实际是指 gLayer 为坐标系起点
         DEBUG_INFO("currentPointer:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
-        
+        DEBUG_INFO("currentBlock:",this.getcurrentBlock());
         this.hangingBlock.setAttrs({
             x: this.currentBlock.x * this.block.width,
             y: this.currentBlock.y * this.block.height,
         })
-        
-        // this.updateHit();
-        // this.middleX = window.innerWidth/2
-        // this.middleY = window.innerHeight/2
-        // DEBUG_INFO("MiddlePoint",this.middleX,this.middleY);
 
-        // DEBUG_INFO("clientXY",e.clientX,e.clientY);
-        // DEBUG_INFO("this.gLayer position:",this.gLayer.getAbsolutePosition());
-        // DEBUG_INFO("this.currentPointer: ",this.currentPointer);
     }
 }
