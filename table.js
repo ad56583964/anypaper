@@ -128,11 +128,13 @@ export default class GridTable {
     }
 
     selectBlock(x,y){
-        this.selectedBlock.setAttrs({
-            x: this.currentBlock.x * this.block.width,
-            y: this.currentBlock.y * this.block.height,
-        })
-        this.gLayer.add(this.selectedBlock)
+        if(!this.isOutside()){
+            this.selectedBlock.setAttrs({
+                x: this.currentBlock.x * this.block.width,
+                y: this.currentBlock.y * this.block.height,
+            })
+            this.gLayer.add(this.selectedBlock)
+        }
     }
 
     zoom(scroll){
@@ -193,6 +195,13 @@ export default class GridTable {
         this.hangingBlock.setAttrs({
             x: x * this.block.width,
             y: y * this.block.height,
+            visible: true
+        })
+    }
+
+    hideHangingBlock(){
+        this.hangingBlock.setAttrs({
+            visible: false
         })
     }
 
@@ -217,7 +226,12 @@ export default class GridTable {
         DEBUG_INFO("currentPointer:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
         DEBUG_INFO("currentBlock:",this.getcurrentBlock());
 
-        this.updateHangingBlock(this.currentBlock.x,this.currentBlock.y)
+        if(this.isOutside()){
+            this.hideHangingBlock()
+        }
+        else{
+            this.updateHangingBlock(this.currentBlock.x,this.currentBlock.y)
+        }
 
         DEBUG_INFO(this.isOutside())
 
