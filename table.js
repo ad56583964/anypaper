@@ -196,6 +196,10 @@ export default class GridTable {
         })
     }
 
+    isOutside(){
+        return this.currentPointer.x < 0 || this.currentPointer.x > this.stage.width() || this.currentPointer.y < 0 || this.currentPointer.y > this.stage.height()
+    }
+
     move(e){
         // the only e.client entrypoint
         this.gPointer = this.stage.getPointerPosition();
@@ -214,6 +218,8 @@ export default class GridTable {
         DEBUG_INFO("currentBlock:",this.getcurrentBlock());
 
         this.updateHangingBlock(this.currentBlock.x,this.currentBlock.y)
+
+        DEBUG_INFO(this.isOutside())
 
     }
 }
