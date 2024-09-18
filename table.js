@@ -201,7 +201,6 @@ export default class GridTable {
         this.gPointer = this.stage.getPointerPosition();
         
         var gLayerPos = this.gLayer.getAbsolutePosition()
-        var gLayerPointer = this.gLayer.getpo
 
         this.currentPointer = {
             // +4 to fit the block margin
