@@ -189,6 +189,13 @@ export default class GridTable {
         }
     }
 
+    updateHangingBlock(x,y){
+        this.hangingBlock.setAttrs({
+            x: x * this.block.width,
+            y: y * this.block.height,
+        })
+    }
+
     move(e){
         // the only e.client entrypoint
         this.gPointer = this.stage.getPointerPosition();
@@ -206,10 +213,8 @@ export default class GridTable {
         // 此处的 currentBlock 实际是指 gLayer 为坐标系起点
         DEBUG_INFO("currentPointer:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
         DEBUG_INFO("currentBlock:",this.getcurrentBlock());
-        this.hangingBlock.setAttrs({
-            x: this.currentBlock.x * this.block.width,
-            y: this.currentBlock.y * this.block.height,
-        })
+
+        this.updateHangingBlock(this.currentBlock.x,this.currentBlock.y)
 
     }
 }
