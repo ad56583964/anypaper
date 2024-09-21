@@ -34,7 +34,7 @@ export default class TableEvent {
     }
 
     handleMove(e) {
-        DEBUG_INFO("Enter handleMove");
+        // DEBUG_INFO("Enter handleMove");
         this.table.move(e);
         this.table.updateHit();
     }

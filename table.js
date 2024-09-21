@@ -223,8 +223,9 @@ export default class GridTable {
 
         this.currentBlock = this.getcurrentBlock()
         // 此处的 currentBlock 实际是指 gLayer 为坐标系起点
-        DEBUG_INFO("currentPointer:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
-        DEBUG_INFO("currentBlock:",this.getcurrentBlock());
+        // log is effect the performance
+        // DEBUG_INFO("currentPointer:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
+        // DEBUG_INFO("currentBlock:",this.getcurrentBlock());
 
         if(this.isOutside()){
             this.hideHangingBlock()
