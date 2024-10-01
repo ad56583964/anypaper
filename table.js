@@ -83,8 +83,8 @@ export default class GridTable {
         //使用这个方式描述 点阵背景会有运行时开销吗 ？
         // draw grid background
         // need many circles ??
-        for (let i = 0; i < window.innerWidth / 20; i++) {
-            for (let j = 0; j < window.innerHeight / 40; j++) {
+        for (let i = 0; i < window.innerWidth / this.block.width; i++) {
+            for (let j = 0; j < window.innerHeight / this.block.height; j++) {
                 var circle = new Konva.Circle({
                     x: i * 20,
                     y: j * 40,
