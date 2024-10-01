@@ -1,14 +1,12 @@
-import Konva from "konva";
-
+import React from 'react';
+import ReactDOM from 'react-dom';
 // function
+function DebugBar() {
+    return <h1>Hello, React!</h1>;
+}
 
-// 创建一个文本框用于显示调试信息
-var debugText = new Konva.Text({
-    x: 10,
-    y: 10,
-    fontFamily: "Arial",
-    fontSize: 16,
-    fill: "red",
-});
-
-layer.add(debugText);
+// 获取根节点
+const debugbarElement = document.getElementById('root');
+const debugbar = ReactDOM.createRoot(debugbarElement);
+// 渲染应用
+root.render(<Debugbar />);

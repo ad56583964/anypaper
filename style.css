@@ -2,3 +2,14 @@ body {
   overflow-x: hidden; /* 禁用水平滚动条 */
   overflow-y: hidden; /* 禁用垂直滚动条 */
 }
+
+#debugbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 10%;
+  background-color: #d0d0d0; /* Optional: for visual distinction */
+  opacity: 0.8; /* 80% transparency */
+  z-index: 1000; /* Ensures it stays on top */
+}
