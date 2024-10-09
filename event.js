@@ -1,5 +1,5 @@
-
 let DEBUG_INFO = console.log;
+
 export default class TableEvent {
     constructor(table){
         this.table = table;
@@ -8,19 +8,13 @@ export default class TableEvent {
         window.addEventListener("pointermove", (e) => this.handleMove(e));
         window.addEventListener("pointerdown", (e) => this.handleClick(e));
         window.addEventListener("keydown", (e) => this.handleKey(e));
-
         // DEBUG_INFO('TableEvent'+table.width);
     }
 
     handleResize() {
         DEBUG_INFO("Enter handleResize");
         table = "zoom";
-        if (table == "zoom") {
-            // 这两个 都要 单独设置 ？？
-            // debug pointer
-
-            table.fitWindow();
-        }
+        this.table.fitWindow();
     }
 
     handleWheel(e) {

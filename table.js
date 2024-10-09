@@ -8,8 +8,8 @@ let DEBUG_INFO = console.log;
 export default class GridTable {
     
     constructor(containerId, theme) {
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
+        this.width = 20*40;
+        this.height = 20*30;
 
         this.currentBlock = {
             x: 0,
@@ -69,7 +69,7 @@ export default class GridTable {
         this.table = new Konva.Rect({
             width: this.stage.width(),
             height: this.stage.height(),
-            fill: "#ddf",
+            fill: "#ddd",
         });
 
         this.gLayer.add(this.table);
@@ -83,8 +83,8 @@ export default class GridTable {
         //使用这个方式描述 点阵背景会有运行时开销吗 ？
         // draw grid background
         // need many circles ??
-        for (let i = 0; i < window.innerWidth / this.block.width; i++) {
-            for (let j = 0; j < window.innerHeight / this.block.height; j++) {
+        for (let i = 0; i <= this.width / this.block.width; i++) {
+            for (let j = 0; j <= this.height / this.block.height; j++) {
                 var circle = new Konva.Circle({
                     x: i * 20,
                     y: j * 40,
@@ -121,9 +121,11 @@ export default class GridTable {
 
     fitWindow() {
         DEBUG_INFO("Enter fitWindow");
+        DEBUG_INFO("Table: ",window.innerWidth,window.innerHeight);
         this.stage.setAttrs({
             width: window.innerWidth,
             height: window.innerHeight,
+            fill: "#ddf",
         });
     }
 
@@ -174,6 +176,7 @@ export default class GridTable {
         // this.gLayer.x = this.panX*this.currentSize
         // this.gLayer.y = this.panY*this.currentSize
         // panX = this
+        this.fitWindow();
 
     }
 
