@@ -1,5 +1,9 @@
 import DrawingApp from "./table.js";
+
 import './style.css'
+import React from 'react';
+import ReactDOM from 'react-dom';
+import initDebugbar from "./debug.jsx";
 // let DEBUG_INFO = console.log;
 
 var theme = {
@@ -11,4 +15,8 @@ window.addEventListener('wheel', function (event) {
     event.preventDefault();
 }, { passive: false });
 
+window.DebugBarComponentRef
+
 const myDrawingApp = new DrawingApp('a4-table');
+
+initDebugbar();

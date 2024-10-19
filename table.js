@@ -209,7 +209,7 @@ export default class GridTable {
     }
 
     isOutside(){
-        return this.currentPointer.x < 0 || this.currentPointer.x > this.stage.width() || this.currentPointer.y < 0 || this.currentPointer.y > this.stage.height()
+        return this.currentPointer.x < 0 || this.currentPointer.x*this.currentSize > this.stage.width() || this.currentPointer.y < 0 || this.currentPointer.y*this.currentSize > this.stage.height()
     }
 
     move(e){
@@ -222,6 +222,14 @@ export default class GridTable {
             // +4 to fit the block margin
             x:(this.gPointer.x - gLayerPos.x) / this.currentSize,
             y:(this.gPointer.y - gLayerPos.y) / this.currentSize,
+        }
+
+        if (window.DebugBarComponentRef && window.DebugBarComponentRef.current) {
+            console.log("hold Ref")
+            window.DebugBarComponentRef.current.updateMousePosition(this.currentPointer.x,this.currentPointer.y)
+        }
+        else{
+            console.log("no Ref")
         }
 
         this.currentBlock = this.getcurrentBlock()
