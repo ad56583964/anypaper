@@ -225,7 +225,7 @@ export default class GridTable {
         }
 
         if (window.DebugBarComponentRef && window.DebugBarComponentRef.current) {
-            console.log("hold Ref")
+            // console.log("hold Ref")
             window.DebugBarComponentRef.current.updateMousePosition(this.currentPointer.x,this.currentPointer.y)
         }
         else{
