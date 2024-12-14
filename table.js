@@ -46,7 +46,6 @@ export default class GridTable {
         this.hangingBlock = new Konva.Rect({
             width: 20,
             height: 40,
-            // it's yellow
             fill: "green",
         })
 
