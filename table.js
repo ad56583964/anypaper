@@ -144,12 +144,13 @@ export default class GridTable {
         
         var oldScale = this.currentSize
 
-        // limit the zoom range
+        // determine the zoom direction
         if(scroll < 0)        
             this.currentSize += 0.1
         else if(scroll > 0)
             this.currentSize -= 0.1
 
+        // limit the zoom range
         if(this.currentSize < zoom_min)
             this.currentSize = zoom_min
         if(this.currentSize > zoom_max)
@@ -160,6 +161,7 @@ export default class GridTable {
         this.gLayer.scaleY(this.currentSize)
 
         // step2: move the glayer
+        // move to the pointer as center
         // question: scale 改变了什么？ 哪个变量会随之改变呢 ？ x，y好像不会随之改变额
         const pointer = this.stage.getPointerPosition();
         const mousePointTo = {
@@ -172,9 +174,9 @@ export default class GridTable {
             x: pointer.x - mousePointTo.x * this.currentSize,
             y: pointer.y - mousePointTo.y * this.currentSize,
         })
+
         // this.gLayer.x = this.panX*this.currentSize
         // this.gLayer.y = this.panY*this.currentSize
-        // panX = this
         this.fitWindow();
 
     }
