@@ -5,9 +5,9 @@ import PaperTool from "./paper";
 
 let DEBUG_INFO = console.log;
 
-export default class GridTable {
+export default class Table {
     
-    constructor(containerId, theme) {
+    constructor(containerId = 'a4-table', theme) {
         this.width = 20*40;
         this.height = 20*30;
 
@@ -64,17 +64,10 @@ export default class GridTable {
         this.eventManage = new TableEvent(this)
     }
 
-    initTable() {
-        this.table = new Konva.Rect({
-            width: this.stage.width(),
-            height: this.stage.height(),
-            fill: "#ddd",
-        });
-
-        this.gLayer.add(this.table);
-        // 确保背景在其他元素的下方(konva api)
-        this.table.moveToBottom();
-
+    /**
+     * 
+     */
+    initGridBG() {
         this.gridGroup = new Konva.Group({
             listening: false
         })
@@ -96,7 +89,9 @@ export default class GridTable {
 
         this.gridGroup.cache()
         this.gLayer.add(this.gridGroup)
+    }
 
+    initHitDebug(){
         // debug shape
         this.hit = new Konva.Rect({
             width: 10,
@@ -107,6 +102,28 @@ export default class GridTable {
         })
 
         this.gLayer.add(this.hit);
+    }
+
+    /**
+     * create table
+     * init pointer
+     * init background
+     * init debug hit
+     */
+    initTable() {
+        this.table = new Konva.Rect({
+            width: this.stage.width(),
+            height: this.stage.height(),
+            fill: "#ddd",
+        });
+
+        this.gLayer.add(this.table);
+        // 确保背景在其他元素的下方(konva api)
+        this.table.moveToBottom();
+
+
+        this.initGridBG();
+        this.initHitDebug();
 
         this.gLayer.draw();
     }
@@ -220,7 +237,6 @@ export default class GridTable {
         var gLayerPos = this.gLayer.getAbsolutePosition()
 
         this.currentPointer = {
-            // +4 to fit the block margin
             x:(this.gPointer.x - gLayerPos.x) / this.currentSize,
             y:(this.gPointer.y - gLayerPos.y) / this.currentSize,
         }

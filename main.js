@@ -1,4 +1,4 @@
-import DrawingApp from "./table.js";
+import DrawingApp from "./app.js";
 
 import './style.css'
 import React from 'react';
@@ -9,14 +9,18 @@ import initDebugbar from "./debug.jsx";
 var theme = {
     background_color: "#dff"
 }
-// Usage:
+
+// 阻止 全局网页缩放
 window.addEventListener('wheel', function (event) {
-    // 阻止默认行为
     event.preventDefault();
 }, { passive: false });
 
 window.DebugBarComponentRef
 
+// preinit DrawingApp
+
 const myDrawingApp = new DrawingApp('a4-table');
+
+console.log((typeof myDrawingApp))
 
 initDebugbar();
