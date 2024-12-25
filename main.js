@@ -15,8 +15,6 @@ window.addEventListener('wheel', function (event) {
     event.preventDefault();
 }, { passive: false });
 
-window.DebugBarComponentRef
-
 // preinit DrawingApp
 
 const myDrawingApp = new DrawingApp('a4-table');
