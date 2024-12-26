@@ -75,8 +75,8 @@ export default class Table {
         //使用这个方式描述 点阵背景会有运行时开销吗 ？
         // draw grid background
         // need many circles ??
-        for (let i = 0; i <= this.width / this.block.width; i++) {
-            for (let j = 0; j <= this.height / this.block.height; j++) {
+        for (let i = 1; i < this.width / this.block.width; i++) {
+            for (let j = 1; j < this.height / this.block.height; j++) {
                 var circle = new Konva.Circle({
                     x: i * 20,
                     y: j * 40,
@@ -114,7 +114,8 @@ export default class Table {
         this.table = new Konva.Rect({
             width: this.stage.width(),
             height: this.stage.height(),
-            fill: "#ddd",
+            //grey
+            fill: "grey",
         });
 
         this.gLayer.add(this.table);
@@ -227,7 +228,10 @@ export default class Table {
     }
 
     isOutside(){
-        return this.currentPointer.x < 0 || this.currentPointer.x*this.currentSize > this.stage.width() || this.currentPointer.y < 0 || this.currentPointer.y*this.currentSize > this.stage.height()
+        DEBUG_INFO("height"+this.table.height()+" width"+this.table.width());
+        // seems stage will auto extern
+        DEBUG_INFO("height"+this.stage.height()+" width"+this.stage.width());
+        return this.currentPointer.x*this.currentSize < 0 || this.currentPointer.x > this.table.width() || this.currentPointer.y < 0 || this.currentPointer.y > this.table.height()
     }
 
     move(e){
