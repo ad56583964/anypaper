@@ -74,14 +74,8 @@ export default class SelectTool {
 
     move(e){
         // the only e.client entrypoint
-        this.gPointer = this.table.stage.getPointerPosition();
-        
-        var gLayerPos = this.table.gLayer.getAbsolutePosition()
 
-        this.table.currentPointer = {
-            x:(this.gPointer.x - gLayerPos.x) / this.table.zoom.current,
-            y:(this.gPointer.y - gLayerPos.y) / this.table.zoom.current,
-        }
+        this.table.updateCurrentPointer();
 
         if (window.DebugBarComponentRef && window.DebugBarComponentRef.current) {
             // console.log("hold Ref")

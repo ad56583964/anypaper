@@ -59,6 +59,8 @@ export default class Table {
         this.setActiveTool("select")
         // this.debug = new TableDebug(this)
         // this.eventManage = new TableEvent(this)
+
+        window.addEventListener("keydown", (e) => this.keydown(e));
     }
 
     /**
@@ -122,6 +124,17 @@ export default class Table {
         });
     }
 
+    // global use
+    updateCurrentPointer(){
+        var gPointer = this.stage.getPointerPosition();
+        var gLayerPos = this.gLayer.getAbsolutePosition();
+
+        this.currentPointer = {
+            x:(gPointer.x - gLayerPos.x) / this.zoom.current,
+            y:(gPointer.y - gLayerPos.y) / this.zoom.current,
+        }
+    }
+
     updateZoom(e){
         const scroll = e.deltaY;
         var oldScale = this.zoom.current
@@ -169,28 +182,65 @@ export default class Table {
 
     setActiveTool(name) {
         if (this.currentTool) {
+            this.removeEventListeners();
             this.currentTool.deactivate();
         }
+
         this.currentTool = this.tools[name];
         if (this.currentTool) {
             this.currentTool.activate();
+            this.setupEventListeners();
         }
-        this.setupEventListeners();
+    }
+
+    removeEventListeners() {
+        const events = ['wheel','pointermove', 'pointerdown', 'pointerup', 'keyup'];
+        events.forEach(eventType => {
+            window.removeEventListener(eventType, (e) => this.handleEvent(eventType, e));
+        });
     }
 
     setupEventListeners() {
-        const events = ['wheel','pointermove', 'pointerdown', 'pointerup', 'keydown', 'keyup'];
+        const events = ['wheel','pointermove', 'pointerdown', 'pointerup', 'keyup'];
         events.forEach(eventType => {
             window.addEventListener(eventType, (e) => this.handleEvent(eventType, e));
         });
-
-        // 保留原有的事件
-        // window.addEventListener("wheel", (e) => this.table.handleWheel(e));
     }
 
     handleEvent(eventType, event) {
         if (this.currentTool && typeof this.currentTool[eventType] === 'function') {
             this.currentTool[eventType](event);
+        }
+    }
+
+    keydown(e) {
+        DEBUG_INFO("Gobal keydown");
+        if (e.altKey) {
+            DEBUG_INFO("Notice: may switch")     
+            switch (e.key) {
+                case '1':
+                    DEBUG_INFO("Alt+1 pressed");
+                    // 执行 Alt+1 的操作
+                    this.setActiveTool("pencil")
+                    break;
+                case '2':
+                    DEBUG_INFO("Alt+2 pressed");
+                    this.setActiveTool("select")
+                    // 执行 Alt+2 的操作
+                    break;
+                case '3':
+                    DEBUG_INFO("Alt+3 pressed");
+                    // 执行 Alt+3 的操作
+                    break;
+                default:
+                    DEBUG_INFO("Alt + another key pressed");
+                    // 处理其他 Alt 组合键
+            }
+            DEBUG_INFO("Notice: may switch")           
+        }
+        else {
+            DEBUG_INFO("Tool please");
+            this.currentTool.keydown(e);
         }
     }
 }
@@ -222,51 +272,3 @@ class TableDebug {
         })
     }
 }
-
-// class TableEvent {
-//     constructor(table){
-//         this.table = table;
-
-//         window.addEventListener("resize", (e) => this.handleResize(e));
-//         window.addEventListener("wheel", (e) => this.handleWheel(e));
-//         window.addEventListener("pointermove", (e) => this.handleMove(e));
-//         window.addEventListener("pointerdown", (e) => this.handleClick(e));
-//         window.addEventListener("keydown", (e) => this.handleKey(e));
-//     }
-
-//     handleWheel(e) {
-//         DEBUG_INFO("Enter handleWheel");
-
-//         this.table.debug.updateHit();
-//         const delta = e.deltaY;
-//         DEBUG_INFO("delta: ",delta);
-
-//         this.table.action.zoom(delta);
-//     }
-
-//     handleMove(e) {
-//         // DEBUG_INFO("Enter handleMove");
-//         this.table.move(e);
-//         this.table.debug.updateHit();
-//     }
-
-//     handleClick(e){
-//         DEBUG_INFO("Enter handleClick");
-        
-//         if(this.table.state == "idle" || "typing"){
-//             DEBUG_INFO("Enter table idle");
-//             this.table.state = 'typing'
-//             this.table.selectBlock();
-//         }
-//     }
-
-//     handleKey(e){
-//         DEBUG_INFO("Enter handleKey");
-
-//         if (event.altKey && event.code === 'Digit1') {
-//             event.preventDefault(); // 阻止默认行为
-//             DEBUG_INFO("Alt + 1")
-//             this.table.setActiveTool("pencil");
-//         }
-//     }
-// }
