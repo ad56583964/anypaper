@@ -52,11 +52,13 @@ export default class Table {
 
         // this.action = new TableAction(this)
 
+        this.eventListeners = {};
+
         this.registerTool("select",new SelectTool(this))
         // this.registerTool("paper",new PaperTool(this))
         this.registerTool("pencil",new PencilTool(this))
 
-        this.setActiveTool("select")
+        this.setActiveTool("select");
         // this.debug = new TableDebug(this)
         // this.eventManage = new TableEvent(this)
 
@@ -140,6 +142,7 @@ export default class Table {
         var oldScale = this.zoom.current
 
         // determine the zoom direction
+        DEBUG_INFO("zoom once")
         if(scroll < 0)        
             this.zoom.current += 0.1
         else if(scroll > 0)
@@ -182,28 +185,36 @@ export default class Table {
 
     setActiveTool(name) {
         if (this.currentTool) {
-            this.removeEventListeners();
             this.currentTool.deactivate();
+            this.removeEventListeners();
         }
 
         this.currentTool = this.tools[name];
+            
         if (this.currentTool) {
+            DEBUG_INFO("activate tool")
             this.currentTool.activate();
             this.setupEventListeners();
         }
     }
 
-    removeEventListeners() {
-        const events = ['wheel','pointermove', 'pointerdown', 'pointerup', 'keyup'];
+    setupEventListeners() {
+        const events = ['wheel', 'pointermove', 'pointerdown', 'pointerup', 'keyup'];
         events.forEach(eventType => {
-            window.removeEventListener(eventType, (e) => this.handleEvent(eventType, e));
+            const listener = (e) => this.handleEvent(eventType, e);
+            this.eventListeners[eventType] = listener;
+            window.addEventListener(eventType, listener);
         });
     }
 
-    setupEventListeners() {
-        const events = ['wheel','pointermove', 'pointerdown', 'pointerup', 'keyup'];
+    removeEventListeners() {
+        const events = ['wheel', 'pointermove', 'pointerdown', 'pointerup', 'keyup'];
         events.forEach(eventType => {
-            window.addEventListener(eventType, (e) => this.handleEvent(eventType, e));
+            const listener = this.eventListeners[eventType];
+            if (listener) {
+                window.removeEventListener(eventType, listener);
+                delete this.eventListeners[eventType];
+            }
         });
     }
 

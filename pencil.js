@@ -22,6 +22,11 @@ export default class PencilTool {
         this.updateHit();
     }
 
+    wheel(e){
+        DEBUG_INFO("PencilTool wheel");
+        this.table.updateZoom(e);
+    }
+
     updateHit(){
         this.hit.setAttrs({
             x: this.table.currentPointer.x,

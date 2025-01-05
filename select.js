@@ -22,15 +22,15 @@ export default class SelectTool {
 
         this.table.gLayer.add(this.hangingBlock)
 
-        DEBUG_INFO("Init PencilTool");
+        DEBUG_INFO("Init SelectTool");
     }
 
     activate(){
-        DEBUG_INFO("PencilTool activate");
+        DEBUG_INFO("SelectTool activate");
     }
 
     deactivate(){
-        DEBUG_INFO("PencilTool deactivate");
+        DEBUG_INFO("SelectTool deactivate");
     }
 
     /* realize functions */
@@ -103,21 +103,17 @@ export default class SelectTool {
 
     // Event listeners
     pointermove(e){
-        DEBUG_INFO("PencilTool pointermove");
+        DEBUG_INFO("SelectTool pointermove");
         this.move(e);
     }
 
     pointerdown(e){
-        DEBUG_INFO("PencilTool pointerdown");
+        DEBUG_INFO("SelectTool pointerdown");
         this.selectBlock();
     }
 
     wheel(e){
-        DEBUG_INFO("PencilTool wheel");
-
-        const delta = e.deltaY;
-        DEBUG_INFO("delta: ",delta);
-
+        DEBUG_INFO("SelectTool wheel");
         this.table.updateZoom(e);
     }
 
