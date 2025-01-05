@@ -9,6 +9,7 @@ const DebugBar = React.forwardRef(function DebugBar(props, ref) {
         updateMousePosition: (_x, _y) => setMousePosition({ x: _x, y: _y })
     }));
 
+    // 这里是 debug 信息的填入区域
     return (
         <div>
             <p>Mouse Position</p>

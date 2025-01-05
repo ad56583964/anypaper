@@ -1,12 +1,11 @@
 import Konva from "konva";
 import AnyA4Tool from "./commands";
-import TableEvent from "./event";
 import PaperTool from "./paper";
+import PencilTool from "./pencil";
 
 let DEBUG_INFO = console.log;
 
 export default class Table {
-    
     constructor(containerId = 'a4-table', theme) {
         this.width = 20*40;
         this.height = 20*30;
@@ -15,7 +14,12 @@ export default class Table {
             x: 0,
             y: 0
         }
-        this.currentSize = 1
+
+        this.zoom = {
+            current: 1,
+            min: 0.1,
+            max: 3,
+        }
 
         // Setup the stage (global enviroment)
         this.stage = new Konva.Stage({
@@ -59,8 +63,17 @@ export default class Table {
 
         // Draw table
         this.initTable();
-        this.paperTool = new PaperTool
-        
+
+        // Tools
+        this.currentTool = null;
+        this.tools = {};
+
+        this.registerTool("select",new SelectTool(this))
+        this.registerTool("paper",new PaperTool(this))
+        this.registerTool("pencil",new PencilTool(this))
+
+        this.action = new TableAction(this)
+        this.debug = new TableDebug(this)
         this.eventManage = new TableEvent(this)
     }
 
@@ -91,19 +104,6 @@ export default class Table {
         this.gLayer.add(this.gridGroup)
     }
 
-    initHitDebug(){
-        // debug shape
-        this.hit = new Konva.Rect({
-            width: 10,
-            height: 10,
-            fill:"red",
-            offsetX: 5,
-            offsetY: 5,
-        })
-
-        this.gLayer.add(this.hit);
-    }
-
     /**
      * create table
      * init pointer
@@ -124,16 +124,8 @@ export default class Table {
 
 
         this.initGridBG();
-        this.initHitDebug();
 
         this.gLayer.draw();
-    }
-
-    resizeTable(width,height) {
-        this.stage.setAttrs({
-            width: width,
-            height: height,
-        });
     }
 
     fitWindow() {
@@ -147,7 +139,7 @@ export default class Table {
     }
 
     selectBlock(x,y){
-        if(!this.isOutside()){
+        if(!this._isOutside()){
             this.selectedBlock.setAttrs({
                 x: this.currentBlock.x * this.block.width,
                 y: this.currentBlock.y * this.block.height,
@@ -155,57 +147,7 @@ export default class Table {
             this.gLayer.add(this.selectedBlock)
         }
     }
-
-    zoom(scroll){
-        const zoom_max = 3
-        const zoom_min = 0.1
-        
-        var oldScale = this.currentSize
-
-        // determine the zoom direction
-        if(scroll < 0)        
-            this.currentSize += 0.1
-        else if(scroll > 0)
-            this.currentSize -= 0.1
-
-        // limit the zoom range
-        if(this.currentSize < zoom_min)
-            this.currentSize = zoom_min
-        if(this.currentSize > zoom_max)
-            this.currentSize = zoom_max
-        
-        // step1: scale the glayer
-        this.gLayer.scaleX(this.currentSize)
-        this.gLayer.scaleY(this.currentSize)
-
-        // step2: move the glayer
-        // move to the pointer as center
-        // question: scale 改变了什么？ 哪个变量会随之改变呢 ？ x，y好像不会随之改变额
-        const pointer = this.stage.getPointerPosition();
-        const mousePointTo = {
-            x: (pointer.x - this.gLayer.x()) / oldScale,
-            y: (pointer.y - this.gLayer.y()) / oldScale,
-          };
-
-        // DEBUG_INFO("gLayerXY",_px,_py);
-        this.gLayer.setAttrs({
-            x: pointer.x - mousePointTo.x * this.currentSize,
-            y: pointer.y - mousePointTo.y * this.currentSize,
-        })
-
-        // this.gLayer.x = this.panX*this.currentSize
-        // this.gLayer.y = this.panY*this.currentSize
-        this.fitWindow();
-
-    }
-
-    updateHit(){
-        this.hit.setAttrs({
-            x: this.currentPointer.x,
-            y: this.currentPointer.y
-        })
-    }
-
+    
     getcurrentBlock(){
         return {
             x:Math.floor((this.currentPointer.x) / this.block.width),
@@ -213,7 +155,7 @@ export default class Table {
         }
     }
 
-    updateHangingBlock(x,y){
+    _updateHangingBlock(x,y){
         this.hangingBlock.setAttrs({
             x: x * this.block.width,
             y: y * this.block.height,
@@ -221,17 +163,51 @@ export default class Table {
         })
     }
 
-    hideHangingBlock(){
+    _hideHangingBlock(){
         this.hangingBlock.setAttrs({
             visible: false
         })
     }
 
-    isOutside(){
+    _isOutside(){
         DEBUG_INFO("height"+this.table.height()+" width"+this.table.width());
         // seems stage will auto extern
         DEBUG_INFO("height"+this.stage.height()+" width"+this.stage.width());
-        return this.currentPointer.x*this.currentSize < 0 || this.currentPointer.x > this.table.width() || this.currentPointer.y < 0 || this.currentPointer.y > this.table.height()
+        return this.currentPointer.x*this.zoom.current < 0 || this.currentPointer.x > this.table.width() || this.currentPointer.y < 0 || this.currentPointer.y > this.table.height()
+    }
+
+    /*
+        Tool relate 
+    */ 
+    registerTool(name, tool) {
+        this.tools[name] = tool;
+    }
+
+    setActiveTool(name) {
+        if (this.currentTool) {
+            this.currentTool.deactivate();
+        }
+        this.currentTool = this.tools[name];
+        if (this.currentTool) {
+            this.currentTool.activate();
+        }
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        const events = ['pointermove', 'pointerdown', 'pointerup', 'keydown', 'keyup'];
+        events.forEach(eventType => {
+            window.addEventListener(eventType, (e) => this.handleEvent(eventType, e));
+        });
+
+        // 保留原有的事件
+        window.addEventListener("wheel", (e) => this.table.handleWheel(e));
+    }
+
+    handleEvent(eventType, event) {
+        if (this.currentTool && typeof this.currentTool[eventType] === 'function') {
+            this.currentTool[eventType](event);
+        }
     }
 
     move(e){
@@ -241,8 +217,8 @@ export default class Table {
         var gLayerPos = this.gLayer.getAbsolutePosition()
 
         this.currentPointer = {
-            x:(this.gPointer.x - gLayerPos.x) / this.currentSize,
-            y:(this.gPointer.y - gLayerPos.y) / this.currentSize,
+            x:(this.gPointer.x - gLayerPos.x) / this.zoom.current,
+            y:(this.gPointer.y - gLayerPos.y) / this.zoom.current,
         }
 
         if (window.DebugBarComponentRef && window.DebugBarComponentRef.current) {
@@ -259,14 +235,138 @@ export default class Table {
         // DEBUG_INFO("currentPointer:",this.currentPointer.x - gLayerPos.x , this.currentPointer.y - gLayerPos.y);
         // DEBUG_INFO("currentBlock:",this.getcurrentBlock());
 
-        if(this.isOutside()){
-            this.hideHangingBlock()
+        if(this._isOutside()){
+            this._hideHangingBlock()
         }
         else{
-            this.updateHangingBlock(this.currentBlock.x,this.currentBlock.y)
+            this._updateHangingBlock(this.currentBlock.x,this.currentBlock.y)
         }
 
-        DEBUG_INFO(this.isOutside())
+        DEBUG_INFO(this._isOutside())
+    }
+}
 
+class TableAction {
+    constructor(table){
+        this.table = table;
+    }
+
+    /**
+     * @param {number} scroll
+     * 
+     */
+    zoom(scroll){
+        
+        var oldScale = this.table.zoom.current
+
+        // determine the zoom direction
+        if(scroll < 0)        
+            this.table.zoom.current += 0.1
+        else if(scroll > 0)
+            this.table.zoom.current -= 0.1
+
+        // limit the zoom range
+        if(this.table.zoom.current < this.table.zoom.min)
+            this.table.zoom.current = this.table.zoom.min
+        if(this.table.zoom.current > this.table.zoom.max)
+            this.table.zoom.current = this.table.zoom.max
+        
+        // step1: scale the glayer
+        this.table.gLayer.scaleX(this.table.zoom.current)
+        this.table.gLayer.scaleY(this.table.zoom.current)
+
+        // step2: move the glayer
+        // move to the pointer as center
+        const pointer = this.table.stage.getPointerPosition();
+
+        const mousePointTarget = {
+            x: (pointer.x - this.table.gLayer.x()) / oldScale,
+            y: (pointer.y - this.table.gLayer.y()) / oldScale,
+            };
+
+        // DEBUG_INFO("gLayerXY",_px,_py);
+        this.table.gLayer.setAttrs({
+            x: pointer.x - mousePointTarget.x * this.table.zoom.current,
+            y: pointer.y - mousePointTarget.y * this.table.zoom.current,
+        })
+
+        this.table.fitWindow();
+    }
+
+}
+
+class TableDebug {
+    constructor(table) {
+        this.table = table;
+
+        this.initHitDebug();
+    }
+
+    initHitDebug(){
+        // debug shape
+        this.hit = new Konva.Rect({
+            width: 10,
+            height: 10,
+            fill:"red",
+            offsetX: 5,
+            offsetY: 5,
+        })
+
+        this.table.gLayer.add(this.hit);
+    }
+
+    updateHit(){
+        this.hit.setAttrs({
+            x: this.table.currentPointer.x,
+            y: this.table.currentPointer.y
+        })
+    }
+}
+
+class TableEvent {
+    constructor(table){
+        this.table = table;
+
+        window.addEventListener("resize", (e) => this.handleResize(e));
+        window.addEventListener("wheel", (e) => this.handleWheel(e));
+        window.addEventListener("pointermove", (e) => this.handleMove(e));
+        window.addEventListener("pointerdown", (e) => this.handleClick(e));
+        window.addEventListener("keydown", (e) => this.handleKey(e));
+    }
+
+    handleWheel(e) {
+        DEBUG_INFO("Enter handleWheel");
+
+        this.table.debug.updateHit();
+        const delta = e.deltaY;
+        DEBUG_INFO("delta: ",delta);
+
+        this.table.action.zoom(delta);
+    }
+
+    handleMove(e) {
+        // DEBUG_INFO("Enter handleMove");
+        this.table.move(e);
+        this.table.debug.updateHit();
+    }
+
+    handleClick(e){
+        DEBUG_INFO("Enter handleClick");
+        
+        if(this.table.state == "idle" || "typing"){
+            DEBUG_INFO("Enter table idle");
+            this.table.state = 'typing'
+            this.table.selectBlock();
+        }
+    }
+
+    handleKey(e){
+        DEBUG_INFO("Enter handleKey");
+
+        if (event.altKey && event.code === 'Digit1') {
+            event.preventDefault(); // 阻止默认行为
+            DEBUG_INFO("Alt + 1")
+            this.table.setActiveTool("pencil");
+        }
     }
 }
