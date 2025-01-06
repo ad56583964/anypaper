@@ -1,8 +1,8 @@
 import Konva from "konva";
 import AnyA4Tool from "./commands";
-import PaperTool from "./paper";
-import PencilTool from "./pencil";
-import SelectTool from "./select";
+import PaperTool from "./tools/paper";
+import PencilTool from "./tools/pencil";
+import SelectTool from "./tools/select";
 
 let DEBUG_INFO = console.log;
 
