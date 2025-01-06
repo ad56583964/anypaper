@@ -58,7 +58,7 @@ export default class Table {
         // this.registerTool("paper",new PaperTool(this))
         this.registerTool("pencil",new PencilTool(this))
 
-        this.setActiveTool("select");
+        this.setActiveTool("pencil");
         // this.debug = new TableDebug(this)
         // this.eventManage = new TableEvent(this)
 
@@ -253,33 +253,5 @@ export default class Table {
             DEBUG_INFO("Tool please");
             this.currentTool.keydown(e);
         }
-    }
-}
-
-class TableDebug {
-    constructor(table) {
-        this.table = table;
-
-        this.initHitDebug();
-    }
-
-    initHitDebug(){
-        // debug shape
-        this.hit = new Konva.Rect({
-            width: 10,
-            height: 10,
-            fill:"red",
-            offsetX: 5,
-            offsetY: 5,
-        })
-
-        this.table.gLayer.add(this.hit);
-    }
-
-    updateHit(){
-        this.hit.setAttrs({
-            x: this.table.currentPointer.x,
-            y: this.table.currentPointer.y
-        })
     }
 }

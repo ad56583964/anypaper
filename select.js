@@ -66,9 +66,9 @@ export default class SelectTool {
     }
 
     _isOutside(){
-        DEBUG_INFO("height"+this.table.konva_attr.height()+" width"+this.table.konva_attr.width());
+        // DEBUG_INFO("height"+this.table.konva_attr.height()+" width"+this.table.konva_attr.width());
         // seems stage will auto extern
-        DEBUG_INFO("height"+this.table.stage.height()+" width"+this.table.stage.width());
+        // DEBUG_INFO("height"+this.table.stage.height()+" width"+this.table.stage.width());
         return this.table.currentPointer.x*this.table.zoom.current < 0 || this.table.currentPointer.x > this.table.konva_attr.width() || this.table.currentPointer.y < 0 || this.table.currentPointer.y > this.table.konva_attr.height()
     }
 
@@ -89,7 +89,7 @@ export default class SelectTool {
         // 此处的 currentBlock 实际是指 gLayer 为坐标系起点
         // log is effect the performance
         // DEBUG_INFO("currentPointer:",this.table.currentPointer.x - gLayerPos.x , this.table.currentPointer.y - gLayerPos.y);
-        DEBUG_INFO("currentBlock:",this.getcurrentBlock());
+        // DEBUG_INFO("currentBlock:",this.getcurrentBlock());
 
         if(this._isOutside()){
             this._hideHangingBlock()
@@ -98,12 +98,12 @@ export default class SelectTool {
             this._updateHangingBlock(this.currentBlock.x,this.currentBlock.y)
         }
 
-        DEBUG_INFO(this._isOutside())
+        // DEBUG_INFO(this._isOutside())
     }
 
     // Event listeners
     pointermove(e){
-        DEBUG_INFO("SelectTool pointermove");
+        // DEBUG_INFO("SelectTool pointermove");
         this.move(e);
     }
 
