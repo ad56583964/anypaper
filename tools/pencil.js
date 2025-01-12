@@ -1,4 +1,4 @@
-import Konva from "konva";
+import Konva from 'konva';
 
 let DEBUG_INFO = console.log;
 
@@ -10,7 +10,7 @@ export default class PencilTool {
 
         this.isdrawing = false;
         
-        this.currentDrawPointer = null;
+        this.lastDrawPointer = null;
         this.currentPoints = [];
     }
 
@@ -25,20 +25,21 @@ export default class PencilTool {
     pointerdown(e){
         DEBUG_INFO("PencilTool pointerdown");
         this.isdrawing = true;
-        this.currentDrawPointer = this.table.currentPointer
+        this.lastDrawPointer = this.table.currentPointer
 
         this.currentPoints = [this.table.currentPointer.x, this.table.currentPointer.y];
 
-        this.curline = new Konva.Line({
-            points: this.currentPoints,
-            stroke: 'black',
-            strokeWidth: 10,
-            lineCap: 'round',
-            lineJoin: 'round',
-            tension: 1,
-        })
+        this.stylusgroup = new Konva.Group();
 
-        this.table.gLayer.add(this.curline);
+        var point = new Konva.Circle({
+            x: this.table.currentPointer.x,
+            y: this.table.currentPointer.y,
+            radius: 1,
+            fill: "black",
+        })
+        this.stylusgroup.add(point);
+
+        this.table.gLayer.add(this.stylusgroup);
 
         this.table.updateCurrentPointer();
         this.updateHit();
@@ -55,17 +56,22 @@ export default class PencilTool {
         // DEBUG_INFO("PencilTool pointermove");
         if(this.isdrawing){
             // DEBUG_INFO("keep drawing");
-            DEBUG_INFO(this.table.currentPointer);
-            if(this.currentDrawPointer == this.table.currentPointer){
+            // DEBUG_INFO(this.table.currentPointer);
+            if(this.lastDrawPointer == this.table.currentPointer){
                 // DEBUG_INFO("wait move")
             }
             else{
-                this.currentPoints.push(this.table.currentPointer.x, this.table.currentPointer.y);
-                this.curline.setAttrs({points:this.currentPoints});
+                var point = new Konva.Circle({
+                    x: this.table.currentPointer.x,
+                    y: this.table.currentPointer.y,
+                    radius: 1,
+                    fill: "black",
+                })
+                this.stylusgroup.add(point);
                 // DEBUG_INFO("Notice: moving")
             }
 
-            this.currentDrawPointer = this.table.currentPointer
+            this.lastDrawPointer = this.table.currentPointer
         }
         this.table.updateCurrentPointer();
         this.updateHit();
