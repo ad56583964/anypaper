@@ -25,7 +25,9 @@ export default class Table {
         });
 
         // Setup the layers
-        this.gLayer = new Konva.Layer();
+        this.gLayer = new Konva.Layer({
+            listening: false,
+        });
         this.stage.add(this.gLayer);
         this.state = "idle";
 
@@ -113,7 +115,7 @@ export default class Table {
 
         this.initGridBG();
 
-        this.gLayer.draw();
+        this.gLayer.batchDraw();
     }
 
     fitWindow() {

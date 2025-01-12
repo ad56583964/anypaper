@@ -11,7 +11,7 @@ export default class PencilTool {
         this.isdrawing = false;
         
         this.lastDrawPointer = null;
-        this.currentPoints = [];
+        // this.currentPoints = [];
     }
 
     activate(){
@@ -27,15 +27,18 @@ export default class PencilTool {
         this.isdrawing = true;
         this.lastDrawPointer = this.table.currentPointer
 
-        this.currentPoints = [this.table.currentPointer.x, this.table.currentPointer.y];
+        // this.currentPoints = [this.table.currentPointer.x, this.table.currentPointer.y];
 
         this.stylusgroup = new Konva.Group();
 
         var point = new Konva.Circle({
-            x: this.table.currentPointer.x,
-            y: this.table.currentPointer.y,
+            x: this.lastDrawPointer.x,
+            y: this.lastDrawPointer.y,
             radius: 1,
             fill: "black",
+            listening: false,
+            draggable: false,
+
         })
         this.stylusgroup.add(point);
 
@@ -43,6 +46,8 @@ export default class PencilTool {
 
         this.table.updateCurrentPointer();
         this.updateHit();
+
+        this.table.gLayer.batchDraw();
 
         DEBUG_INFO("Start drawing")
     }
@@ -54,6 +59,7 @@ export default class PencilTool {
 
     pointermove(e){
         // DEBUG_INFO("PencilTool pointermove");
+        
         if(this.isdrawing){
             // DEBUG_INFO("keep drawing");
             // DEBUG_INFO(this.table.currentPointer);
@@ -62,12 +68,16 @@ export default class PencilTool {
             }
             else{
                 var point = new Konva.Circle({
-                    x: this.table.currentPointer.x,
-                    y: this.table.currentPointer.y,
+                    x: this.lastDrawPointer.x,
+                    y: this.lastDrawPointer.y,
                     radius: 1,
                     fill: "black",
+                    listening: false,
+                    draggable: false,
                 })
                 this.stylusgroup.add(point);
+                this.stylusgroup.cache();
+                this.table.gLayer.batchDraw();
                 // DEBUG_INFO("Notice: moving")
             }
 
