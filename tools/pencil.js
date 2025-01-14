@@ -34,7 +34,7 @@ export default class PencilTool {
         var point = new Konva.Circle({
             x: this.lastDrawPointer.x,
             y: this.lastDrawPointer.y,
-            radius: 1,
+            radius: this.table.pixel,
             fill: "black",
             listening: false,
             draggable: false,
@@ -54,6 +54,7 @@ export default class PencilTool {
 
     pointerup(e){
         DEBUG_INFO("finish drawing")
+        this.stylusgroup.cache();
         this.isdrawing = false;
     }
 
@@ -70,13 +71,13 @@ export default class PencilTool {
                 var point = new Konva.Circle({
                     x: this.lastDrawPointer.x,
                     y: this.lastDrawPointer.y,
-                    radius: 1,
+                    radius: this.table.pixel,
                     fill: "black",
                     listening: false,
                     draggable: false,
                 })
                 this.stylusgroup.add(point);
-                this.stylusgroup.cache();
+                // this.stylusgroup.cache();
                 this.table.gLayer.batchDraw();
                 // DEBUG_INFO("Notice: moving")
             }
@@ -97,6 +98,7 @@ export default class PencilTool {
             x: this.table.currentPointer.x,
             y: this.table.currentPointer.y
         })
+        this.table.gLayer.batchDraw();
     }
 
     initHitDebug(){
@@ -107,6 +109,8 @@ export default class PencilTool {
             fill:"red",
             offsetX: 5,
             offsetY: 5,
+            listening: false,
+            draggable: false,
         })
 
         this.table.gLayer.add(this.hit);

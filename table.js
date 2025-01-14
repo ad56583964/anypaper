@@ -8,8 +8,10 @@ let DEBUG_INFO = console.log;
 
 export default class Table {
     constructor(containerId = 'a4-table', theme) {
-        this.width = 20*40;
-        this.height = 20*30;
+        this.pixel = 2;
+
+        this.width = 20*40*this.pixel;
+        this.height = 20*30*this.pixel;
 
         this.zoom = {
             current: 1,
@@ -39,8 +41,8 @@ export default class Table {
         };
 
         this.block = {
-            width: 20,
-            height: 40
+            width: 20 * this.pixel,
+            height: 40 * this.pixel,
         }
 
         this.stage.container().style.cursor = 'crosshair'
@@ -72,7 +74,8 @@ export default class Table {
      */
     initGridBG() {
         this.gridGroup = new Konva.Group({
-            listening: false
+            listening: false,
+            draggable: false,
         })
 
         //使用这个方式描述 点阵背景会有运行时开销吗 ？
@@ -81,10 +84,12 @@ export default class Table {
         for (let i = 1; i < this.width / this.block.width; i++) {
             for (let j = 1; j < this.height / this.block.height; j++) {
                 var circle = new Konva.Circle({
-                    x: i * 20,
-                    y: j * 40,
-                    radius: 1,
+                    x: i * 20 * this.pixel,
+                    y: j * 40 * this.pixel,
+                    radius: this.pixel,
                     fill: "black",
+                    listening: false,
+                    draggable: false,
                 });
                 this.gridGroup.add(circle);
             }
