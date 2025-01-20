@@ -21,6 +21,8 @@ export default class Table {
 
         // Setup the stage (global enviroment)
         this.stage = new Konva.Stage({
+            listening: false,
+            draggable: false,
             container: containerId,
             width: this.width,
             height: this.height,
@@ -29,6 +31,7 @@ export default class Table {
         // Setup the layers
         this.gLayer = new Konva.Layer({
             listening: false,
+            draggable: false,
         });
         this.stage.add(this.gLayer);
         this.state = "idle";
@@ -107,6 +110,8 @@ export default class Table {
      */
     initTable() {
         this.konva_attr = new Konva.Rect({
+            listening: false,
+            draggable: false,
             width: this.stage.width(),
             height: this.stage.height(),
             //grey

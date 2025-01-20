@@ -13,11 +13,15 @@ export default class SelectTool {
             width: 20,
             height: 40,
             fill: "green",
+            listening: false,
+            draggable: false,
         })
         this.selectedBlock = new Konva.Rect({
             width: 20,
             height: 40,
             fill: "orange",
+            listening: false,
+            draggable: false,
         })
 
         this.table.gLayer.add(this.hangingBlock)
