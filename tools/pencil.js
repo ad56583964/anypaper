@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { getStroke } from 'perfect-freehand';
+import { updateDebugInfo } from '../debug';
 
 let DEBUG_INFO = console.log;
 
@@ -15,13 +16,11 @@ export default class PencilTool {
         this.currentPressures = [];
         this.lastCommittedPoint = null;
 
-        // 更新 DebugBar 显示设备像素比
-        if (window.DebugBarComponentRef?.current) {
-            window.DebugBarComponentRef.current.updatePixelRatioInfo(
-                window.devicePixelRatio,
-                0
-            );
-        }
+        // 更新设备像素比信息
+        updateDebugInfo('pixelRatio', {
+            devicePixelRatio: window.devicePixelRatio,
+            actualPixelRatio: 0
+        });
     }
 
     activate(){
@@ -112,19 +111,17 @@ export default class PencilTool {
         
         const actualPixelRatio = Math.max(3, window.devicePixelRatio || 2);
         
-        // 更新 DebugBar 显示实际使用的像素比
-        if (window.DebugBarComponentRef?.current) {
-            window.DebugBarComponentRef.current.updatePixelRatioInfo(
-                window.devicePixelRatio,
-                actualPixelRatio
-            );
-        }
+        // 更新像素比信息
+        updateDebugInfo('pixelRatio', {
+            devicePixelRatio: window.devicePixelRatio,
+            actualPixelRatio
+        });
         
         // 使用更高的缓存比例来提高清晰度
         this.stylusgroup.cache({
-            pixelRatio: actualPixelRatio,  // 提高基准像素比到3
+            pixelRatio: actualPixelRatio,
             imageSmoothingEnabled: false,
-            clearBeforeDraw: true,  // 确保每次缓存前清除旧的内容
+            clearBeforeDraw: true,
         });
         
         this.isdrawing = false;
@@ -140,6 +137,12 @@ export default class PencilTool {
         
         this.table.updateCurrentPointer();
         this.updateHit();
+        
+        // 更新鼠标位置信息
+        updateDebugInfo('mousePosition', {
+            x: this.table.currentPointer.x,
+            y: this.table.currentPointer.y
+        });
     }
 
     wheel(e){
