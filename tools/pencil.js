@@ -14,6 +14,14 @@ export default class PencilTool {
         this.currentPoints = [];
         this.currentPressures = [];
         this.lastCommittedPoint = null;
+
+        // 更新 DebugBar 显示设备像素比
+        if (window.DebugBarComponentRef?.current) {
+            window.DebugBarComponentRef.current.updatePixelRatioInfo(
+                window.devicePixelRatio,
+                0
+            );
+        }
     }
 
     activate(){
@@ -103,8 +111,14 @@ export default class PencilTool {
         this.drawStroke(); // Final stroke with lastCommittedPoint
         
         const actualPixelRatio = Math.max(3, window.devicePixelRatio || 2);
-        DEBUG_INFO("Using Pixel Ratio for cache:", actualPixelRatio);
-        DEBUG_INFO("Original Device Pixel Ratio:", window.devicePixelRatio);
+        
+        // 更新 DebugBar 显示实际使用的像素比
+        if (window.DebugBarComponentRef?.current) {
+            window.DebugBarComponentRef.current.updatePixelRatioInfo(
+                window.devicePixelRatio,
+                actualPixelRatio
+            );
+        }
         
         // 使用更高的缓存比例来提高清晰度
         this.stylusgroup.cache({

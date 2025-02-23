@@ -3,18 +3,33 @@ import ReactDOM from 'react-dom/client';
 
 // function
 const DebugBar = React.forwardRef(function DebugBar(props, ref) {
-    const [mousePosition,setMousePosition] = React.useState({x:0,y:0});
+    const [mousePosition, setMousePosition] = React.useState({x:0, y:0});
+    const [pixelRatioInfo, setPixelRatioInfo] = React.useState({
+        devicePixelRatio: window.devicePixelRatio,
+        actualPixelRatio: 0
+    });
     
     React.useImperativeHandle(ref, () => ({
-        updateMousePosition: (_x, _y) => setMousePosition({ x: _x, y: _y })
+        updateMousePosition: (_x, _y) => setMousePosition({ x: _x, y: _y }),
+        updatePixelRatioInfo: (deviceRatio, actualRatio) => setPixelRatioInfo({
+            devicePixelRatio: deviceRatio,
+            actualPixelRatio: actualRatio
+        })
     }));
 
     // 这里是 debug 信息的填入区域
     return (
         <div>
-            <p>Mouse Position</p>
-            <p>X: {mousePosition.x} </p>
-            <p>X: {mousePosition.x} </p>
+            <div>
+                <p>Mouse Position</p>
+                <p>X: {mousePosition.x}</p>
+                <p>Y: {mousePosition.y}</p>
+            </div>
+            <div>
+                <p>Pixel Ratio Info</p>
+                <p>Device Pixel Ratio: {pixelRatioInfo.devicePixelRatio}</p>
+                <p>Actual Cache Pixel Ratio: {pixelRatioInfo.actualPixelRatio}</p>
+            </div>
         </div>
     );
 })
@@ -31,5 +46,4 @@ export default function initDebugbar() {
     window.DebugBarComponentRef = debugBarComponentRef;
 
     debugbar.render(<DebugBar ref={debugBarComponentRef} />);
-
 }
