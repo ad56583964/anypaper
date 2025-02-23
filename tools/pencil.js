@@ -6,6 +6,7 @@ let DEBUG_INFO = console.log;
 export default class PencilTool {
     constructor(table){
         DEBUG_INFO("Init PencilTool");
+        DEBUG_INFO("Device Pixel Ratio:", window.devicePixelRatio);
         this.table = table;
         this.initHitDebug();
 
@@ -100,7 +101,18 @@ export default class PencilTool {
         DEBUG_INFO("finish drawing");
         this.lastCommittedPoint = [...this.currentPoints[this.currentPoints.length - 1]];
         this.drawStroke(); // Final stroke with lastCommittedPoint
-        this.stylusgroup.cache();
+        
+        const actualPixelRatio = Math.max(3, window.devicePixelRatio || 2);
+        DEBUG_INFO("Using Pixel Ratio for cache:", actualPixelRatio);
+        DEBUG_INFO("Original Device Pixel Ratio:", window.devicePixelRatio);
+        
+        // 使用更高的缓存比例来提高清晰度
+        this.stylusgroup.cache({
+            pixelRatio: actualPixelRatio,  // 提高基准像素比到3
+            imageSmoothingEnabled: false,
+            clearBeforeDraw: true,  // 确保每次缓存前清除旧的内容
+        });
+        
         this.isdrawing = false;
         this.currentPoints = [];
     }
