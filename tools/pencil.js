@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { getStroke } from 'perfect-freehand';
 
 let DEBUG_INFO = console.log;
 
@@ -9,9 +10,9 @@ export default class PencilTool {
         this.initHitDebug();
 
         this.isdrawing = false;
-        
-        this.lastDrawPointer = null;
-        // this.currentPoints = [];
+        this.currentPoints = [];
+        this.currentPressures = [];
+        this.lastCommittedPoint = null;
     }
 
     activate(){
@@ -22,68 +23,95 @@ export default class PencilTool {
         DEBUG_INFO("PencilTool deactivate");
     }
 
-    pointerdown(e){
-        DEBUG_INFO("PencilTool pointerdown");
-        this.isdrawing = true;
-        this.lastDrawPointer = this.table.currentPointer
+    getSvgPathFromStroke(points) {
+        if (!points.length) {
+            return "";
+        }
+        
+        const max = points.length - 1;
+        
+        const med = (A, B) => [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+        
+        return points
+            .reduce(
+                (acc, point, i, arr) => {
+                    if (i === max) {
+                        acc.push(point, med(point, arr[0]), "L", arr[0], "Z");
+                    } else {
+                        acc.push(point, med(point, arr[i + 1]));
+                    }
+                    return acc;
+                },
+                ["M", points[0], "Q"],
+            )
+            .join(" ");
+    }
 
-        // this.currentPoints = [this.table.currentPointer.x, this.table.currentPointer.y];
+    drawStroke() {
+        if (this.currentPoints.length < 2) return;
 
-        this.stylusgroup = new Konva.Group();
+        const options = {
+            size: this.table.pixel * 2,
+            thinning: 0.6,
+            smoothing: 0.5,
+            streamline: 0.5,
+            easing: (t) => Math.sin((t * Math.PI) / 2),
+            simulatePressure: true,
+            last: !!this.lastCommittedPoint,
+        };
 
-        var point = new Konva.Circle({
-            x: this.lastDrawPointer.x,
-            y: this.lastDrawPointer.y,
-            radius: this.table.pixel,
-            fill: "black",
+        const stroke = getStroke(this.currentPoints, options);
+        const pathData = this.getSvgPathFromStroke(stroke);
+
+        // Remove previous path if exists
+        if (this.currentPath) {
+            this.currentPath.destroy();
+        }
+
+        // Create new path
+        this.currentPath = new Konva.Path({
+            data: pathData,
+            fill: 'black',
             listening: false,
             draggable: false,
+        });
 
-        })
-        this.stylusgroup.add(point);
+        this.stylusgroup.add(this.currentPath);
+        this.table.gLayer.batchDraw();
+    }
 
+    pointerdown(e) {
+        DEBUG_INFO("PencilTool pointerdown");
+        this.isdrawing = true;
+        
+        this.currentPoints = [[this.table.currentPointer.x, this.table.currentPointer.y]];
+        this.stylusgroup = new Konva.Group();
         this.table.gLayer.add(this.stylusgroup);
-
+        
+        this.drawStroke();
+        
         this.table.updateCurrentPointer();
         this.updateHit();
-
-        this.table.gLayer.batchDraw();
-
-        DEBUG_INFO("Start drawing")
+        
+        DEBUG_INFO("Start drawing");
     }
 
-    pointerup(e){
-        DEBUG_INFO("finish drawing")
+    pointerup(e) {
+        DEBUG_INFO("finish drawing");
+        this.lastCommittedPoint = [...this.currentPoints[this.currentPoints.length - 1]];
+        this.drawStroke(); // Final stroke with lastCommittedPoint
         this.stylusgroup.cache();
         this.isdrawing = false;
+        this.currentPoints = [];
     }
 
-    pointermove(e){
-        // DEBUG_INFO("PencilTool pointermove");
-        
-        if(this.isdrawing){
-            // DEBUG_INFO("keep drawing");
-            // DEBUG_INFO(this.table.currentPointer);
-            if(this.lastDrawPointer == this.table.currentPointer){
-                // DEBUG_INFO("wait move")
-            }
-            else{
-                var point = new Konva.Circle({
-                    x: this.lastDrawPointer.x,
-                    y: this.lastDrawPointer.y,
-                    radius: this.table.pixel,
-                    fill: "black",
-                    listening: false,
-                    draggable: false,
-                })
-                this.stylusgroup.add(point);
-                // this.stylusgroup.cache();
-                this.table.gLayer.batchDraw();
-                // DEBUG_INFO("Notice: moving")
-            }
-
-            this.lastDrawPointer = this.table.currentPointer
+    pointermove(e) {
+        if (this.isdrawing) {
+            const point = [this.table.currentPointer.x, this.table.currentPointer.y];
+            this.currentPoints.push(point);
+            this.drawStroke();
         }
+        
         this.table.updateCurrentPointer();
         this.updateHit();
     }
