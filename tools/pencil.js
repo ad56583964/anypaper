@@ -2,12 +2,8 @@ import Konva from 'konva';
 import { getStroke } from 'perfect-freehand';
 import { updateDebugInfo } from '../debug';
 
-let DEBUG_INFO = console.log;
-
 export default class PencilTool {
     constructor(table){
-        DEBUG_INFO("Init PencilTool");
-        DEBUG_INFO("Device Pixel Ratio:", window.devicePixelRatio);
         this.table = table;
         this.initHitDebug();
 
@@ -16,7 +12,7 @@ export default class PencilTool {
         this.currentPressures = [];
         this.lastCommittedPoint = null;
 
-        // 更新设备像素比信息
+        // 初始化调试信息
         updateDebugInfo('pixelRatio', {
             devicePixelRatio: window.devicePixelRatio,
             actualPixelRatio: 0
@@ -24,11 +20,11 @@ export default class PencilTool {
     }
 
     activate(){
-        DEBUG_INFO("PencilTool activate");
+        console.log("PencilTool activate");
     }
 
     deactivate(){
-        DEBUG_INFO("PencilTool deactivate");
+        console.log("PencilTool deactivate");
     }
 
     getSvgPathFromStroke(points) {
@@ -89,7 +85,7 @@ export default class PencilTool {
     }
 
     pointerdown(e) {
-        DEBUG_INFO("PencilTool pointerdown");
+        console.log("PencilTool pointerdown");
         this.isdrawing = true;
         
         this.currentPoints = [[this.table.currentPointer.x, this.table.currentPointer.y]];
@@ -101,11 +97,11 @@ export default class PencilTool {
         this.table.updateCurrentPointer();
         this.updateHit();
         
-        DEBUG_INFO("Start drawing");
+        console.log("Start drawing");
     }
 
     pointerup(e) {
-        DEBUG_INFO("finish drawing");
+        console.log("finish drawing");
         this.lastCommittedPoint = [...this.currentPoints[this.currentPoints.length - 1]];
         this.drawStroke(); // Final stroke with lastCommittedPoint
         
@@ -138,15 +134,21 @@ export default class PencilTool {
         this.table.updateCurrentPointer();
         this.updateHit();
         
-        // 更新鼠标位置信息
-        updateDebugInfo('mousePosition', {
-            x: this.table.currentPointer.x,
-            y: this.table.currentPointer.y
-        });
+        // 更新鼠标位置信息（使用 requestAnimationFrame 来限制更新频率）
+        if (!this._updateDebugScheduled) {
+            this._updateDebugScheduled = true;
+            requestAnimationFrame(() => {
+                updateDebugInfo('mousePosition', {
+                    x: this.table.currentPointer.x,
+                    y: this.table.currentPointer.y
+                });
+                this._updateDebugScheduled = false;
+            });
+        }
     }
 
     wheel(e){
-        DEBUG_INFO("PencilTool wheel");
+        console.log("PencilTool wheel");
         this.table.updateZoom(e);
     }
 
