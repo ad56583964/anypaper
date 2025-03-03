@@ -102,7 +102,7 @@ export default class PencilTool {
 
     pointerup(e) {
         console.log("finish drawing");
-        this.lastCommittedPoint = [...this.currentPoints[this.currentPoints.length - 1]];
+        this.lastCommittedPoint = this.currentPoints[this.currentPoints.length - 1];
         this.drawStroke(); // Final stroke with lastCommittedPoint
         
         const actualPixelRatio = Math.max(3, window.devicePixelRatio || 2);
@@ -125,13 +125,15 @@ export default class PencilTool {
     }
 
     pointermove(e) {
+        // 先更新指针位置
+        this.table.updateCurrentPointer();
+        
         if (this.isdrawing) {
             const point = [this.table.currentPointer.x, this.table.currentPointer.y];
             this.currentPoints.push(point);
             this.drawStroke();
         }
         
-        this.table.updateCurrentPointer();
         this.updateHit();
         
         // 更新鼠标位置信息（使用 requestAnimationFrame 来限制更新频率）

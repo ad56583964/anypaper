@@ -141,11 +141,14 @@ export default class Table {
     // global use
     updateCurrentPointer(){
         var gPointer = this.stage.getPointerPosition();
+        if (!gPointer) return;  // 如果没有获取到指针位置，直接返回
+        
         var gLayerPos = this.gLayer.getAbsolutePosition();
+        if (!gLayerPos) return;  // 如果没有获取到图层位置，直接返回
 
         this.currentPointer = {
-            x:(gPointer.x - gLayerPos.x) / this.zoom.current,
-            y:(gPointer.y - gLayerPos.y) / this.zoom.current,
+            x: (gPointer.x - gLayerPos.x) / this.zoom.current,
+            y: (gPointer.y - gLayerPos.y) / this.zoom.current,
         }
     }
 
