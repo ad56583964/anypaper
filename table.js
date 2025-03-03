@@ -333,6 +333,7 @@ export default class Table {
             // 处理双指缩放
             if (eventType === 'touchstart' && event.touches.length === 2) {
                 this.touch.isZooming = true;
+                this.isDragging = false; // 确保拖动状态被重置
                 this.touch.initialScale = this.zoom.current;
                 this.touch.initialPosition = {
                     x: this.stage.x(),
@@ -356,21 +357,49 @@ export default class Table {
                 });
                 event.preventDefault();
                 return;
-            } else if (eventType === 'touchmove' && event.touches.length === 2) {
-                this.handleTouchZoom(event);
-                event.preventDefault();
-                return;
-            } else if (eventType === 'touchend') {
-                if (this.touch.isZooming) {
-                    this.touch.isZooming = false;
-                    console.log('ZOOM_LOG: 缩放模式-触摸结束，重置缩放状态');
+            } else if (eventType === 'touchmove') {
+                if (event.touches.length === 2 && this.touch.isZooming) {
+                    this.handleTouchZoom(event);
+                    event.preventDefault();
+                    return;
+                } else if (event.touches.length === 1 && this.isDragging) {
+                    // 单指拖动处理
+                    // 获取当前触摸位置
+                    const touch = event.touches[0];
+                    const currentTouchPos = {
+                        x: touch.clientX,
+                        y: touch.clientY
+                    };
+                    
+                    // 计算触摸点移动的距离
+                    const deltaX = currentTouchPos.x - this.dragStartTouchPos.x;
+                    const deltaY = currentTouchPos.y - this.dragStartTouchPos.y;
+                    
+                    // 更新舞台位置，使手指下方的内容跟随移动
+                    const newX = this.dragStartStagePos.x + deltaX;
+                    const newY = this.dragStartStagePos.y + deltaY;
+                    
+                    this.stage.x(newX);
+                    this.stage.y(newY);
+                    
+                    console.log(`ZOOM_LOG: 缩放模式-拖动中`, {
+                        deltaX,
+                        deltaY,
+                        newStagePos: { x: newX, y: newY }
+                    });
+                    
                     event.preventDefault();
                     return;
                 }
+            } else if (eventType === 'touchend') {
+                // 处理触摸结束事件
+                this.touchend(event);
+                event.preventDefault();
+                return;
             }
             
-            // 处理单指拖动（平移）
-            if (eventType === 'touchstart' && event.touches.length === 1) {
+            // 处理单指拖动（平移）- 仅当不在缩放状态时
+            if (eventType === 'touchstart' && event.touches.length === 1 && !this.touch.isZooming) {
                 // 开始拖动
                 this.isDragging = true;
                 
@@ -395,41 +424,6 @@ export default class Table {
                     stagePos: this.dragStartStagePos
                 });
                 
-                event.preventDefault();
-                return;
-            } else if (eventType === 'touchmove' && this.isDragging && event.touches.length === 1) {
-                // 获取当前触摸位置
-                const touch = event.touches[0];
-                const currentTouchPos = {
-                    x: touch.clientX,
-                    y: touch.clientY
-                };
-                
-                // 计算触摸点移动的距离
-                const deltaX = currentTouchPos.x - this.dragStartTouchPos.x;
-                const deltaY = currentTouchPos.y - this.dragStartTouchPos.y;
-                
-                // 更新舞台位置，使手指下方的内容跟随移动
-                const newX = this.dragStartStagePos.x + deltaX;
-                const newY = this.dragStartStagePos.y + deltaY;
-                
-                this.stage.x(newX);
-                this.stage.y(newY);
-                
-                console.log(`ZOOM_LOG: 缩放模式-拖动中`, {
-                    deltaX,
-                    deltaY,
-                    newStagePos: { x: newX, y: newY }
-                });
-                
-                event.preventDefault();
-                return;
-            } else if ((eventType === 'touchend' || eventType === 'touchcancel') && this.isDragging) {
-                // 结束拖动
-                this.isDragging = false;
-                console.log('ZOOM_LOG: 缩放模式-拖动结束', {
-                    finalStagePos: { x: this.stage.x(), y: this.stage.y() }
-                });
                 event.preventDefault();
                 return;
             }
@@ -510,6 +504,13 @@ export default class Table {
                     return; // 不再传递给工具
                 } else if (eventType === 'touchend') {
                     this.touchend(event);
+                    event.preventDefault();
+                    return;
+                }
+            } else if (eventType === 'touchend') {
+                // 处理从双指到单指的过渡
+                this.touchend(event);
+                if (this.isDragging) {
                     event.preventDefault();
                     return;
                 }
@@ -728,8 +729,37 @@ export default class Table {
     touchend(e) {
         // 如果触摸点少于2个，重置缩放状态
         if (e.touches.length < 2) {
+            // 如果之前正在进行缩放操作，现在只剩一个手指
+            if (this.touch.isZooming && e.touches.length === 1) {
+                // 记录当前剩余的触摸点位置，作为新的拖动起始点
+                const touch = e.touches[0];
+                this.isDragging = true;
+                this.dragStartTouchPos = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
+                
+                // 记录当前舞台位置作为拖动的起始位置
+                this.dragStartStagePos = {
+                    x: this.stage.x(),
+                    y: this.stage.y()
+                };
+                
+                console.log('ZOOM_LOG: 从缩放过渡到拖动', {
+                    touchPos: this.dragStartTouchPos,
+                    stagePos: this.dragStartStagePos
+                });
+            }
+            
             this.touch.isZooming = false;
             console.log('ZOOM_LOG: 触摸结束，重置缩放状态');
+        }
+        
+        // 如果没有触摸点了，完全重置所有状态
+        if (e.touches.length === 0) {
+            this.isDragging = false;
+            this.touch.isZooming = false;
+            console.log('ZOOM_LOG: 所有触摸结束，完全重置状态');
         }
     }
 }
