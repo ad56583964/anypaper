@@ -1,13 +1,13 @@
 import Table from "./table";
 
 export default function DrawingApp() {
-    // 禁用原生缩放，但允许 Konva 处理触摸事件
-    document.body.style.touchAction = 'manipulation'; // 允许点击和滚动，但禁用缩放
-    document.body.style.overscrollBehavior = 'none'; // 防止页面滚动
+    // 禁用浏览器默认的触摸行为，以便我们自己处理
+    document.body.style.touchAction = 'none';
+    document.body.style.overscrollBehavior = 'none';
     
-    // 禁用双指缩放
+    // 阻止浏览器默认的双指缩放
     document.addEventListener('gesturestart', function(e) {
-        e.preventDefault(); // 阻止默认的双指缩放手势
+        e.preventDefault();
     }, { passive: false });
     
     document.addEventListener('gesturechange', function(e) {
@@ -18,5 +18,14 @@ export default function DrawingApp() {
         e.preventDefault();
     }, { passive: false });
 
-    const table = new Table()
+    // 阻止双击缩放
+    document.addEventListener('dblclick', function(e) {
+        e.preventDefault();
+    }, { passive: false });
+
+    // 创建表格实例
+    const table = new Table();
+    
+    // 添加调试信息
+    console.log("DrawingApp initialized with touch events configured");
 }

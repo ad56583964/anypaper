@@ -11,6 +11,11 @@ export default class PencilTool {
         this.currentPoints = [];
         this.currentPressures = [];
         this.lastCommittedPoint = null;
+        
+        // 添加触摸状态跟踪
+        this.touchState = {
+            isMultiTouch: false
+        };
 
         // 初始化调试信息
         updateDebugInfo('pixelRatio', {
@@ -84,7 +89,59 @@ export default class PencilTool {
         this.table.gLayer.batchDraw();
     }
 
+    // 处理触摸事件
+    touchstart(e) {
+        if (e.touches.length === 2) {
+            // 双指触摸开始
+            this.touchState.isMultiTouch = true;
+            
+            // 如果正在绘画，保存当前状态并停止绘画
+            if (this.isdrawing) {
+                this.pauseDrawing();
+            }
+        } else if (e.touches.length === 1 && !this.touchState.isMultiTouch) {
+            // 单指触摸且不是从双指切换来的，开始绘画
+            this.pointerdown(e.touches[0]);
+        }
+    }
+
+    touchmove(e) {
+        if (e.touches.length === 2) {
+            // 双指移动，交给 Table 处理缩放
+            return;
+        } else if (e.touches.length === 1 && !this.touchState.isMultiTouch) {
+            // 单指移动且不是从双指切换来的，继续绘画
+            this.pointermove(e.touches[0]);
+        }
+    }
+
+    touchend(e) {
+        if (e.touches.length === 0) {
+            // 所有手指离开
+            if (this.touchState.isMultiTouch) {
+                // 如果是从双指状态结束，重置状态
+                this.touchState.isMultiTouch = false;
+            } else if (this.isdrawing) {
+                // 如果是从绘画状态结束，完成绘画
+                this.pointerup(e);
+            }
+        } else if (e.touches.length === 1) {
+            // 从双指变成单指，不立即开始绘画，等待下一次触摸
+            this.touchState.isMultiTouch = false;
+        }
+    }
+
+    // 暂停绘画，保存当前状态
+    pauseDrawing() {
+        if (this.isdrawing) {
+            this.pointerup({ type: 'pointerup' });  // 发送一个模拟的 pointerup 事件
+        }
+    }
+
     pointerdown(e) {
+        // 如果是双指状态，不处理
+        if (this.touchState.isMultiTouch) return;
+
         console.log("PencilTool pointerdown");
         this.isdrawing = true;
         
@@ -101,6 +158,9 @@ export default class PencilTool {
     }
 
     pointerup(e) {
+        // 如果是双指状态，不处理
+        if (this.touchState.isMultiTouch) return;
+
         console.log("finish drawing");
         this.lastCommittedPoint = this.currentPoints[this.currentPoints.length - 1];
         this.drawStroke(); // Final stroke with lastCommittedPoint
@@ -125,6 +185,9 @@ export default class PencilTool {
     }
 
     pointermove(e) {
+        // 如果是双指状态，不处理
+        if (this.touchState.isMultiTouch) return;
+
         // 先更新指针位置
         this.table.updateCurrentPointer();
         

@@ -7,7 +7,7 @@ start:
 android-sync:
 	npx cap sync android
 
-android-build:
+android-build: android-sync
 	yarn build
 	npx cap sync android
 	cd android && ./gradlew assembleDebug
@@ -26,7 +26,7 @@ android-connect:
 	@read debug_ip_port; \
 	adb connect $$debug_ip_port
 
-android-install:
+android-install: android-build
 	@echo "检查 ADB 设备连接状态..."
 	@adb devices
 	@if [ $$(adb devices | grep -c "device$$") -eq 0 ]; then \
