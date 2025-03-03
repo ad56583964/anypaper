@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">blockmap</string>
+    <string name="title_activity_main">blockmap</string>
+    <string name="package_name">com.example.blockmap</string>
+    <string name="custom_url_scheme">com.example.blockmap</string>
+</resources>

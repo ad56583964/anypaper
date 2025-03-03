@@ -1,0 +1,18 @@
+{
+  "appId": "com.example.blockmap",
+  "appName": "blockmap",
+  "webDir": "dist",
+  "android": {
+    "webViewSettings": {
+      "allowFileAccess": true,
+      "allowContentAccess": true,
+      "allowFileAccessFromFileURLs": true,
+      "allowUniversalAccessFromFileURLs": true,
+      "setDomStorageEnabled": true,
+      "setJavaScriptEnabled": true,
+      "setBuiltInZoomControls": true,
+      "setSupportZoom": true,
+      "setDisplayZoomControls": false
+    }
+  }
+}

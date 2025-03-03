@@ -1,6 +1,13 @@
 body {
   overflow-x: hidden; /* 禁用水平滚动条 */
   overflow-y: hidden; /* 禁用垂直滚动条 */
+  touch-action: none; /* 禁用浏览器默认的触摸行为，让应用自己处理 */
+  -webkit-tap-highlight-color: rgba(0,0,0,0); /* 移除触摸高亮效果 */
+  position: fixed; /* 防止页面滚动 */
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 #debugbar {
@@ -12,4 +19,16 @@ body {
   background-color: #d0d0d0; /* Optional: for visual distinction */
   opacity: 0.8; /* 80% transparency */
   z-index: 1000; /* Ensures it stays on top */
+  touch-action: pan-y; /* 允许在调试栏上垂直滚动 */
+}
+
+/* 确保所有可交互元素都能响应触摸 */
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation; /* 允许点击，但禁用缩放 */
+  cursor: pointer;
+}
+
+/* 确保 canvas 元素能接收所有触摸事件 */
+canvas {
+  touch-action: none; /* 让 Konva 完全控制触摸行为 */
 }

@@ -84,7 +84,7 @@ function useDebugInfo() {
 }
 
 // DebugBar Component
-const DebugBar = React.forwardRef(function DebugBar(props, ref) {
+export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
     const debugInfo = useDebugInfo();
     
     React.useEffect(() => {
