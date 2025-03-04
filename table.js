@@ -1,4 +1,4 @@
-import Konva from "konva";
+import Konva from "./src/konva";
 import AnyA4Tool from "./commands";
 import PaperTool from "./tools/paper";
 import PencilTool from "./tools/pencil";

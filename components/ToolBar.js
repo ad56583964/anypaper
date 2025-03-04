@@ -1,4 +1,4 @@
-import Konva from 'konva';
+import Konva from '../src/konva';
 
 export default class ToolBar {
     constructor(table) {

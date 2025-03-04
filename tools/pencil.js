@@ -1,4 +1,4 @@
-import Konva from 'konva';
+import Konva from '../src/konva';
 import { getStroke } from 'perfect-freehand';
 import { updateDebugInfo } from '../debug';
 
@@ -85,6 +85,12 @@ export default class PencilTool {
             draggable: false,
         });
 
+        // Check if stylusgroup exists before adding to it
+        if (!this.stylusgroup) {
+            this.stylusgroup = new Konva.Group();
+            this.table.gLayer.add(this.stylusgroup);
+        }
+        
         this.stylusgroup.add(this.currentPath);
         this.table.gLayer.batchDraw();
     }
