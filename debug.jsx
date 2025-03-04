@@ -14,7 +14,7 @@ class DebugManager {
                 actualPixelRatio: 0
             },
         };
-        console.log('DebugManager initialized with:', this.debugInfo);
+        // console.log('DebugManager initialized with:', this.debugInfo);
     }
 
     static getInstance() {
@@ -25,18 +25,18 @@ class DebugManager {
     }
 
     subscribe(callback) {
-        console.log('New subscriber added');
+        // console.log('New subscriber added');
         this.subscribers.add(callback);
         // 立即通知新订阅者当前状态
         callback(this.debugInfo);
         return () => {
-            console.log('Subscriber removed');
+            // console.log('Subscriber removed');
             this.subscribers.delete(callback);
         };
     }
 
     updateInfo(category, data) {
-        console.log('Updating debug info:', category, data);
+        // console.log('Updating debug info:', category, data);
         this.debugInfo = {
             ...this.debugInfo,
             [category]: {
@@ -44,17 +44,17 @@ class DebugManager {
                 ...data
             }
         };
-        console.log('New debug info state:', this.debugInfo);
+        // console.log('New debug info state:', this.debugInfo);
         this.notifySubscribers();
     }
 
     notifySubscribers() {
-        console.log('Notifying', this.subscribers.size, 'subscribers');
+        // console.log('Notifying', this.subscribers.size, 'subscribers');
         this.subscribers.forEach(callback => {
             try {
                 callback(this.debugInfo);
             } catch (error) {
-                console.error('Error in subscriber callback:', error);
+                // console.error('Error in subscriber callback:', error);
             }
         });
     }
@@ -63,19 +63,19 @@ class DebugManager {
 // Debug Hook
 function useDebugInfo() {
     const [debugInfo, setDebugInfo] = React.useState(() => {
-        console.log('Initial debug info:', DebugManager.getInstance().debugInfo);
+        // console.log('Initial debug info:', DebugManager.getInstance().debugInfo);
         return DebugManager.getInstance().debugInfo;
     });
 
     React.useEffect(() => {
-        console.log('Setting up debug info subscription');
+        // console.log('Setting up debug info subscription');
         const unsubscribe = DebugManager.getInstance().subscribe(newInfo => {
-            console.log('Received new debug info:', newInfo);
+            // console.log('Received new debug info:', newInfo);
             setDebugInfo(newInfo);
         });
         
         return () => {
-            console.log('Cleaning up debug info subscription');
+            // console.log('Cleaning up debug info subscription');
             unsubscribe();
         };
     }, []);
@@ -88,7 +88,7 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
     const debugInfo = useDebugInfo();
     
     React.useEffect(() => {
-        console.log('DebugBar rendered with:', debugInfo);
+        // console.log('DebugBar rendered with:', debugInfo);
     }, [debugInfo]);
 
     return (
@@ -109,7 +109,7 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
 
 // 导出调试管理器的更新方法
 export const updateDebugInfo = (category, data) => {
-    console.log('updateDebugInfo called:', category, data);
+    // console.log('updateDebugInfo called:', category, data);
     DebugManager.getInstance().updateInfo(category, data);
 };
 
@@ -119,10 +119,10 @@ export const getDebugInfo = () => {
 };
 
 export default function initDebugbar() {
-    console.log('initDebugbar called');
+    // console.log('initDebugbar called');
     const debugbarElement = document.getElementById('debugbar');
     if (!debugbarElement) {
-        console.error('Debug bar element not found!');
+        // console.error('Debug bar element not found!');
         return;
     }
     
