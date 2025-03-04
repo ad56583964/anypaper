@@ -349,12 +349,12 @@ export default class Table {
                     y: (touch1.clientY + touch2.clientY) / 2
                 };
                 
-                console.log('ZOOM_LOG: 缩放模式-双指触摸开始，重置缩放状态', {
-                    initialScale: this.touch.initialScale,
-                    initialPosition: this.touch.initialPosition,
-                    initialDistance: this.touch.initialDistance,
-                    initialCenter: this.touch.initialCenter
-                });
+                // console.log('ZOOM_LOG: 缩放模式-双指触摸开始，重置缩放状态', {
+                //     initialScale: this.touch.initialScale,
+                //     initialPosition: this.touch.initialPosition,
+                //     initialDistance: this.touch.initialDistance,
+                //     initialCenter: this.touch.initialCenter
+                // });
                 event.preventDefault();
                 return;
             } else if (eventType === 'touchmove') {
@@ -382,11 +382,11 @@ export default class Table {
                     this.stage.x(newX);
                     this.stage.y(newY);
                     
-                    console.log(`ZOOM_LOG: 缩放模式-拖动中`, {
-                        deltaX,
-                        deltaY,
-                        newStagePos: { x: newX, y: newY }
-                    });
+                    // console.log(`ZOOM_LOG: 缩放模式-拖动中`, {
+                    //     deltaX,
+                    //     deltaY,
+                    //     newStagePos: { x: newX, y: newY }
+                    // });
                     
                     event.preventDefault();
                     return;
@@ -447,10 +447,10 @@ export default class Table {
                 // 记录指针起始点
                 this.pointerDragStartPos = pointerPos;
                 
-                console.log('ZOOM_LOG: 缩放模式-指针拖动开始', {
-                    pointerPos,
-                    stagePos: this.pointerDragStartStagePos
-                });
+                // console.log('ZOOM_LOG: 缩放模式-指针拖动开始', {
+                //     pointerPos,
+                //     stagePos: this.pointerDragStartStagePos
+                // });
                 
                 event.preventDefault();
                 return;
@@ -472,19 +472,19 @@ export default class Table {
                 this.stage.x(newX);
                 this.stage.y(newY);
                 
-                console.log(`ZOOM_LOG: 缩放模式-指针拖动中`, {
-                    deltaX,
-                    deltaY,
-                    newStagePos: { x: newX, y: newY }
-                });
+                // console.log(`ZOOM_LOG: 缩放模式-指针拖动中`, {
+                //     deltaX,
+                //     deltaY,
+                //     newStagePos: { x: newX, y: newY }
+                // });
                 
                 event.preventDefault();
                 return;
             } else if (eventType === 'pointerup' && this.isPointerDragging) {
                 this.isPointerDragging = false;
-                console.log('ZOOM_LOG: 缩放模式-指针拖动结束', {
-                    finalStagePos: { x: this.stage.x(), y: this.stage.y() }
-                });
+                // console.log('ZOOM_LOG: 缩放模式-指针拖动结束', {
+                //     finalStagePos: { x: this.stage.x(), y: this.stage.y() }
+                // });
                 event.preventDefault();
                 return;
             }
