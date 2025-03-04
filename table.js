@@ -580,13 +580,13 @@ export default class Table {
             y: (touch1.clientY + touch2.clientY) / 2
         };
         
-        DEBUG_INFO("ZOOM_LOG: 触摸点1", 
-                  JSON.stringify({x: touch1.clientX.toFixed(1), y: touch1.clientY.toFixed(1)}));
-        DEBUG_INFO("ZOOM_LOG: 触摸点2", 
-                  JSON.stringify({x: touch2.clientX.toFixed(1), y: touch2.clientY.toFixed(1)}));
-        DEBUG_INFO("ZOOM_LOG: 当前距离", currentDistance.toFixed(1));
-        DEBUG_INFO("ZOOM_LOG: 当前中心点", 
-                  JSON.stringify({x: currentCenter.x.toFixed(1), y: currentCenter.y.toFixed(1)}));
+        // DEBUG_INFO("ZOOM_LOG: 触摸点1", 
+        //           JSON.stringify({x: touch1.clientX.toFixed(1), y: touch1.clientY.toFixed(1)}));
+        // DEBUG_INFO("ZOOM_LOG: 触摸点2", 
+        //           JSON.stringify({x: touch2.clientX.toFixed(1), y: touch2.clientY.toFixed(1)}));
+        // DEBUG_INFO("ZOOM_LOG: 当前距离", currentDistance.toFixed(1));
+        // DEBUG_INFO("ZOOM_LOG: 当前中心点", 
+        //           JSON.stringify({x: currentCenter.x.toFixed(1), y: currentCenter.y.toFixed(1)}));
 
         if (!this.touch.isZooming) {
             // 首次触摸，记录初始状态
