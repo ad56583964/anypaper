@@ -666,30 +666,30 @@ export default class Table {
                     centerDeltaInStage.y * this.touch.initialScale - 
                     initialCenterInStage.y * (newScale - this.touch.initialScale);
         
-        DEBUG_INFO("ZOOM_LOG: 位置计算", JSON.stringify({
-            initialCenterInStage: {
-                x: initialCenterInStage.x.toFixed(1), 
-                y: initialCenterInStage.y.toFixed(1)
-            },
-            currentCenterInStage: {
-                x: currentCenterInStage.x.toFixed(1), 
-                y: currentCenterInStage.y.toFixed(1)
-            },
-            centerDeltaInStage: {
-                x: centerDeltaInStage.x.toFixed(1), 
-                y: centerDeltaInStage.y.toFixed(1)
-            },
-            initialPosition: {
-                x: this.touch.initialPosition.x.toFixed(1), 
-                y: this.touch.initialPosition.y.toFixed(1)
-            },
-            newPosition: {x: newX.toFixed(1), y: newY.toFixed(1)},
-            currentCenter: {x: currentCenter.x.toFixed(1), y: currentCenter.y.toFixed(1)},
-            initialCenter: {
-                x: this.touch.initialCenter.x.toFixed(1), 
-                y: this.touch.initialCenter.y.toFixed(1)
-            }
-        }));
+        // DEBUG_INFO("ZOOM_LOG: 位置计算", JSON.stringify({
+        //     initialCenterInStage: {
+        //         x: initialCenterInStage.x.toFixed(1), 
+        //         y: initialCenterInStage.y.toFixed(1)
+        //     },
+        //     currentCenterInStage: {
+        //         x: currentCenterInStage.x.toFixed(1), 
+        //         y: currentCenterInStage.y.toFixed(1)
+        //     },
+        //     centerDeltaInStage: {
+        //         x: centerDeltaInStage.x.toFixed(1), 
+        //         y: centerDeltaInStage.y.toFixed(1)
+        //     },
+        //     initialPosition: {
+        //         x: this.touch.initialPosition.x.toFixed(1), 
+        //         y: this.touch.initialPosition.y.toFixed(1)
+        //     },
+        //     newPosition: {x: newX.toFixed(1), y: newY.toFixed(1)},
+        //     currentCenter: {x: currentCenter.x.toFixed(1), y: currentCenter.y.toFixed(1)},
+        //     initialCenter: {
+        //         x: this.touch.initialCenter.x.toFixed(1), 
+        //         y: this.touch.initialCenter.y.toFixed(1)
+        //     }
+        // }));
         
         // 应用新的缩放和位置
         this.zoom.current = newScale;
