@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>自适应DPR测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #info-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        .test-button {
+            margin: 5px;
+            padding: 8px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="info-panel">
+        <h3>自适应DPR测试</h3>
+        <div id="device-info">加载中...</div>
+        <div style="margin-top: 10px;">
+            <button id="draw-lines" class="test-button">绘制1000条线</button>
+            <button id="draw-circles" class="test-button">绘制1000个圆</button>
+            <button id="clear" class="test-button">清除</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <button id="toggle-dpr" class="test-button">切换DPR</button>
+            <span id="current-dpr"></span>
+        </div>
+        <div id="performance" style="margin-top: 10px;">
+            FPS: <span id="fps">-</span>
+        </div>
+    </div>
+
+    <script src="./src/konva.js"></script>
+    <script>
+        // 初始化
+        const container = document.getElementById('container');
+        const deviceInfoEl = document.getElementById('device-info');
+        const currentDprEl = document.getElementById('current-dpr');
+        const fpsEl = document.getElementById('fps');
+        
+        // 创建舞台
+        const stage = new Konva.Stage({
+            container: 'container',
+            width: window.innerWidth,
+            height: window.innerHeight
+        });
+        
+        // 创建图层
+        const layer = new Konva.Layer();
+        stage.add(layer);
+        
+        // 设备信息
+        const deviceInfo = {
+            dpr: window.devicePixelRatio,
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            viewportWidth: window.innerWidth,
+            viewportHeight: window.innerHeight,
+            estimatedScreenSize: estimateScreenSize(),
+            deviceType: detectDeviceType(),
+            performanceLevel: 'unknown'
+        };
+        
+        // 显示设备信息
+        updateDeviceInfo();
+        
+        // 自适应DPR
+        let isUsingAdaptiveDpr = true;
+        let originalDpr = window.devicePixelRatio;
+        let optimalDpr = calculateOptimalDpr();
+        
+        // 应用最佳DPR
+        applyDpr(optimalDpr);
+        
+        // 按钮事件
+        document.getElementById('draw-lines').addEventListener('click', drawRandomLines);
+        document.getElementById('draw-circles').addEventListener('click', drawRandomCircles);
+        document.getElementById('clear').addEventListener('click', clearCanvas);
+        document.getElementById('toggle-dpr').addEventListener('click', toggleDpr);
+        
+        // 性能监控
+        let lastTime = 0;
+        let frameCount = 0;
+        
+        function animate(time) {
+            // 计算FPS
+            frameCount++;
+            
+            if (time - lastTime >= 1000) {
+                const fps = Math.round((frameCount * 1000) / (time - lastTime));
+                fpsEl.textContent = fps;
+                fpsEl.style.color = getFpsColor(fps);
+                
+                frameCount = 0;
+                lastTime = time;
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        requestAnimationFrame(animate);
+        
+        // 函数定义
+        function updateDeviceInfo() {
+            deviceInfoEl.innerHTML = `
+                <div>设备类型: ${deviceInfo.deviceType}</div>
+                <div>屏幕尺寸: ${deviceInfo.estimatedScreenSize.toFixed(1)}英寸 (${deviceInfo.screenWidth}x${deviceInfo.screenHeight})</div>
+                <div>视口尺寸: ${deviceInfo.viewportWidth}x${deviceInfo.viewportHeight}</div>
+                <div>原始DPR: ${originalDpr}</div>
+                <div>最佳DPR: ${optimalDpr.toFixed(2)}</div>
+            `;
+            
+            currentDprEl.textContent = `当前: ${isUsingAdaptiveDpr ? optimalDpr.toFixed(2) : originalDpr}`;
+        }
+        
+        function estimateScreenSize() {
+            const dpr = window.devicePixelRatio || 1;
+            const width = window.screen.width * dpr;
+            const height = window.screen.height * dpr;
+            
+            const diagonalPixels = Math.sqrt(width * width + height * height);
+            const estimatedPPI = 96 * dpr;
+            
+            return diagonalPixels / estimatedPPI;
+        }
+        
+        function detectDeviceType() {
+            const ua = navigator.userAgent;
+            const screenDiagonal = estimateScreenSize();
+            
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+            
+            if (!isMobile) {
+                return 'desktop';
+            }
+            
+            if (screenDiagonal < 7) {
+                return 'phone';
+            } else if (screenDiagonal >= 7 && screenDiagonal < 13) {
+                return 'tablet';
+            } else {
+                return 'large-tablet';
+            }
+        }
+        
+        function calculateOptimalDpr() {
+            const targetPixelCount = 2000000; // 约200万像素
+            const viewportArea = window.innerWidth * window.innerHeight;
+            
+            let idealDpr = Math.sqrt(targetPixelCount / viewportArea);
+            
+            // 设备类型调整系数
+            const deviceFactor = {
+                'phone': 0.8,
+                'tablet': 1.0,
+                'large-tablet': 1.1,
+                'desktop': 1.2
+            }[deviceInfo.deviceType] || 1.0;
+            
+            idealDpr = idealDpr * deviceFactor;
+            
+            // 确保DPR在合理范围内
+            const finalDpr = Math.max(0.75, Math.min(2.0, idealDpr));
+            
+            return Math.round(finalDpr * 10) / 10;
+        }
+        
+        function applyDpr(dpr) {
+            // 获取当前尺寸
+            const width = layer.getCanvas().width / layer.getCanvas().getPixelRatio();
+            const height = layer.getCanvas().height / layer.getCanvas().getPixelRatio();
+            
+            // 设置新的像素比
+            layer.getCanvas().setPixelRatio(dpr);
+            
+            // 重新设置尺寸以应用新的像素比
+            layer.getCanvas().setSize(width, height);
+            
+            // 重新绘制
+            layer.batchDraw();
+            
+            console.log(`已应用DPR: ${dpr}`);
+        }
+        
+        function toggleDpr() {
+            isUsingAdaptiveDpr = !isUsingAdaptiveDpr;
+            
+            if (isUsingAdaptiveDpr) {
+                applyDpr(optimalDpr);
+            } else {
+                applyDpr(originalDpr);
+            }
+            
+            updateDeviceInfo();
+        }
+        
+        function drawRandomLines() {
+            clearCanvas();
+            
+            for (let i = 0; i < 1000; i++) {
+                const line = new Konva.Line({
+                    points: [
+                        Math.random() * stage.width(),
+                        Math.random() * stage.height(),
+                        Math.random() * stage.width(),
+                        Math.random() * stage.height()
+                    ],
+                    stroke: getRandomColor(),
+                    strokeWidth: 2,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                });
+                
+                layer.add(line);
+            }
+            
+            layer.batchDraw();
+        }
+        
+        function drawRandomCircles() {
+            clearCanvas();
+            
+            for (let i = 0; i < 1000; i++) {
+                const circle = new Konva.Circle({
+                    x: Math.random() * stage.width(),
+                    y: Math.random() * stage.height(),
+                    radius: 5 + Math.random() * 20,
+                    fill: getRandomColor(),
+                    opacity: 0.7
+                });
+                
+                layer.add(circle);
+            }
+            
+            layer.batchDraw();
+        }
+        
+        function clearCanvas() {
+            layer.destroyChildren();
+            layer.batchDraw();
+        }
+        
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+        
+        function getFpsColor(fps) {
+            if (fps < 30) {
+                return '#F44336'; // 红色
+            } else if (fps < 50) {
+                return '#FF9800'; // 橙色
+            } else {
+                return '#4CAF50'; // 绿色
+            }
+        }
+        
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            stage.width(window.innerWidth);
+            stage.height(window.innerHeight);
+            
+            deviceInfo.viewportWidth = window.innerWidth;
+            deviceInfo.viewportHeight = window.innerHeight;
+            
+            // 重新计算最佳DPR
+            optimalDpr = calculateOptimalDpr();
+            
+            if (isUsingAdaptiveDpr) {
+                applyDpr(optimalDpr);
+            }
+            
+            updateDeviceInfo();
+        });
+    </script>
+</body>
+</html> 

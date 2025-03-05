@@ -3,6 +3,10 @@ import AnyA4Tool from "./commands";
 import PaperTool from "./tools/paper";
 import PencilTool from "./tools/pencil";
 import SelectTool from "./tools/select";
+import HitUpdateOnlyTool from "./tools/hitUpdateOnly";
+import ContextMonitorTool from "./tools/contextMonitorTool";
+import DprControlTool from "./tools/dprControl";
+import AdaptiveDpr from "./tools/adaptiveDpr";
 import ToolBar from "./components/ToolBar";
 
 let DEBUG_INFO = console.log;
@@ -34,6 +38,21 @@ export default class Table {
         // 添加缩放模式标志
         this.isZoomMode = false;
         this.previousTool = null;
+        
+        // 添加上下文监控标志
+        this.isContextMonitorActive = false;
+        this.contextMonitorTool = null;
+        
+        // 添加DPR控制标志
+        this.isDprControlActive = false;
+        this.dprControlTool = null;
+        
+        // 创建自适应DPR实例
+        this.adaptiveDpr = new AdaptiveDpr({
+            targetPixelCount: 2000000, // 约200万像素
+            minDpr: 0.75,
+            maxDpr: 2.0
+        });
 
         // 添加缩放模式的CSS样式
         const style = document.createElement('style');
@@ -102,6 +121,13 @@ export default class Table {
         this.registerTool("select", new SelectTool(this));
         // this.registerTool("paper",new PaperTool(this))
         this.registerTool("pencil", new PencilTool(this));
+        this.registerTool("hitUpdateOnly", new HitUpdateOnlyTool(this));
+        
+        // 初始化上下文监控工具
+        this.contextMonitorTool = new ContextMonitorTool(this);
+        
+        // 初始化DPR控制工具
+        this.dprControlTool = new DprControlTool(this);
 
         // 初始化工具栏
         this.toolBar = new ToolBar(this);
@@ -167,6 +193,9 @@ export default class Table {
         this.initGridBG();
 
         this.gLayer.batchDraw();
+
+        // 应用自适应DPR
+        this.applyAdaptiveDpr();
     }
 
     fitWindow() {
@@ -327,6 +356,16 @@ export default class Table {
     }
 
     handleEvent(eventType, event) {
+        // 检查事件是否来自工具栏
+        if (event.target && (
+            event.target.closest && event.target.closest('#konva-toolbar') || 
+            event.target.id === 'konva-toolbar' ||
+            event.target.classList && event.target.classList.contains('konva-toolbar-button')
+        )) {
+            // 如果事件来自工具栏，不处理Canvas事件
+            return;
+        }
+        
         // 如果在缩放模式下，优先处理所有触摸事件
         if (this.isZoomMode && (eventType === 'touchstart' || eventType === 'touchmove' || eventType === 'touchend' || 
                                eventType === 'pointerdown' || eventType === 'pointermove' || eventType === 'pointerup')) {
@@ -761,5 +800,152 @@ export default class Table {
             this.touch.isZooming = false;
             console.log('ZOOM_LOG: 所有触摸结束，完全重置状态');
         }
+    }
+
+    // 激活上下文监控
+    activateContextMonitor() {
+        if (this.isContextMonitorActive) {
+            console.warn('上下文监控已经激活');
+            return;
+        }
+        
+        console.log('激活上下文监控');
+        
+        // 激活监控工具
+        if (this.contextMonitorTool) {
+            this.contextMonitorTool.activate();
+        } else {
+            this.contextMonitorTool = new ContextMonitorTool(this);
+            this.contextMonitorTool.activate();
+        }
+        
+        this.isContextMonitorActive = true;
+    }
+    
+    // 停用上下文监控
+    deactivateContextMonitor() {
+        if (!this.isContextMonitorActive) {
+            console.warn('上下文监控未激活');
+            return;
+        }
+        
+        console.log('停用上下文监控');
+        
+        // 停用监控工具
+        if (this.contextMonitorTool) {
+            this.contextMonitorTool.deactivate();
+        }
+        
+        this.isContextMonitorActive = false;
+    }
+    
+    // 激活DPR控制
+    activateDprControl() {
+        if (this.isDprControlActive) {
+            console.warn('DPR控制已经激活');
+            return;
+        }
+        
+        console.log('激活DPR控制');
+        
+        // 激活DPR控制工具
+        if (this.dprControlTool) {
+            this.dprControlTool.activate();
+        } else {
+            this.dprControlTool = new DprControlTool(this);
+            this.dprControlTool.activate();
+        }
+        
+        this.isDprControlActive = true;
+    }
+    
+    // 停用DPR控制
+    deactivateDprControl() {
+        if (!this.isDprControlActive) {
+            console.warn('DPR控制未激活');
+            return;
+        }
+        
+        console.log('停用DPR控制');
+        
+        // 停用DPR控制工具
+        if (this.dprControlTool) {
+            this.dprControlTool.deactivate();
+        }
+        
+        this.isDprControlActive = false;
+    }
+
+    // 应用自适应DPR
+    applyAdaptiveDpr() {
+        if (!this.stage) {
+            console.error('舞台未初始化，无法应用自适应DPR');
+            return;
+        }
+        
+        // 获取设备信息
+        const deviceInfo = this.adaptiveDpr.getDeviceInfoSummary();
+        console.log('设备信息:', deviceInfo);
+        
+        // 应用最佳DPR
+        const success = this.adaptiveDpr.applyToStage(this.stage);
+        
+        if (success) {
+            console.log(`已应用自适应DPR: ${this.adaptiveDpr.optimalDpr.toFixed(2)}`);
+            
+            // 显示通知
+            this.showAdaptiveDprNotification(deviceInfo);
+        } else {
+            console.error('应用自适应DPR失败');
+        }
+    }
+    
+    // 显示自适应DPR通知
+    showAdaptiveDprNotification(deviceInfo) {
+        // 创建通知元素
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: sans-serif;
+            font-size: 14px;
+            z-index: 9999;
+            transition: opacity 0.5s;
+            max-width: 300px;
+        `;
+        
+        // 设置通知内容
+        notification.innerHTML = `
+            <div style="margin-bottom: 5px; font-weight: bold;">已应用自适应DPR</div>
+            <div>设备类型: ${deviceInfo.deviceType}</div>
+            <div>屏幕尺寸: ${deviceInfo.estimatedScreenSize} (${deviceInfo.screenSize})</div>
+            <div>性能等级: ${deviceInfo.performanceLevel}</div>
+            <div>原始DPR: ${deviceInfo.originalDpr}</div>
+            <div>优化DPR: ${deviceInfo.optimalDpr}</div>
+        `;
+        
+        // 添加到文档
+        document.body.appendChild(notification);
+        
+        // 5秒后淡出
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            // 淡出后移除
+            setTimeout(() => notification.remove(), 500);
+        }, 5000);
+    }
+    
+    // 恢复原始DPR
+    restoreOriginalDpr() {
+        if (!this.stage || !this.adaptiveDpr) {
+            return;
+        }
+        
+        this.adaptiveDpr.restoreOriginalDpr(this.stage);
     }
 }
