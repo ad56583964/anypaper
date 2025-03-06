@@ -21,14 +21,6 @@ export default class Table {
         // 创建 ZoomTool 实例
         this.zoomTool = new ZoomTool(this);
 
-        // 改进触摸状态跟踪
-        this.touch = {
-            lastDistance: 0,
-            lastCenter: { x: 0, y: 0 },
-            lastScale: 1,
-            lastPosition: { x: 0, y: 0 }
-        };
-        
         // 添加上下文监控标志
         this.isContextMonitorActive = false;
         this.contextMonitorTool = null;
