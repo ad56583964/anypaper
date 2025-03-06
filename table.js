@@ -294,6 +294,12 @@ export default class Table {
     }
 
     setActiveTool(name) {
+        // 如果当前工具正在绘画，不允许切换工具
+        if (this.currentTool && this.currentTool.isdrawing) {
+            console.log("当前正在绘画，不能切换工具");
+            return;
+        }
+        
         // 如果在缩放模式且尝试激活工具，先退出缩放模式
         if (this.isZoomMode && name) {
             this.exitZoomMode();
@@ -359,6 +365,14 @@ export default class Table {
             event.target.classList && event.target.classList.contains('konva-toolbar-button')
         )) {
             // 如果事件来自工具栏，不处理Canvas事件
+            return;
+        }
+        
+        // 如果当前工具正在绘画，优先处理绘画事件
+        if (this.currentTool && this.currentTool.isdrawing) {
+            if (this.currentTool[eventType]) {
+                this.currentTool[eventType](event);
+            }
             return;
         }
         
