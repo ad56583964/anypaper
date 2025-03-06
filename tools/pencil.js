@@ -10,11 +10,17 @@ export default class PencilTool {
         this.isdrawing = false;
         this.currentPoints = [];
         this.currentPressures = [];
-        this.lastCommittedPoint = null;
         
         // 触摸延迟相关属性
         this.touchTimer = null;
         this.pendingTouch = null;
+        
+        // 存储所有绘画的主组
+        this.mainGroup = new Konva.Group();
+        this.table.gLayer.add(this.mainGroup);
+        
+        // 当前绘画的临时组
+        this.currentStrokeGroup = null;
 
         // 初始化调试信息
         updateDebugInfo('pixelRatio', {
@@ -29,6 +35,10 @@ export default class PencilTool {
 
     deactivate(){
         console.log("PencilTool deactivate");
+        // 确保在工具停用时结束任何进行中的绘画
+        if (this.isdrawing) {
+            this.finishStroke();
+        }
     }
 
     getSvgPathFromStroke(points) {
@@ -55,9 +65,64 @@ export default class PencilTool {
             .join(" ");
     }
 
-    drawStroke() {
+    // 开始一个新的笔画
+    startStroke(point) {
+        // 创建新的绘画组
+        this.currentStrokeGroup = new Konva.Group();
+        this.mainGroup.add(this.currentStrokeGroup);
+        
+        // 重置点数组
+        this.currentPoints = [point];
+        this.currentPath = null;
+        this.isdrawing = true;
+    }
+    
+    // 更新当前笔画
+    updateStroke(point) {
+        if (!this.isdrawing || !this.currentStrokeGroup) return;
+        
+        // 添加新点
+        this.currentPoints.push(point);
+        
+        // 至少需要两个点才能绘制
         if (this.currentPoints.length < 2) return;
-
+        
+        // 绘制笔画
+        this.drawCurrentStroke(false);
+    }
+    
+    // 完成当前笔画
+    finishStroke() {
+        if (!this.isdrawing || !this.currentStrokeGroup) return;
+        
+        // 绘制最终笔画
+        this.drawCurrentStroke(true);
+        
+        // 缓存当前笔画组以提高性能
+        const actualPixelRatio = Math.max(3, window.devicePixelRatio || 2);
+        this.currentStrokeGroup.cache({
+            pixelRatio: actualPixelRatio,
+            imageSmoothingEnabled: false,
+            clearBeforeDraw: true,
+        });
+        
+        // 重置状态
+        this.isdrawing = false;
+        this.currentPoints = [];
+        this.currentPath = null;
+        this.currentStrokeGroup = null;
+        
+        // 更新调试信息
+        updateDebugInfo('pixelRatio', {
+            devicePixelRatio: window.devicePixelRatio,
+            actualPixelRatio
+        });
+    }
+    
+    // 绘制当前笔画
+    drawCurrentStroke(isLast) {
+        if (!this.currentStrokeGroup) return;
+        
         const options = {
             size: this.table.pixel * 2,
             thinning: 0.6,
@@ -65,18 +130,18 @@ export default class PencilTool {
             streamline: 0.5,
             easing: (t) => Math.sin((t * Math.PI) / 2),
             simulatePressure: true,
-            last: !!this.lastCommittedPoint,
+            last: isLast, // 只在最后一次绘制时设置为 true
         };
 
         const stroke = getStroke(this.currentPoints, options);
         const pathData = this.getSvgPathFromStroke(stroke);
 
-        // Remove previous path if exists
+        // 移除之前的路径
         if (this.currentPath) {
             this.currentPath.destroy();
         }
 
-        // Create new path
+        // 创建新路径
         this.currentPath = new Konva.Path({
             data: pathData,
             fill: 'black',
@@ -84,13 +149,7 @@ export default class PencilTool {
             draggable: false,
         });
 
-        // Check if stylusgroup exists before adding to it
-        if (!this.stylusgroup) {
-            this.stylusgroup = new Konva.Group();
-            this.table.gLayer.add(this.stylusgroup);
-        }
-        
-        this.stylusgroup.add(this.currentPath);
+        this.currentStrokeGroup.add(this.currentPath);
         this.table.gLayer.batchDraw();
     }
 
@@ -118,7 +177,8 @@ export default class PencilTool {
             this.touchTimer = setTimeout(() => {
                 // 如果定时器触发时仍然只有一个触摸点，才开始绘画
                 if (this.pendingTouch && !this.isdrawing) {
-                    this.pointerdown(this.pendingTouch.touch);
+                    this.table.updateCurrentPointer();
+                    this.startStroke([this.table.currentPointer.x, this.table.currentPointer.y]);
                     this.pendingTouch = null;
                 }
             }, 50); // 50毫秒的延迟，足够检测到第二个手指但不会有明显的延迟感
@@ -148,7 +208,8 @@ export default class PencilTool {
             
             // 只处理单指移动
             if (e.touches.length === 1) {
-                this.pointermove(e.touches[0]);
+                this.table.updateCurrentPointer();
+                this.updateStroke([this.table.currentPointer.x, this.table.currentPointer.y]);
             }
         }
     }
@@ -168,7 +229,7 @@ export default class PencilTool {
             
             // 如果所有手指都离开了，结束绘画
             if (e.touches.length === 0) {
-                this.pointerup(e);
+                this.finishStroke();
             }
         }
     }
@@ -186,21 +247,14 @@ export default class PencilTool {
         if (this.isdrawing) {
             e.preventDefault();
             e.stopPropagation();
-            this.pointerup(e);
+            this.finishStroke();
         }
     }
 
     pointerdown(e) {
         console.log("PencilTool pointerdown");
-        this.isdrawing = true;
-        
-        this.currentPoints = [[this.table.currentPointer.x, this.table.currentPointer.y]];
-        this.stylusgroup = new Konva.Group();
-        this.table.gLayer.add(this.stylusgroup);
-        
-        this.drawStroke();
-        
         this.table.updateCurrentPointer();
+        this.startStroke([this.table.currentPointer.x, this.table.currentPointer.y]);
         this.updateHit();
         
         console.log("Start drawing");
@@ -208,26 +262,11 @@ export default class PencilTool {
 
     pointerup(e) {
         console.log("finish drawing");
-        this.lastCommittedPoint = this.currentPoints[this.currentPoints.length - 1];
-        this.drawStroke(); // Final stroke with lastCommittedPoint
         
-        const actualPixelRatio = Math.max(3, window.devicePixelRatio || 2);
+        // 只有在绘画状态时才处理
+        if (!this.isdrawing) return;
         
-        // 更新像素比信息
-        updateDebugInfo('pixelRatio', {
-            devicePixelRatio: window.devicePixelRatio,
-            actualPixelRatio
-        });
-        
-        // 使用更高的缓存比例来提高清晰度
-        this.stylusgroup.cache({
-            pixelRatio: actualPixelRatio,
-            imageSmoothingEnabled: false,
-            clearBeforeDraw: true,
-        });
-        
-        this.isdrawing = false;
-        this.currentPoints = [];
+        this.finishStroke();
     }
 
     pointermove(e) {
@@ -235,9 +274,7 @@ export default class PencilTool {
         this.table.updateCurrentPointer();
         
         if (this.isdrawing) {
-            const point = [this.table.currentPointer.x, this.table.currentPointer.y];
-            this.currentPoints.push(point);
-            this.drawStroke();
+            this.updateStroke([this.table.currentPointer.x, this.table.currentPointer.y]);
         }
         
         this.updateHit();
