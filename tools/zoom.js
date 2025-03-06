@@ -221,7 +221,6 @@ export default class ZoomTool {
         }
         
         console.log("进入缩放模式");
-        document.getElementById('a4-table').classList.add('zoom-mode');
         document.getElementById('a4-table').style.cursor = 'move';
     }
     
@@ -230,7 +229,6 @@ export default class ZoomTool {
         if (!this.isZoomMode) return; // 不在缩放模式
         
         this.isZoomMode = false;
-        document.getElementById('a4-table').classList.remove('zoom-mode');
         document.getElementById('a4-table').style.cursor = 'default';
         
         if (this.previousTool) {

@@ -27,28 +27,6 @@ export default class Table {
             maxDpr: 2.0
         });
 
-        // 添加缩放模式的CSS样式
-        const style = document.createElement('style');
-        style.textContent = `
-            .zoom-mode {
-                cursor: move !important;
-                background-color: rgba(200, 230, 255, 0.1) !important;
-            }
-            .zoom-mode::after {
-                content: "缩放模式";
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                background: rgba(0, 120, 255, 0.7);
-                color: white;
-                padding: 5px 10px;
-                border-radius: 4px;
-                font-size: 14px;
-                pointer-events: none;
-            }
-        `;
-        document.head.appendChild(style);
-
         // Setup the stage (global enviroment)
         this.stage = new Konva.Stage({
             listening: true,  // 确保能接收触摸事件
