@@ -4,7 +4,6 @@ import PaperTool from "./tools/paper";
 import PencilTool from "./tools/pencil";
 import SelectTool from "./tools/select";
 import HitUpdateOnlyTool from "./tools/hitUpdateOnly";
-import ContextMonitorTool from "./tools/contextMonitorTool";
 import AdaptiveDpr from "./tools/adaptiveDpr";
 import ZoomTool from "./tools/zoom";
 import ToolBar from "./components/ToolBar";
@@ -20,13 +19,6 @@ export default class Table {
 
         // 创建 ZoomTool 实例
         this.zoomTool = new ZoomTool(this);
-
-        // 添加上下文监控标志
-        this.isContextMonitorActive = false;
-        this.contextMonitorTool = null;
-        
-        // 添加DPR控制标志
-        this.isDprControlActive = false;
         
         // 创建自适应DPR实例
         this.adaptiveDpr = new AdaptiveDpr({
@@ -103,9 +95,6 @@ export default class Table {
         // this.registerTool("paper",new PaperTool(this))
         this.registerTool("pencil", new PencilTool(this));
         this.registerTool("hitUpdateOnly", new HitUpdateOnlyTool(this));
-        
-        // 初始化上下文监控工具
-        this.contextMonitorTool = new ContextMonitorTool(this);
         
         // 初始化工具栏
         this.toolBar = new ToolBar(this);
@@ -330,43 +319,6 @@ export default class Table {
                 this.exitZoomMode();
             }
         }
-    }
-
-    // 激活上下文监控
-    activateContextMonitor() {
-        if (this.isContextMonitorActive) {
-            console.warn('上下文监控已经激活');
-            return;
-        }
-        
-        console.log('激活上下文监控');
-        
-        // 激活监控工具
-        if (this.contextMonitorTool) {
-            this.contextMonitorTool.activate();
-        } else {
-            this.contextMonitorTool = new ContextMonitorTool(this);
-            this.contextMonitorTool.activate();
-        }
-        
-        this.isContextMonitorActive = true;
-    }
-    
-    // 停用上下文监控
-    deactivateContextMonitor() {
-        if (!this.isContextMonitorActive) {
-            console.warn('上下文监控未激活');
-            return;
-        }
-        
-        console.log('停用上下文监控');
-        
-        // 停用监控工具
-        if (this.contextMonitorTool) {
-            this.contextMonitorTool.deactivate();
-        }
-        
-        this.isContextMonitorActive = false;
     }
 
     // 应用自适应DPR

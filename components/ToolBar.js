@@ -260,11 +260,8 @@ export default class ToolBar {
         document.addEventListener('keydown', (e) => {
             // 按下Escape键时，如果有活动的特殊模式，则退出
             if (e.key === 'Escape') {
-                if (this.table.isZoomMode) {
+                if (this.table.zoomTool.isZoomMode) {
                     this.table.exitZoomMode();
-                    this.updateActiveButton(null);
-                } else if (this.table.isContextMonitorActive) {
-                    this.table.deactivateContextMonitor();
                     this.updateActiveButton(null);
                 }
             }
@@ -277,22 +274,12 @@ export default class ToolBar {
         
         if (tool.name === 'zoom') {
             // 特殊处理缩放工具
-            if (this.table.isZoomMode) {
+            if (this.table.zoomTool.isZoomMode) {
                 this.table.exitZoomMode();
                 button.style.background = 'white';
                 button.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             } else {
                 this.table.enterZoomMode();
-                this.updateActiveButton(button);
-            }
-        } else if (tool.name === 'contextMonitor') {
-            // 特殊处理上下文监控工具
-            if (this.table.isContextMonitorActive) {
-                this.table.deactivateContextMonitor();
-                button.style.background = 'white';
-                button.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-            } else {
-                this.table.activateContextMonitor();
                 this.updateActiveButton(button);
             }
         } else {
@@ -305,12 +292,8 @@ export default class ToolBar {
         // 更新所有按钮的样式
         this.tools.forEach(tool => {
             // 如果在缩放模式下，保持缩放按钮的活动状态
-            // 如果在上下文监控模式下，保持监控按钮的活动状态
-            // 如果在DPR控制模式下，保持DPR控制按钮的活动状态
             if ((tool.button === activeButton) || 
-                (tool.name === 'zoom' && this.table.isZoomMode) ||
-                (tool.name === 'contextMonitor' && this.table.isContextMonitorActive) ||
-                (tool.name === 'dprControl' && this.table.isDprControlActive)) {
+                (tool.name === 'zoom' && this.table.zoomTool.isZoomMode)) {
                 tool.button.style.background = '#e0e0e0';
                 tool.button.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.1)';
             } else {
