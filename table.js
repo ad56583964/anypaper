@@ -265,6 +265,42 @@ export default class Table {
             return;
         }
         
+        // 处理多指触摸缩放 - 在任何工具下都可用，优先级最高
+        if (eventType === 'touchstart' && event.touches && event.touches.length === 2) {
+            // 如果当前正在绘画，先结束绘画
+            if (this.currentTool && this.currentTool.isdrawing) {
+                // 直接调用 pointerup 方法结束绘画
+                this.currentTool.pointerup({});
+            }
+            
+            // 如果是铅笔工具且有待处理的触摸，取消它
+            if (this.currentTool && this.currentTool.name === 'pencil' && this.currentTool.touchTimer) {
+                clearTimeout(this.currentTool.touchTimer);
+                this.currentTool.touchTimer = null;
+                this.currentTool.pendingTouch = null;
+            }
+            
+            // 然后处理缩放
+            this.zoomTool.touchstart(event);
+            return;
+        }
+        
+        if (eventType === 'touchmove' && event.touches && event.touches.length === 2) {
+            this.zoomTool.touchmove(event);
+            return;
+        }
+        
+        if (eventType === 'touchend' && this.zoomTool.touch.isZooming) {
+            this.zoomTool.touchend(event);
+            return;
+        }
+        
+        // 处理通用缩放操作 - 按住Ctrl/Cmd键滚动鼠标滚轮
+        if (eventType === 'wheel' && (event.ctrlKey || event.metaKey)) {
+            this.zoomTool.wheel(event);
+            return;
+        }
+        
         // 如果当前工具正在绘画，优先处理绘画事件
         if (this.currentTool && this.currentTool.isdrawing) {
             if (this.currentTool[eventType]) {

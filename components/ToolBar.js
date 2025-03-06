@@ -6,7 +6,7 @@ export default class ToolBar {
         this.tools = [
             { name: 'pencil', icon: '✏️', title: '铅笔工具' },
             { name: 'select', icon: '👆', title: '选择工具' },
-            { name: 'zoom', icon: '🔍', title: '缩放模式' },
+            { name: 'zoom', icon: '🔍', title: '缩放模式 (提示: 在任何工具下，按住Ctrl+滚轮或使用双指触摸可缩放)' },
             { name: 'hitUpdateOnly', icon: '⚡', title: '性能模式 (仅更新命中检测)' },
             // { name: 'contextMonitor', icon: '🔄', title: 'Canvas上下文监控' },
 

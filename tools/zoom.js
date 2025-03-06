@@ -244,6 +244,7 @@ export default class ZoomTool {
         if (e.touches.length === 2) {
             // 双指触摸，初始化缩放状态
             this.touch.isZooming = true;
+            this.isDragging = false; // 确保拖动状态被重置
             this.touch.initialScale = this.config.current;
             this.touch.initialPosition = {
                 x: this.table.stage.x(),

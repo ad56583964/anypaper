@@ -12,10 +12,9 @@ export default class PencilTool {
         this.currentPressures = [];
         this.lastCommittedPoint = null;
         
-        // 添加触摸状态跟踪
-        this.touchState = {
-            isMultiTouch: false
-        };
+        // 触摸延迟相关属性
+        this.touchTimer = null;
+        this.pendingTouch = null;
 
         // 初始化调试信息
         updateDebugInfo('pixelRatio', {
@@ -104,16 +103,44 @@ export default class PencilTool {
             return;
         }
         
-        // 只处理单指触摸开始绘画
+        // 只处理单指触摸开始绘画，但添加延迟以检测可能的多指触摸
         if (e.touches.length === 1) {
             e.preventDefault();
             e.stopPropagation();
-            this.pointerdown(e.touches[0]);
+            
+            // 存储触摸信息，但不立即开始绘画
+            this.pendingTouch = {
+                touch: e.touches[0],
+                timestamp: Date.now()
+            };
+            
+            // 设置延迟定时器，如果在短时间内没有第二个手指触摸，才开始绘画
+            this.touchTimer = setTimeout(() => {
+                // 如果定时器触发时仍然只有一个触摸点，才开始绘画
+                if (this.pendingTouch && !this.isdrawing) {
+                    this.pointerdown(this.pendingTouch.touch);
+                    this.pendingTouch = null;
+                }
+            }, 50); // 50毫秒的延迟，足够检测到第二个手指但不会有明显的延迟感
+        } else {
+            // 如果已经有多个触摸点，取消待处理的触摸
+            if (this.touchTimer) {
+                clearTimeout(this.touchTimer);
+                this.touchTimer = null;
+            }
+            this.pendingTouch = null;
         }
-        // 忽略多指触摸
     }
 
     touchmove(e) {
+        // 如果有待处理的触摸但还没开始绘画，取消它
+        if (this.pendingTouch && !this.isdrawing && e.touches.length > 1) {
+            clearTimeout(this.touchTimer);
+            this.touchTimer = null;
+            this.pendingTouch = null;
+            return;
+        }
+        
         // 如果正在绘画，阻止任何其他触摸事件
         if (this.isdrawing) {
             e.preventDefault();
@@ -124,10 +151,16 @@ export default class PencilTool {
                 this.pointermove(e.touches[0]);
             }
         }
-        // 移除在 touchmove 中开始绘画的逻辑
     }
 
     touchend(e) {
+        // 取消任何待处理的触摸
+        if (this.touchTimer) {
+            clearTimeout(this.touchTimer);
+            this.touchTimer = null;
+        }
+        this.pendingTouch = null;
+        
         // 如果正在绘画，先阻止事件传播
         if (this.isdrawing) {
             e.preventDefault();
@@ -142,6 +175,13 @@ export default class PencilTool {
 
     // 添加对 touchcancel 事件的处理
     touchcancel(e) {
+        // 取消任何待处理的触摸
+        if (this.touchTimer) {
+            clearTimeout(this.touchTimer);
+            this.touchTimer = null;
+        }
+        this.pendingTouch = null;
+        
         // 如果正在绘画，强制结束绘画
         if (this.isdrawing) {
             e.preventDefault();
