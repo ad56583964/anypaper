@@ -9,7 +9,7 @@ export default class ToolBar {
             { name: 'zoom', icon: '🔍', title: '缩放模式' },
             { name: 'hitUpdateOnly', icon: '⚡', title: '性能模式 (仅更新命中检测)' },
             // { name: 'contextMonitor', icon: '🔄', title: 'Canvas上下文监控' },
-            // { name: 'dprControl', icon: '📱', title: 'DPR控制 (调整设备像素比)' },
+
         ];
         
         this.toolbarContainer = null;
@@ -266,9 +266,6 @@ export default class ToolBar {
                 } else if (this.table.isContextMonitorActive) {
                     this.table.deactivateContextMonitor();
                     this.updateActiveButton(null);
-                } else if (this.table.isDprControlActive) {
-                    this.table.deactivateDprControl();
-                    this.updateActiveButton(null);
                 }
             }
         });
@@ -296,16 +293,6 @@ export default class ToolBar {
                 button.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             } else {
                 this.table.activateContextMonitor();
-                this.updateActiveButton(button);
-            }
-        } else if (tool.name === 'dprControl') {
-            // 特殊处理DPR控制工具
-            if (this.table.isDprControlActive) {
-                this.table.deactivateDprControl();
-                button.style.background = 'white';
-                button.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-            } else {
-                this.table.activateDprControl();
                 this.updateActiveButton(button);
             }
         } else {

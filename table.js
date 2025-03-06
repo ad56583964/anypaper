@@ -5,7 +5,6 @@ import PencilTool from "./tools/pencil";
 import SelectTool from "./tools/select";
 import HitUpdateOnlyTool from "./tools/hitUpdateOnly";
 import ContextMonitorTool from "./tools/contextMonitorTool";
-import DprControlTool from "./tools/dprControl";
 import AdaptiveDpr from "./tools/adaptiveDpr";
 import ToolBar from "./components/ToolBar";
 
@@ -45,7 +44,7 @@ export default class Table {
         
         // 添加DPR控制标志
         this.isDprControlActive = false;
-        this.dprControlTool = null;
+        // this.dprControlTool = null;
         
         // 创建自适应DPR实例
         this.adaptiveDpr = new AdaptiveDpr({
@@ -126,9 +125,6 @@ export default class Table {
         // 初始化上下文监控工具
         this.contextMonitorTool = new ContextMonitorTool(this);
         
-        // 初始化DPR控制工具
-        this.dprControlTool = new DprControlTool(this);
-
         // 初始化工具栏
         this.toolBar = new ToolBar(this);
         
@@ -837,43 +833,6 @@ export default class Table {
         }
         
         this.isContextMonitorActive = false;
-    }
-    
-    // 激活DPR控制
-    activateDprControl() {
-        if (this.isDprControlActive) {
-            console.warn('DPR控制已经激活');
-            return;
-        }
-        
-        console.log('激活DPR控制');
-        
-        // 激活DPR控制工具
-        if (this.dprControlTool) {
-            this.dprControlTool.activate();
-        } else {
-            this.dprControlTool = new DprControlTool(this);
-            this.dprControlTool.activate();
-        }
-        
-        this.isDprControlActive = true;
-    }
-    
-    // 停用DPR控制
-    deactivateDprControl() {
-        if (!this.isDprControlActive) {
-            console.warn('DPR控制未激活');
-            return;
-        }
-        
-        console.log('停用DPR控制');
-        
-        // 停用DPR控制工具
-        if (this.dprControlTool) {
-            this.dprControlTool.deactivate();
-        }
-        
-        this.isDprControlActive = false;
     }
 
     // 应用自适应DPR
