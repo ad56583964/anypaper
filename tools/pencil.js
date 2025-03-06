@@ -104,8 +104,10 @@ export default class PencilTool {
             return;
         }
         
+        // 只处理单指触摸开始绘画
         if (e.touches.length === 1) {
-            // 单指触摸，开始绘画
+            e.preventDefault();
+            e.stopPropagation();
             this.pointerdown(e.touches[0]);
         }
         // 忽略多指触摸
@@ -121,21 +123,30 @@ export default class PencilTool {
             if (e.touches.length === 1) {
                 this.pointermove(e.touches[0]);
             }
-            return;
         }
-        
-        // 如果不在绘画中且是单指，可以开始绘画
-        if (e.touches.length === 1 && !this.isdrawing) {
-            this.pointerdown(e.touches[0]);
-        }
+        // 移除在 touchmove 中开始绘画的逻辑
     }
 
     touchend(e) {
-        // 如果正在绘画，且所有手指都离开了
-        if (this.isdrawing && e.touches.length === 0) {
-            this.pointerup(e);
+        // 如果正在绘画，先阻止事件传播
+        if (this.isdrawing) {
             e.preventDefault();
             e.stopPropagation();
+            
+            // 如果所有手指都离开了，结束绘画
+            if (e.touches.length === 0) {
+                this.pointerup(e);
+            }
+        }
+    }
+
+    // 添加对 touchcancel 事件的处理
+    touchcancel(e) {
+        // 如果正在绘画，强制结束绘画
+        if (this.isdrawing) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.pointerup(e);
         }
     }
 
