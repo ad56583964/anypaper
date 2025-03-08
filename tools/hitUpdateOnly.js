@@ -171,16 +171,13 @@ export default class HitUpdateOnlyTool {
                    `位置(${this.table.currentPointer.x.toFixed(1)}, ${this.table.currentPointer.y.toFixed(1)})` : 
                    "currentPointer不存在");
         
-        // 创建一个小矩形表示命中点
-        this.hit = new Konva.Rect({
-            width: 20,  // 增大尺寸
-            height: 20, // 增大尺寸
+        // 创建一个小圆点表示命中点
+        this.hit = new Konva.Circle({
+            radius: 10,  // 圆点半径
             fill: "red", // 使用红色以便更容易看到
             stroke: "white", // 添加白色边框
             strokeWidth: 2,
             opacity: 0.8,
-            offsetX: 10, // 调整偏移以匹配新尺寸
-            offsetY: 10, // 调整偏移以匹配新尺寸
             x: this.table.currentPointer ? this.table.currentPointer.x : 0,
             y: this.table.currentPointer ? this.table.currentPointer.y : 0
         });

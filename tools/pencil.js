@@ -314,12 +314,11 @@ export default class PencilTool {
 
     initHitDebug(){
         // debug shape
-        this.hit = new Konva.Rect({
-            width: 10,
-            height: 10,
+        this.hit = new Konva.Circle({
+            radius: 5,
             fill:"red",
-            offsetX: 5,
-            offsetY: 5,
+            x: 0,
+            y: 0,
             listening: false,
             draggable: false,
         })
