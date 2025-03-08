@@ -106,27 +106,160 @@ export default class ZoomTool {
         };
     }
 
+    // 处理触摸缩放
+    handleTouchZoom(e) {
+        e.preventDefault();
+        
+        if (e.touches.length !== 2) {
+            console.log("ZOOM_LOG: 触摸点不足2个，退出缩放");
+            return;
+        }
+
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        
+        // 计算当前触摸状态
+        const currentDistance = this.getDistance(
+            { x: touch1.clientX, y: touch1.clientY },
+            { x: touch2.clientX, y: touch2.clientY }
+        );
+        const currentCenter = {
+            x: (touch1.clientX + touch2.clientX) / 2,
+            y: (touch1.clientY + touch2.clientY) / 2
+        };
+
+        if (!this.touch.isZooming) {
+            // 首次触摸，记录初始状态
+            this.touch.initialDistance = currentDistance;
+            this.touch.initialCenter = { ...currentCenter };
+            this.touch.initialScale = this.config.current;
+            this.touch.initialPosition = {
+                x: this.table.gLayer.x(),
+                y: this.table.gLayer.y()
+            };
+            this.touch.isZooming = true;
+            
+            console.log("ZOOM_LOG: 初始化缩放状态", JSON.stringify({
+                initialDistance: this.touch.initialDistance.toFixed(1),
+                initialCenter: {
+                    x: this.touch.initialCenter.x.toFixed(1), 
+                    y: this.touch.initialCenter.y.toFixed(1)
+                },
+                initialScale: this.touch.initialScale.toFixed(3),
+                initialPosition: {
+                    x: this.touch.initialPosition.x.toFixed(1), 
+                    y: this.touch.initialPosition.y.toFixed(1)
+                }
+            }));
+            return;
+        }
+
+        // 使用直接的缩放比例计算，避免累积误差
+        const scaleRatio = currentDistance / this.touch.initialDistance;
+        
+        // 计算新的缩放值，相对于触摸开始时的缩放值
+        let newScale = this.touch.initialScale * scaleRatio;
+        
+        // 限制缩放范围
+        const oldScale = newScale;
+        newScale = Math.max(this.config.min, Math.min(this.config.max, newScale));
+        
+        // 如果缩放被限制，调整scaleRatio
+        const adjustedScaleRatio = newScale / this.touch.initialScale;
+        
+        console.log("ZOOM_LOG: 缩放计算", JSON.stringify({
+            initialDistance: this.touch.initialDistance.toFixed(1),
+            currentDistance: currentDistance.toFixed(1),
+            scaleRatio: scaleRatio.toFixed(3),
+            adjustedScaleRatio: adjustedScaleRatio.toFixed(3),
+            initialScale: this.touch.initialScale.toFixed(3),
+            calculatedScale: oldScale.toFixed(3),
+            limitedScale: newScale.toFixed(3)
+        }));
+        
+        // 使用更精确的位置计算方法
+        // 1. 计算初始中心点在舞台坐标系中的位置
+        const initialCenterInStage = {
+            x: (this.touch.initialCenter.x - this.touch.initialPosition.x) / this.touch.initialScale,
+            y: (this.touch.initialCenter.y - this.touch.initialPosition.y) / this.touch.initialScale
+        };
+        
+        // 2. 计算当前中心点应该在舞台坐标系中的位置
+        const currentCenterInStage = {
+            x: (currentCenter.x - this.touch.initialPosition.x) / this.touch.initialScale,
+            y: (currentCenter.y - this.touch.initialPosition.y) / this.touch.initialScale
+        };
+        
+        // 3. 计算中心点的移动（在舞台坐标系中）
+        const centerDeltaInStage = {
+            x: currentCenterInStage.x - initialCenterInStage.x,
+            y: currentCenterInStage.y - initialCenterInStage.y
+        };
+        
+        // 4. 计算新的舞台位置
+        // 新位置 = 初始位置 + 中心点移动 * 初始缩放 - 初始中心点 * (新缩放 - 初始缩放)
+        const newX = this.touch.initialPosition.x + 
+                    centerDeltaInStage.x * this.touch.initialScale - 
+                    initialCenterInStage.x * (newScale - this.touch.initialScale);
+        
+        const newY = this.touch.initialPosition.y + 
+                    centerDeltaInStage.y * this.touch.initialScale - 
+                    initialCenterInStage.y * (newScale - this.touch.initialScale);
+        
+        // 应用新的缩放和位置
+        this.config.current = newScale;
+        this.table.gLayer.scale({ x: newScale, y: newScale });
+        this.table.gLayer.position({x: newX, y: newY});
+        this.table.gLayer.batchDraw();
+        
+        // 更新调试信息
+        console.log("ZOOM_LOG: 缩放完成", JSON.stringify({
+            finalScale: newScale.toFixed(3),
+            finalPosition: {x: newX.toFixed(1), y: newY.toFixed(1)},
+            ratio: adjustedScaleRatio.toFixed(3)
+        }));
+    }
+
     // 处理多点触摸开始
     handleMultiTouchStart(pointers) {
         if (pointers.length !== 2) return false;
 
         const [point1, point2] = pointers;
         
-        this.touch.isZooming = true;
-        this.isDragging = false;
-        
-        // 记录初始状态
-        this.touch.initialScale = this.config.current;
-        this.touch.initialPosition = {
-            x: this.table.stage.x(),
-            y: this.table.stage.y()
-        };
+        console.log('ZOOM_DEBUG: Start', {
+            point1: { x: point1.clientX, y: point1.clientY },
+            point2: { x: point2.clientX, y: point2.clientY }
+        });
         
         // 计算初始距离和中心点
-        this.touch.initialDistance = this.getDistance(point1, point2);
-        this.touch.initialCenter = this.getCenter(point1, point2);
+        const initialDistance = this.getDistance(
+            { x: point1.clientX, y: point1.clientY },
+            { x: point2.clientX, y: point2.clientY }
+        );
         
-        console.log('ZOOM_LOG: 双指触摸开始，重置缩放状态');
+        const initialCenter = {
+            x: (point1.clientX + point2.clientX) / 2,
+            y: (point1.clientY + point2.clientY) / 2
+        };
+        
+        // 记录初始状态
+        this.touch.isZooming = true;
+        this.isDragging = false;
+        this.touch.initialScale = this.config.current;
+        this.touch.initialDistance = initialDistance;
+        this.touch.initialCenter = initialCenter;
+        this.touch.initialPosition = {
+            x: this.table.gLayer.x(),
+            y: this.table.gLayer.y()
+        };
+        
+        console.log('ZOOM_DEBUG: 初始化状态', {
+            distance: initialDistance,
+            center: initialCenter,
+            scale: this.touch.initialScale,
+            position: this.touch.initialPosition
+        });
+        
         return true;
     }
 
@@ -136,35 +269,77 @@ export default class ZoomTool {
 
         const [point1, point2] = pointers;
         
-        // 计算当前距离和缩放比例
-        const currentDistance = this.getDistance(point1, point2);
-        const scaleRatio = currentDistance / this.touch.initialDistance;
+        // 计算当前状态
+        const currentDistance = this.getDistance(
+            { x: point1.clientX, y: point1.clientY },
+            { x: point2.clientX, y: point2.clientY }
+        );
         
-        // 计算新的缩放值
+        const currentCenter = {
+            x: (point1.clientX + point2.clientX) / 2,
+            y: (point1.clientY + point2.clientY) / 2
+        };
+        
+        // 计算缩放比例
+        const scaleRatio = currentDistance / this.touch.initialDistance;
         let newScale = this.touch.initialScale * scaleRatio;
+        
+        // 限制缩放范围
+        const oldScale = newScale;
         newScale = Math.max(this.config.min, Math.min(this.config.max, newScale));
         
-        // 计算当前中心点
-        const currentCenter = this.getCenter(point1, point2);
+        // 如果缩放被限制，调整scaleRatio
+        const adjustedScaleRatio = newScale / this.touch.initialScale;
         
-        // 计算位移
-        const deltaX = currentCenter.x - this.touch.initialCenter.x;
-        const deltaY = currentCenter.y - this.touch.initialCenter.y;
-        
-        // 应用缩放和位移
-        this.config.current = newScale;
-        
-        const newX = this.touch.initialPosition.x + deltaX;
-        const newY = this.touch.initialPosition.y + deltaY;
-        
-        this.table.stage.scale({ x: newScale, y: newScale });
-        this.table.stage.position({x: newX, y: newY});
-        this.table.stage.batchDraw();
-        
-        console.log('ZOOM_LOG: 双指触摸移动', {
-            scale: newScale.toFixed(2),
-            position: { x: newX.toFixed(0), y: newY.toFixed(0) }
+        console.log('ZOOM_DEBUG: Move', {
+            currentDistance,
+            initialDistance: this.touch.initialDistance,
+            scaleRatio,
+            adjustedScaleRatio,
+            newScale
         });
+        
+        // 使用更精确的位置计算方法
+        // 1. 计算初始中心点在图层坐标系中的位置
+        const initialCenterInLayer = {
+            x: (this.touch.initialCenter.x - this.touch.initialPosition.x) / this.touch.initialScale,
+            y: (this.touch.initialCenter.y - this.touch.initialPosition.y) / this.touch.initialScale
+        };
+        
+        // 2. 计算当前中心点在图层坐标系中的位置
+        const currentCenterInLayer = {
+            x: (currentCenter.x - this.touch.initialPosition.x) / this.touch.initialScale,
+            y: (currentCenter.y - this.touch.initialPosition.y) / this.touch.initialScale
+        };
+        
+        // 3. 计算中心点的移动（在图层坐标系中）
+        const centerDeltaInLayer = {
+            x: currentCenterInLayer.x - initialCenterInLayer.x,
+            y: currentCenterInLayer.y - initialCenterInLayer.y
+        };
+        
+        // 4. 计算新的图层位置
+        // 新位置 = 初始位置 + 中心点移动 * 初始缩放 - 初始中心点 * (新缩放 - 初始缩放) / 初始缩放
+        const newX = this.touch.initialPosition.x + 
+                    centerDeltaInLayer.x * this.touch.initialScale - 
+                    initialCenterInLayer.x * (newScale - this.touch.initialScale);
+        
+        const newY = this.touch.initialPosition.y + 
+                    centerDeltaInLayer.y * this.touch.initialScale - 
+                    initialCenterInLayer.y * (newScale - this.touch.initialScale);
+        
+        console.log('ZOOM_DEBUG: 位置计算', {
+            initialCenterInLayer,
+            currentCenterInLayer,
+            centerDeltaInLayer,
+            newPosition: { x: newX, y: newY }
+        });
+        
+        // 应用变换
+        this.config.current = newScale;
+        this.table.gLayer.scale({ x: newScale, y: newScale });
+        this.table.gLayer.position({ x: newX, y: newY });
+        this.table.gLayer.batchDraw();
         
         return true;
     }
@@ -173,30 +348,50 @@ export default class ZoomTool {
     handleMultiTouchEnd(event) {
         if (!this.touch.isZooming) return false;
         
+        console.log('ZOOM_DEBUG: End', {
+            remainingPointers: this.table.activePointers.size,
+            isZooming: this.touch.isZooming,
+            isDragging: this.isDragging
+        });
+        
         // 如果还有一个触摸点，转为拖动模式
         if (this.table.activePointers.size === 1) {
             this.touch.isZooming = false;
             this.isDragging = true;
             this.dragStartPosition = {
-                x: this.table.stage.x(),
-                y: this.table.stage.y()
+                x: this.table.gLayer.x(),
+                y: this.table.gLayer.y()
             };
             
             // 获取剩余的触摸点
             const remainingPointer = Array.from(this.table.activePointers.values())[0];
             this.touch.lastPosition = {
-                x: remainingPointer.x,
-                y: remainingPointer.y
+                x: remainingPointer.clientX,
+                y: remainingPointer.clientY
             };
             
-            console.log('ZOOM_LOG: 从缩放过渡到拖动');
+            console.log('ZOOM_DEBUG: 转为拖动模式', {
+                dragStartPosition: this.dragStartPosition,
+                lastPosition: this.touch.lastPosition
+            });
             return true;
         }
         
         // 如果没有触摸点了，完全重置状态
         this.touch.isZooming = false;
         this.isDragging = false;
-        console.log('ZOOM_LOG: 触摸结束，完全重置状态');
+        
+        // 确保所有状态都被重置
+        this.touch.lastDistance = 0;
+        this.touch.lastCenter = { x: 0, y: 0 };
+        this.touch.lastScale = 1;
+        this.touch.lastPosition = { x: 0, y: 0 };
+        this.touch.initialDistance = 0;
+        this.touch.initialCenter = { x: 0, y: 0 };
+        this.touch.initialScale = 1;
+        this.touch.initialPosition = { x: 0, y: 0 };
+        
+        console.log('ZOOM_DEBUG: 完全重置状态');
         return true;
     }
     

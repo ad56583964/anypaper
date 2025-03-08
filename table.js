@@ -262,16 +262,25 @@ export default class Table {
         if (eventType === 'pointerdown') {
             this.activePointers.set(event.pointerId, {
                 id: event.pointerId,
+                clientX: event.clientX,
+                clientY: event.clientY,
                 x: event.clientX,
                 y: event.clientY,
                 pointerType: event.pointerType,
                 pressure: event.pressure || 0,
                 isPrimary: event.isPrimary
             });
+            console.log('POINTER_LOG: pointerdown', {
+                pointerId: event.pointerId,
+                pointerType: event.pointerType,
+                activePointers: this.activePointers.size
+            });
         } else if (eventType === 'pointermove') {
             if (this.activePointers.has(event.pointerId)) {
                 this.activePointers.set(event.pointerId, {
                     id: event.pointerId,
+                    clientX: event.clientX,
+                    clientY: event.clientY,
                     x: event.clientX,
                     y: event.clientY,
                     pointerType: event.pointerType,
@@ -279,7 +288,15 @@ export default class Table {
                     isPrimary: event.isPrimary
                 });
             }
+            if (this.activePointers.size === 2) {
+                console.log('POINTER_LOG: pointermove with 2 pointers', 
+                    Array.from(this.activePointers.values()));
+            }
         } else if (eventType === 'pointerup' || eventType === 'pointercancel') {
+            console.log('POINTER_LOG: pointer' + (eventType === 'pointerup' ? 'up' : 'cancel'), {
+                pointerId: event.pointerId,
+                remainingPointers: this.activePointers.size - 1
+            });
             this.activePointers.delete(event.pointerId);
         }
         
@@ -312,6 +329,7 @@ export default class Table {
             // 处理缩放
             switch(eventType) {
                 case 'pointerdown':
+                    console.log('ZOOM_LOG: 调用 handleMultiTouchStart', pointers);
                     this.zoomTool.handleMultiTouchStart(pointers);
                     return;
                 case 'pointermove':
@@ -319,6 +337,10 @@ export default class Table {
                     return;
                 case 'pointerup':
                 case 'pointercancel':
+                    console.log('ZOOM_LOG: 调用 handleMultiTouchEnd', {
+                        eventType,
+                        remainingPointers: this.activePointers.size
+                    });
                     this.zoomTool.handleMultiTouchEnd(event);
                     return;
             }
