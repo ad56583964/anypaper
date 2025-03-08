@@ -13,6 +13,19 @@ class DebugManager {
                 devicePixelRatio: window.devicePixelRatio,
                 actualPixelRatio: 0
             },
+            deviceTracker: {
+                lastEvent: 'none',
+                deviceType: 'none',
+                position: { x: 0, y: 0 },
+                pressure: 0,
+                tiltX: 0,
+                tiltY: 0,
+                timestamp: 0,
+                pointerId: null,
+                pointerType: 'none',
+                isPrimary: false,
+                buttons: 0
+            }
         };
         // console.log('DebugManager initialized with:', this.debugInfo);
     }
@@ -86,22 +99,257 @@ function useDebugInfo() {
 // DebugBar Component
 export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
     const debugInfo = useDebugInfo();
+    const [expanded, setExpanded] = React.useState({
+        mousePosition: true,
+        pixelRatio: true,
+        deviceTracker: true
+    });
     
     React.useEffect(() => {
         // console.log('DebugBar rendered with:', debugInfo);
     }, [debugInfo]);
 
+    const toggleSection = (section) => {
+        setExpanded(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
+    };
+
+    // 格式化时间戳为可读格式
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return 'N/A';
+        const date = new Date(timestamp);
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}.${date.getMilliseconds().toString().padStart(3, '0')}`;
+    };
+
+    // 获取设备类型的中文名称和颜色
+    const getDeviceTypeInfo = (pointerType) => {
+        switch(pointerType) {
+            case 'mouse':
+                return { name: '鼠标', color: '#4CAF50' };
+            case 'touch':
+                return { name: '触摸', color: '#2196F3' };
+            case 'pen':
+                return { name: '手写笔', color: '#9C27B0' };
+            case 'wheel':
+                return { name: '滚轮', color: '#FF9800' };
+            default:
+                return { name: '未知', color: '#757575' };
+        }
+    };
+
+    // 获取事件类型的中文名称
+    const getEventName = (eventType) => {
+        switch(eventType) {
+            case 'pointerdown': return '指针按下';
+            case 'pointermove': return '指针移动';
+            case 'pointerup': return '指针抬起';
+            case 'touchstart': return '触摸开始';
+            case 'touchmove': return '触摸移动';
+            case 'touchend': return '触摸结束';
+            case 'wheel': return '滚轮事件';
+            default: return eventType;
+        }
+    };
+
+    const deviceInfo = getDeviceTypeInfo(debugInfo.deviceTracker.pointerType);
+
     return (
-        <div style={{ padding: '10px', border: '1px solid #ccc' }}>
-            <div>
-                <h3>Mouse Position</h3>
-                <p>X: {debugInfo.mousePosition.x.toFixed(2)}</p>
-                <p>Y: {debugInfo.mousePosition.y.toFixed(2)}</p>
+        <div style={{ 
+            padding: '10px', 
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            backgroundColor: '#f8f9fa',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '14px',
+            maxWidth: '400px',
+            margin: '10px'
+        }}>
+            <h2 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#333',
+                borderBottom: '1px solid #ddd',
+                paddingBottom: '8px',
+                fontSize: '18px'
+            }}>调试信息面板</h2>
+            
+            {/* 鼠标位置信息 */}
+            <div style={{ marginBottom: '15px' }}>
+                <div 
+                    onClick={() => toggleSection('mousePosition')}
+                    style={{ 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        color: '#555'
+                    }}
+                >
+                    <span style={{ 
+                        transform: expanded.mousePosition ? 'rotate(90deg)' : 'rotate(0deg)',
+                        display: 'inline-block',
+                        marginRight: '5px',
+                        transition: 'transform 0.2s'
+                    }}>▶</span>
+                    <h3 style={{ margin: '5px 0' }}>鼠标位置</h3>
+                </div>
+                
+                {expanded.mousePosition && (
+                    <div style={{ 
+                        padding: '8px', 
+                        backgroundColor: '#fff',
+                        borderRadius: '4px',
+                        border: '1px solid #eee',
+                        marginLeft: '15px'
+                    }}>
+                        <p style={{ margin: '5px 0' }}>X: {debugInfo.mousePosition.x.toFixed(2)}</p>
+                        <p style={{ margin: '5px 0' }}>Y: {debugInfo.mousePosition.y.toFixed(2)}</p>
+                    </div>
+                )}
             </div>
-            <div>
-                <h3>Pixel Ratio Info</h3>
-                <p>Device Pixel Ratio: {debugInfo.pixelRatio.devicePixelRatio}</p>
-                <p>Actual Cache Pixel Ratio: {debugInfo.pixelRatio.actualPixelRatio}</p>
+            
+            {/* 像素比信息 */}
+            <div style={{ marginBottom: '15px' }}>
+                <div 
+                    onClick={() => toggleSection('pixelRatio')}
+                    style={{ 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        color: '#555'
+                    }}
+                >
+                    <span style={{ 
+                        transform: expanded.pixelRatio ? 'rotate(90deg)' : 'rotate(0deg)',
+                        display: 'inline-block',
+                        marginRight: '5px',
+                        transition: 'transform 0.2s'
+                    }}>▶</span>
+                    <h3 style={{ margin: '5px 0' }}>像素比信息</h3>
+                </div>
+                
+                {expanded.pixelRatio && (
+                    <div style={{ 
+                        padding: '8px', 
+                        backgroundColor: '#fff',
+                        borderRadius: '4px',
+                        border: '1px solid #eee',
+                        marginLeft: '15px'
+                    }}>
+                        <p style={{ margin: '5px 0' }}>设备像素比: {debugInfo.pixelRatio.devicePixelRatio}</p>
+                        <p style={{ margin: '5px 0' }}>实际缓存像素比: {debugInfo.pixelRatio.actualPixelRatio}</p>
+                    </div>
+                )}
+            </div>
+            
+            {/* 设备追踪信息 */}
+            <div style={{ marginBottom: '15px' }}>
+                <div 
+                    onClick={() => toggleSection('deviceTracker')}
+                    style={{ 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        color: '#555'
+                    }}
+                >
+                    <span style={{ 
+                        transform: expanded.deviceTracker ? 'rotate(90deg)' : 'rotate(0deg)',
+                        display: 'inline-block',
+                        marginRight: '5px',
+                        transition: 'transform 0.2s'
+                    }}>▶</span>
+                    <h3 style={{ margin: '5px 0' }}>设备追踪</h3>
+                </div>
+                
+                {expanded.deviceTracker && (
+                    <div style={{ 
+                        padding: '8px', 
+                        backgroundColor: '#fff',
+                        borderRadius: '4px',
+                        border: '1px solid #eee',
+                        marginLeft: '15px'
+                    }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            marginBottom: '8px',
+                            backgroundColor: deviceInfo.color + '22',
+                            padding: '5px',
+                            borderRadius: '4px'
+                        }}>
+                            <div style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                borderRadius: '50%', 
+                                backgroundColor: deviceInfo.color,
+                                marginRight: '8px'
+                            }}></div>
+                            <span style={{ fontWeight: 'bold', color: deviceInfo.color }}>
+                                {deviceInfo.name}
+                            </span>
+                        </div>
+                        
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>事件类型:</span> {getEventName(debugInfo.deviceTracker.lastEvent)}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>位置:</span> X: {debugInfo.deviceTracker.position.x.toFixed(2)}, Y: {debugInfo.deviceTracker.position.y.toFixed(2)}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>Pointer ID:</span> {debugInfo.deviceTracker.pointerId}
+                        </p>
+                        
+                        {debugInfo.deviceTracker.pointerType === 'pen' && (
+                            <>
+                                <p style={{ margin: '5px 0' }}>
+                                    <span style={{ fontWeight: 'bold' }}>压力:</span> {debugInfo.deviceTracker.pressure.toFixed(3)}
+                                </p>
+                                <p style={{ margin: '5px 0' }}>
+                                    <span style={{ fontWeight: 'bold' }}>倾斜角:</span> X: {debugInfo.deviceTracker.tiltX}°, Y: {debugInfo.deviceTracker.tiltY}°
+                                </p>
+                            </>
+                        )}
+                        
+                        {debugInfo.deviceTracker.pointerType === 'wheel' && (
+                            <>
+                                <p style={{ margin: '5px 0' }}>
+                                    <span style={{ fontWeight: 'bold' }}>Delta X:</span> {debugInfo.deviceTracker.deltaX}
+                                </p>
+                                <p style={{ margin: '5px 0' }}>
+                                    <span style={{ fontWeight: 'bold' }}>Delta Y:</span> {debugInfo.deviceTracker.deltaY}
+                                </p>
+                                <p style={{ margin: '5px 0' }}>
+                                    <span style={{ fontWeight: 'bold' }}>Ctrl 键:</span> {debugInfo.deviceTracker.ctrlKey ? '按下' : '未按下'}
+                                </p>
+                            </>
+                        )}
+                        
+                        {debugInfo.deviceTracker.pointerType === 'touch' && debugInfo.deviceTracker.touchCount !== undefined && (
+                            <p style={{ margin: '5px 0' }}>
+                                <span style={{ fontWeight: 'bold' }}>触摸点数:</span> {debugInfo.deviceTracker.touchCount}
+                            </p>
+                        )}
+                        
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>是否主指针:</span> {debugInfo.deviceTracker.isPrimary ? '是' : '否'}
+                        </p>
+                        
+                        {debugInfo.deviceTracker.buttons !== undefined && (
+                            <p style={{ margin: '5px 0' }}>
+                                <span style={{ fontWeight: 'bold' }}>按钮状态:</span> {debugInfo.deviceTracker.buttons}
+                            </p>
+                        )}
+                        
+                        <p style={{ margin: '5px 0', fontSize: '12px', color: '#666' }}>
+                            <span style={{ fontWeight: 'bold' }}>时间戳:</span> {formatTimestamp(debugInfo.deviceTracker.timestamp)}
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

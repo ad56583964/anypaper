@@ -7,6 +7,7 @@ import HitUpdateOnlyTool from "./tools/hitUpdateOnly";
 import AdaptiveDpr from "./tools/adaptiveDpr";
 import ZoomTool from "./tools/zoom";
 import ToolBar from "./components/ToolBar";
+import { updateDebugInfo } from "./debug.jsx"; // 导入 updateDebugInfo 函数
 
 let DEBUG_INFO = console.log;
 
@@ -255,6 +256,11 @@ export default class Table {
     }
 
     handleEvent(eventType, event) {
+        // 更新设备追踪信息
+        if (eventType.startsWith('pointer') || eventType.startsWith('touch') || eventType === 'wheel') {
+            this.updateDeviceTrackerInfo(eventType, event);
+        }
+        
         // 检查事件是否来自工具栏
         if (event.target && (
             event.target.closest && event.target.closest('#konva-toolbar') || 
@@ -406,5 +412,66 @@ export default class Table {
         }
         
         this.adaptiveDpr.restoreOriginalDpr(this.stage);
+    }
+
+    // 添加更新设备追踪信息的方法
+    updateDeviceTrackerInfo(eventType, event) {
+        // 处理 pointer 事件
+        if (eventType.startsWith('pointer')) {
+            updateDebugInfo('deviceTracker', {
+                lastEvent: eventType,
+                position: { x: event.clientX, y: event.clientY },
+                pressure: event.pressure || 0,
+                tiltX: event.tiltX || 0,
+                tiltY: event.tiltY || 0,
+                timestamp: event.timeStamp,
+                pointerId: event.pointerId,
+                pointerType: event.pointerType,
+                isPrimary: event.isPrimary,
+                buttons: event.buttons
+            });
+        } 
+        // 处理 touch 事件
+        else if (eventType.startsWith('touch') && event.touches) {
+            // 对于触摸事件，我们使用第一个触摸点
+            if (event.touches.length > 0) {
+                const touch = event.touches[0];
+                updateDebugInfo('deviceTracker', {
+                    lastEvent: eventType,
+                    position: { x: touch.clientX, y: touch.clientY },
+                    pressure: touch.force || 0,
+                    timestamp: event.timeStamp,
+                    pointerId: touch.identifier,
+                    pointerType: 'touch',
+                    touchCount: event.touches.length
+                });
+            } else if (event.changedTouches && event.changedTouches.length > 0) {
+                // 对于 touchend 事件，使用 changedTouches
+                const touch = event.changedTouches[0];
+                updateDebugInfo('deviceTracker', {
+                    lastEvent: eventType,
+                    position: { x: touch.clientX, y: touch.clientY },
+                    pressure: 0,
+                    timestamp: event.timeStamp,
+                    pointerId: touch.identifier,
+                    pointerType: 'touch',
+                    touchCount: 0
+                });
+            }
+        }
+        // 处理 wheel 事件
+        else if (eventType === 'wheel') {
+            updateDebugInfo('deviceTracker', {
+                lastEvent: eventType,
+                position: { x: event.clientX, y: event.clientY },
+                deltaX: event.deltaX,
+                deltaY: event.deltaY,
+                deltaMode: event.deltaMode,
+                timestamp: event.timeStamp,
+                ctrlKey: event.ctrlKey,
+                metaKey: event.metaKey,
+                pointerType: 'wheel'
+            });
+        }
     }
 }
