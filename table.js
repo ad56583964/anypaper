@@ -28,6 +28,9 @@ export default class Table {
             maxDpr: 2.0
         });
 
+        // 添加多点触摸追踪
+        this.activePointers = new Map();
+
         // Setup the stage (global enviroment)
         this.stage = new Konva.Stage({
             listening: true,  // 确保能接收触摸事件
@@ -220,12 +223,9 @@ export default class Table {
             'wheel', 
             'pointermove', 
             'pointerdown', 
-            'pointerup', 
-            'keyup',
-            'touchstart',
-            'touchmove',
-            'touchend',
-            'touchcancel'
+            'pointerup',
+            'pointercancel',
+            'keyup'
         ];
         events.forEach(eventType => {
             const listener = (e) => this.handleEvent(eventType, e);
@@ -239,12 +239,9 @@ export default class Table {
             'wheel', 
             'pointermove', 
             'pointerdown', 
-            'pointerup', 
-            'keyup',
-            'touchstart',
-            'touchmove',
-            'touchend',
-            'touchcancel'
+            'pointerup',
+            'pointercancel',
+            'keyup'
         ];
         events.forEach(eventType => {
             const listener = this.eventListeners[eventType];
@@ -257,8 +254,33 @@ export default class Table {
 
     handleEvent(eventType, event) {
         // 更新设备追踪信息
-        if (eventType.startsWith('pointer') || eventType.startsWith('touch') || eventType === 'wheel') {
+        if (eventType.startsWith('pointer') || eventType === 'wheel') {
             this.updateDeviceTrackerInfo(eventType, event);
+        }
+
+        // 更新活动触摸点追踪
+        if (eventType === 'pointerdown') {
+            this.activePointers.set(event.pointerId, {
+                id: event.pointerId,
+                x: event.clientX,
+                y: event.clientY,
+                pointerType: event.pointerType,
+                pressure: event.pressure || 0,
+                isPrimary: event.isPrimary
+            });
+        } else if (eventType === 'pointermove') {
+            if (this.activePointers.has(event.pointerId)) {
+                this.activePointers.set(event.pointerId, {
+                    id: event.pointerId,
+                    x: event.clientX,
+                    y: event.clientY,
+                    pointerType: event.pointerType,
+                    pressure: event.pressure || 0,
+                    isPrimary: event.isPrimary
+                });
+            }
+        } else if (eventType === 'pointerup' || eventType === 'pointercancel') {
+            this.activePointers.delete(event.pointerId);
         }
         
         // 检查事件是否来自工具栏
@@ -270,35 +292,36 @@ export default class Table {
             // 如果事件来自工具栏，不处理Canvas事件
             return;
         }
-        
+
         // 处理多指触摸缩放 - 在任何工具下都可用，优先级最高
-        if (eventType === 'touchstart' && event.touches && event.touches.length === 2) {
+        if (this.activePointers.size === 2 && event.pointerType === 'touch') {
+            const pointers = Array.from(this.activePointers.values());
+            
             // 如果当前正在绘画，先结束绘画
             if (this.currentTool && this.currentTool.isdrawing) {
-                // 直接调用 pointerup 方法结束绘画
-                this.currentTool.pointerup({});
+                this.currentTool.pointerup(event);
             }
-            
+
             // 如果是铅笔工具且有待处理的触摸，取消它
             if (this.currentTool && this.currentTool.name === 'pencil' && this.currentTool.touchTimer) {
                 clearTimeout(this.currentTool.touchTimer);
                 this.currentTool.touchTimer = null;
                 this.currentTool.pendingTouch = null;
             }
-            
-            // 然后处理缩放
-            this.zoomTool.touchstart(event);
-            return;
-        }
-        
-        if (eventType === 'touchmove' && event.touches && event.touches.length === 2) {
-            this.zoomTool.touchmove(event);
-            return;
-        }
-        
-        if (eventType === 'touchend' && this.zoomTool.touch.isZooming) {
-            this.zoomTool.touchend(event);
-            return;
+
+            // 处理缩放
+            switch(eventType) {
+                case 'pointerdown':
+                    this.zoomTool.handleMultiTouchStart(pointers);
+                    return;
+                case 'pointermove':
+                    this.zoomTool.handleMultiTouchMove(pointers);
+                    return;
+                case 'pointerup':
+                case 'pointercancel':
+                    this.zoomTool.handleMultiTouchEnd(event);
+                    return;
+            }
         }
         
         // 处理通用缩放操作 - 按住Ctrl/Cmd键滚动鼠标滚轮
@@ -414,10 +437,11 @@ export default class Table {
         this.adaptiveDpr.restoreOriginalDpr(this.stage);
     }
 
-    // 添加更新设备追踪信息的方法
+    // 修改设备追踪信息更新方法
     updateDeviceTrackerInfo(eventType, event) {
         // 处理 pointer 事件
         if (eventType.startsWith('pointer')) {
+            const pointerCount = this.activePointers.size;
             updateDebugInfo('deviceTracker', {
                 lastEvent: eventType,
                 position: { x: event.clientX, y: event.clientY },
@@ -428,37 +452,10 @@ export default class Table {
                 pointerId: event.pointerId,
                 pointerType: event.pointerType,
                 isPrimary: event.isPrimary,
-                buttons: event.buttons
+                buttons: event.buttons,
+                touchCount: event.pointerType === 'touch' ? pointerCount : undefined
             });
         } 
-        // 处理 touch 事件
-        else if (eventType.startsWith('touch') && event.touches) {
-            // 对于触摸事件，我们使用第一个触摸点
-            if (event.touches.length > 0) {
-                const touch = event.touches[0];
-                updateDebugInfo('deviceTracker', {
-                    lastEvent: eventType,
-                    position: { x: touch.clientX, y: touch.clientY },
-                    pressure: touch.force || 0,
-                    timestamp: event.timeStamp,
-                    pointerId: touch.identifier,
-                    pointerType: 'touch',
-                    touchCount: event.touches.length
-                });
-            } else if (event.changedTouches && event.changedTouches.length > 0) {
-                // 对于 touchend 事件，使用 changedTouches
-                const touch = event.changedTouches[0];
-                updateDebugInfo('deviceTracker', {
-                    lastEvent: eventType,
-                    position: { x: touch.clientX, y: touch.clientY },
-                    pressure: 0,
-                    timestamp: event.timeStamp,
-                    pointerId: touch.identifier,
-                    pointerType: 'touch',
-                    touchCount: 0
-                });
-            }
-        }
         // 处理 wheel 事件
         else if (eventType === 'wheel') {
             updateDebugInfo('deviceTracker', {
