@@ -1,7 +1,9 @@
 import * as PIXI from 'pixi.js';
 import PixiRenderer from './PixiRenderer';
 import PixiLayer from './PixiLayer';
-import { updateDebugInfo } from '../../debug.jsx';
+import { updateDebugInfo } from '../debug.jsx';
+import PixiPencilTool from '../tools/PixiPencilTool';
+import PixiZoomTool from '../tools/PixiZoomTool';
 
 /**
  * PixiTable 类 - 主要的表格组件
@@ -12,6 +14,7 @@ export default class PixiTable {
      * 创建一个新的 PixiTable 实例
      * @param {string} containerId - 容器元素的 ID
      * @param {Object} options - 表格选项
+     * @returns {Promise} - 初始化完成的Promise
      */
     constructor(containerId = 'a4-table', options = {}) {
         this.pixel = 2;
@@ -30,9 +33,15 @@ export default class PixiTable {
         console.log('PixiTable constructor', containerId, this.width, this.height);
         this.renderer = new PixiRenderer(containerId, this.width, this.height);
         console.log('PixiTable constructor', this.renderer);
-        // 延迟初始化，等待 PixiRenderer 的异步初始化完成
-        // this.initTable();
-
+        
+        // 使用Promise处理异步初始化
+        return new Promise((resolve) => {
+            // 等待渲染器初始化完成
+            this.renderer.app.ticker.addOnce(() => {
+                this.initTable();
+                resolve(this);
+            });
+        });
     }
     
     /**

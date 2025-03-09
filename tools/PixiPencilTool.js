@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
-import { getStroke } from '../../../src/perfect-freehand/packages/perfect-freehand/src';
-import { updateDebugInfo } from '../../../debug.jsx';
+import { getStroke } from '../lib/perfect-freehand/packages/perfect-freehand/src';
+import { updateDebugInfo } from '../debug.jsx';
 
 /**
  * PixiPencilTool 类 - 处理绘图功能
@@ -30,7 +30,7 @@ export default class PixiPencilTool {
         
         // 绘制选项
         this.options = {
-            size: this.table.pixel * 2,
+            size: this.table.pixel,
             thinning: 0.6,
             smoothing: 0.5,
             streamline: 0.5,

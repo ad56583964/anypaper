@@ -2,9 +2,9 @@ import './style.css'
 import React from 'react';
 import ReactDOM from 'react-dom';
 import initDebugbar from "./debug.jsx";
-import PixiTable from './src/pixi/PixiTable';
-import PixiPencilTool from './src/pixi/tools/PixiPencilTool';
-import PixiZoomTool from './src/pixi/tools/PixiZoomTool';
+import PixiTable from './pixi/PixiTable';
+import PixiPencilTool from './tools/PixiPencilTool';
+import PixiZoomTool from './tools/PixiZoomTool';
 // let DEBUG_INFO = console.log;
 
 var theme = {

@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { updateDebugInfo } from '../../../debug.jsx';
+import { updateDebugInfo } from '../debug.jsx';
 
 /**
  * PixiZoomTool 类 - 处理缩放和平移功能
