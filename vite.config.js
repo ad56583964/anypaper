@@ -40,7 +40,7 @@ export default defineConfig({
   // 优化依赖
   optimizeDeps: {
     // 包含需要预构建的依赖
-    include: ['perfect-freehand'],
+    include: [],
     // 排除本地 Konva
     exclude: ['konva']
   },

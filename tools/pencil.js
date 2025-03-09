@@ -1,5 +1,5 @@
 import Konva from '../src/konva';
-import { getStroke } from 'perfect-freehand';
+import { getStroke } from '../src/perfect-freehand/packages/perfect-freehand/src';
 import { updateDebugInfo } from '../debug';
 
 export default class PencilTool {
