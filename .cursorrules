@@ -6,4 +6,4 @@
 - 测试在 Android Tablet 下性能良好
 - 但是在 Android Phone 上存在卡顿问题, 等待排查
 - 在执行路径操作时请以 /home/emasi/Documents/WORKSPACE/anya4_knova 绝对路径指定
-- src/konva 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改
+- src/konva src/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改
