@@ -92,58 +92,28 @@ export default class Table {
      * 
      */
     initGridBG() {
-        // 创建一个组来包含所有点
         this.gridGroup = new Konva.Group({
             listening: false,
             draggable: false,
-        });
+        })
 
-        // 创建一个离屏画布来绘制点阵
-        const gridSize = Math.max(this.width, this.height);
-        const scaleRatio = 3; // 更高的比例以确保清晰度
-        const offscreenCanvas = document.createElement('canvas');
-        offscreenCanvas.width = gridSize * scaleRatio;
-        offscreenCanvas.height = gridSize * scaleRatio;
-        
-        const ctx = offscreenCanvas.getContext('2d');
-        ctx.fillStyle = "#555555"; // 深灰色点
-        ctx.scale(scaleRatio, scaleRatio);
-        
-        // 在离屏画布上绘制点
+        // 绘制点阵背景
         for (let i = 1; i < this.width / this.block.width; i++) {
             for (let j = 1; j < this.height / this.block.height; j++) {
-                const x = i * this.block.width;
-                const y = j * this.block.height;
-                
-                // 使用路径绘制圆形，而不是矩形像素
-                ctx.beginPath();
-                ctx.arc(x, y, 1, 0, Math.PI * 2, false);
-                ctx.fill();
+                var circle = new Konva.Circle({
+                    x: i * this.block.width,
+                    y: j * this.block.height,
+                    radius: 1, // 减小点的大小
+                    fill: "#555555", // 更深的点阵灰色
+                    listening: false,
+                    draggable: false,
+                });
+                this.gridGroup.add(circle);
             }
         }
-        
-        // 创建一个图像对象
-        const gridImage = new Image();
-        gridImage.onload = () => {
-            // 创建Konva图像对象
-            const gridKonvaImage = new Konva.Image({
-                image: gridImage,
-                x: 0,
-                y: 0,
-                width: this.width,
-                height: this.height,
-                listening: false,
-                draggable: false,
-            });
-            
-            // 将图像添加到组中
-            this.gridGroup.add(gridKonvaImage);
-            this.gLayer.add(this.gridGroup);
-            this.gLayer.batchDraw();
-        };
-        
-        // 将离屏画布转换为图像源
-        gridImage.src = offscreenCanvas.toDataURL();
+
+        this.gridGroup.cache()
+        this.gLayer.add(this.gridGroup)
     }
 
     /**
@@ -160,6 +130,9 @@ export default class Table {
             height: this.stage.height(),
             // 更深的背景灰色
             fill: "#DDDDDD",
+            // 添加棕色边框
+            stroke: "#8B4513", // 棕色边框
+            strokeWidth: 4,    // 边框宽度
         });
 
         this.gLayer.add(this.konva_attr);
@@ -168,6 +141,9 @@ export default class Table {
 
 
         this.initGridBG();
+        
+        // 创建16:9比例的paper对象
+        this.createPaper();
 
         this.gLayer.batchDraw();
 
@@ -176,13 +152,29 @@ export default class Table {
     }
 
     fitWindow() {
-        DEBUG_INFO("Enter fitWindow");
-        DEBUG_INFO("Table: ",window.innerWidth,window.innerHeight);
+        console.log("调整窗口大小");
         this.stage.setAttrs({
             width: window.innerWidth,
             height: window.innerHeight,
-            fill: "#ddf",
         });
+        
+        // 更新背景矩形的大小
+        this.konva_attr.setAttrs({
+            width: this.stage.width(),
+            height: this.stage.height(),
+        });
+        
+        // 如果存在paper，重新调整其位置和大小
+        if (this.paper) {
+            // 移除旧的paper
+            this.paper.destroy();
+            
+            // 创建新的paper
+            this.createPaper();
+        }
+        
+        // 重新绘制
+        this.gLayer.batchDraw();
     }
 
     // global use
@@ -505,5 +497,53 @@ export default class Table {
                 pointerType: 'wheel'
             });
         }
+    }
+
+    // 创建居中的16:9比例paper对象
+    createPaper() {
+        // 计算paper的尺寸，使其保持16:9比例
+        const stageWidth = this.stage.width();
+        const stageHeight = this.stage.height();
+        
+        // 确定paper的宽度和高度，取较小的一边作为限制
+        let paperWidth, paperHeight;
+        if (stageWidth / 16 < stageHeight / 9) {
+            // 如果舞台更宽，则以宽度为基准
+            paperWidth = stageWidth * 0.8; // 留出一些边距
+            paperHeight = paperWidth * 9 / 16;
+        } else {
+            // 如果舞台更高，则以高度为基准
+            paperHeight = stageHeight * 0.8; // 留出一些边距
+            paperWidth = paperHeight * 16 / 9;
+        }
+        
+        // 计算居中位置
+        const x = (stageWidth - paperWidth) / 2;
+        const y = (stageHeight - paperHeight) / 2;
+        
+        // 创建paper对象
+        this.paper = new Konva.Rect({
+            x: x,
+            y: y,
+            width: paperWidth,
+            height: paperHeight,
+            fill: 'white',
+            stroke: '#333333',
+            strokeWidth: 1,
+            cornerRadius: 5,
+            shadowColor: 'black',
+            shadowBlur: 10,
+            shadowOffset: { x: 5, y: 5 },
+            shadowOpacity: 0.3,
+            name: 'paper'
+        });
+        
+        // 将paper添加到图层
+        this.gLayer.add(this.paper);
+        
+        // 确保paper在背景之上，但在其他绘图元素之下
+        this.paper.moveUp();
+        
+        console.log('创建了16:9比例的paper，尺寸为:', paperWidth, 'x', paperHeight);
     }
 }
