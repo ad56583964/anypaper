@@ -35,12 +35,21 @@ export default class PixiTable {
         console.log('PixiTable constructor', this.renderer);
         
         // 使用Promise处理异步初始化
-        return new Promise((resolve) => {
-            // 等待渲染器初始化完成
-            this.renderer.app.ticker.addOnce(() => {
+        return new Promise(async (resolve) => {
+            try {
+                // 等待渲染器初始化完成
+                await this.renderer.initPromise;
+                
+                // 初始化表格
                 this.initTable();
+                
+                // 初始化工具
+                this.initTools();
+                
                 resolve(this);
-            });
+            } catch (error) {
+                console.error('PixiTable initialization error:', error);
+            }
         });
     }
     
@@ -79,14 +88,63 @@ export default class PixiTable {
         // 设置性能监控
         this.setupPerformanceMonitoring();
         
-        // 设置默认工具为 pencil
-        if (this.tools.pencil) {
-            this.setActiveTool('pencil');
-        } else {
-            console.warn('默认工具 pencil 未注册，请确保在初始化后注册了 pencil 工具');
-        }
-        
         console.log('PixiTable initialized');
+    }
+    
+    /**
+     * 初始化工具
+     */
+    initTools() {
+        // 创建工具
+        const pencilTool = new PixiPencilTool(this);
+        const zoomTool = new PixiZoomTool(this);
+        
+        // 注册工具
+        this.registerTool('pencil', pencilTool);
+        this.registerTool('zoom', zoomTool);
+        
+        // 设置默认工具为 pencil
+        this.setActiveTool('pencil');
+        
+        // 设置键盘事件监听
+        this.setupKeyboardEvents();
+    }
+    
+    /**
+     * 设置键盘事件监听
+     */
+    setupKeyboardEvents() {
+        const handleKeyDown = (e) => {
+            const zoomTool = this.tools.zoom;
+            
+            // Escape 键退出缩放模式
+            if (e.key === 'Escape' && zoomTool?.isZoomMode) {
+                zoomTool.exitZoomMode();
+            }
+            
+            // Z 键切换缩放模式
+            if (e.key === 'z' || e.key === 'Z') {
+                if (zoomTool?.isZoomMode) {
+                    zoomTool.exitZoomMode();
+                } else if (zoomTool) {
+                    zoomTool.enterZoomMode();
+                }
+            }
+            
+            // P 键切换到铅笔工具
+            if (e.key === 'p' || e.key === 'P') {
+                if (zoomTool?.isZoomMode) {
+                    zoomTool.exitZoomMode();
+                }
+                this.setActiveTool('pencil');
+            }
+        };
+
+        // 绑定事件处理函数
+        document.addEventListener('keydown', handleKeyDown);
+        
+        // 保存引用以便后续移除
+        this._handleKeyDown = handleKeyDown;
     }
     
     /**
@@ -425,6 +483,11 @@ export default class PixiTable {
         window.removeEventListener('pointerup', this.handlePointerUp);
         window.removeEventListener('wheel', this.handleWheel);
         window.removeEventListener('resize', this.handleResize);
+        
+        // 移除键盘事件监听
+        if (this._handleKeyDown) {
+            document.removeEventListener('keydown', this._handleKeyDown);
+        }
         
         // 销毁图层
         this.bgLayer.destroy();

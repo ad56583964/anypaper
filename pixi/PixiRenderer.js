@@ -21,8 +21,8 @@ export default class PixiRenderer {
         // 创建 PIXI 应用 - 适配 PixiJS v8
         this.app = new PIXI.Application();
         
-        // 初始化应用
-        this.initApp(container, width, height);
+        // 创建初始化完成的Promise
+        this.initPromise = this.initApp(container, width, height);
         
         // 跟踪活动的触摸点
         this.activePointers = new Map();

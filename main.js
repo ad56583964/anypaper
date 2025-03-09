@@ -3,9 +3,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import initDebugbar from "./debug.jsx";
 import PixiTable from './pixi/PixiTable';
-import PixiPencilTool from './tools/PixiPencilTool';
-import PixiZoomTool from './tools/PixiZoomTool';
-// let DEBUG_INFO = console.log;
 
 var theme = {
     background_color: "#dff"
@@ -19,47 +16,10 @@ window.addEventListener('wheel', function (event) {
 }, { passive: false });
 
 // 初始化 PixiTable
-document.addEventListener('DOMContentLoaded', () => {
-    // 创建 PixiTable 实例
-    const table = new PixiTable('a4-table');
-    
-    // 延迟创建工具，等待 PixiTable 初始化完成
-    setTimeout(() => {
-        // 创建工具
-        const pencilTool = new PixiPencilTool(table);
-        const zoomTool = new PixiZoomTool(table);
-        
-        // 注册工具
-        table.registerTool('pencil', pencilTool);
-        table.registerTool('zoom', zoomTool);
-        
-        // 设置默认工具
-        table.setActiveTool('pencil');
-        
-        // 添加键盘事件监听
-        document.addEventListener('keydown', (e) => {
-            // Escape 键退出缩放模式
-            if (e.key === 'Escape' && zoomTool.isZoomMode) {
-                zoomTool.exitZoomMode();
-            }
-            
-            // Z 键切换缩放模式
-            if (e.key === 'z' || e.key === 'Z') {
-                if (zoomTool.isZoomMode) {
-                    zoomTool.exitZoomMode();
-                } else {
-                    zoomTool.enterZoomMode();
-                }
-            }
-            
-            // P 键切换到铅笔工具
-            if (e.key === 'p' || e.key === 'P') {
-                if (zoomTool.isZoomMode) {
-                    zoomTool.exitZoomMode();
-                }
-                table.setActiveTool('pencil');
-            }
-        });
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // 创建 PixiTable 实例并等待初始化完成
+        const table = await new PixiTable('a4-table');
         
         // 将 table 实例暴露到全局，方便调试
         window.pixiTable = table;
@@ -68,5 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initDebugbar();
         
         console.log('Application initialized');
-    }, 200);
+    } catch (error) {
+        console.error('Application initialization error:', error);
+    }
 });
