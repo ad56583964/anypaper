@@ -19,16 +19,16 @@ export default class PixiRenderer {
         }
         
         // 创建 PIXI 应用 - 适配 PixiJS v8
-        this.app = new PIXI.Application();
+        this.app = new PIXI.Application({
+            width: width,
+            height: height,
+            backgroundColor: 0xdddddd, // 浅灰色背景
+            resolution: window.devicePixelRatio || 1,
+            antialias: true
+        });
         
-        // 设置应用属性
-        this.app.renderer.resize(width, height);
-        this.app.renderer.background.color = 0xdddddd; // 浅灰色背景
-        this.app.renderer.resolution = window.devicePixelRatio || 1;
-        this.app.renderer.antialias = true;
-        
-        // 添加到容器
-        container.appendChild(this.app.canvas);
+        // 添加到容器 - 在 PixiJS v8 中使用 app.renderer.view
+        container.appendChild(this.app.renderer.view);
         
         // 创建主要图层
         this.bgLayer = new PIXI.Container(); // 背景层 - 静态内容
@@ -62,12 +62,12 @@ export default class PixiRenderer {
         this.app.stage.eventMode = 'static';
         this.app.stage.hitArea = new PIXI.Rectangle(0, 0, this.app.renderer.width, this.app.renderer.height);
         
-        // 添加事件监听器
-        this.app.canvas.addEventListener('pointerdown', this.handlePointerDown.bind(this));
-        this.app.canvas.addEventListener('pointermove', this.handlePointerMove.bind(this));
-        this.app.canvas.addEventListener('pointerup', this.handlePointerUp.bind(this));
-        this.app.canvas.addEventListener('pointercancel', this.handlePointerUp.bind(this));
-        this.app.canvas.addEventListener('wheel', this.handleWheel.bind(this));
+        // 添加事件监听器 - 在 PixiJS v8 中使用 app.renderer.view
+        this.app.renderer.view.addEventListener('pointerdown', this.handlePointerDown.bind(this));
+        this.app.renderer.view.addEventListener('pointermove', this.handlePointerMove.bind(this));
+        this.app.renderer.view.addEventListener('pointerup', this.handlePointerUp.bind(this));
+        this.app.renderer.view.addEventListener('pointercancel', this.handlePointerUp.bind(this));
+        this.app.renderer.view.addEventListener('wheel', this.handleWheel.bind(this));
     }
     
     /**
@@ -106,7 +106,7 @@ export default class PixiRenderer {
         bounds.height += padding * 2;
         
         // 设置裁剪区域 - 在 PixiJS v8 中使用 cullArea
-        if (this.contentLayer.cullArea) {
+        if (this.contentLayer.cullArea !== undefined) {
             this.contentLayer.cullArea = bounds;
         } else {
             // 如果 cullArea 不可用，尝试其他方法
@@ -246,8 +246,8 @@ export default class PixiRenderer {
      * @param {number} height - 新高度
      */
     resize(width, height) {
-        // 调整渲染器大小
-        this.app.renderer.resize(width, height);
+        // 调整渲染器大小 - 在 PixiJS v8 中使用 app.resize
+        this.app.resize(width, height);
         
         // 更新舞台的点击区域
         this.app.stage.hitArea = new PIXI.Rectangle(0, 0, width, height);
@@ -265,14 +265,14 @@ export default class PixiRenderer {
      */
     destroy() {
         // 移除事件监听器
-        this.app.canvas.removeEventListener('pointerdown', this.handlePointerDown);
-        this.app.canvas.removeEventListener('pointermove', this.handlePointerMove);
-        this.app.canvas.removeEventListener('pointerup', this.handlePointerUp);
-        this.app.canvas.removeEventListener('pointercancel', this.handlePointerUp);
-        this.app.canvas.removeEventListener('wheel', this.handleWheel);
+        this.app.renderer.view.removeEventListener('pointerdown', this.handlePointerDown);
+        this.app.renderer.view.removeEventListener('pointermove', this.handlePointerMove);
+        this.app.renderer.view.removeEventListener('pointerup', this.handlePointerUp);
+        this.app.renderer.view.removeEventListener('pointercancel', this.handlePointerUp);
+        this.app.renderer.view.removeEventListener('wheel', this.handleWheel);
         
-        // 销毁 PIXI 应用
-        this.app.destroy(true, { children: true, texture: true, baseTexture: true });
+        // 销毁 PIXI 应用 - 在 PixiJS v8 中简化了 destroy 方法
+        this.app.destroy();
         
         // 清理事件监听器
         this.eventListeners = {};
