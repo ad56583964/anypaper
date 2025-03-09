@@ -116,7 +116,9 @@ export default class Table {
         // 创建一个小的点阵模式，然后使用图像填充
         const dotSize = 1; // 点的大小
         const dotSpacing = this.block.width; // 点的间距
-        const patternSize = dotSpacing * 10; // 模式大小，包含10x10个点
+        
+        // 修改：使用单个点间距作为模式大小，确保无缝拼接
+        const patternSize = dotSpacing;
         
         // 创建一个临时的离屏canvas来绘制点阵模式
         const patternCanvas = document.createElement('canvas');
@@ -124,15 +126,14 @@ export default class Table {
         patternCanvas.height = patternSize;
         const patternCtx = patternCanvas.getContext('2d');
         
-        // 绘制点阵模式
+        // 清除背景
+        patternCtx.clearRect(0, 0, patternSize, patternSize);
+        
+        // 在模式的中心绘制一个点
         patternCtx.fillStyle = "#555555"; // 点的颜色
-        for (let i = 1; i < 10; i++) {
-            for (let j = 1; j < 10; j++) {
-                patternCtx.beginPath();
-                patternCtx.arc(i * dotSpacing, j * dotSpacing, dotSize, 0, Math.PI * 2);
-                patternCtx.fill();
-            }
-        }
+        patternCtx.beginPath();
+        patternCtx.arc(patternSize/2, patternSize/2, dotSize, 0, Math.PI * 2);
+        patternCtx.fill();
         
         // 创建图像对象
         const patternImage = new Image();
