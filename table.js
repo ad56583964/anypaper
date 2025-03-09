@@ -15,8 +15,15 @@ export default class Table {
     constructor(containerId = 'a4-table', theme) {
         this.pixel = 2;
 
-        this.width = 10*40*this.pixel;
-        this.height = 10*40*this.pixel;
+        // 先设置 block 大小
+        this.block = {
+            width: 10 * this.pixel,
+            height: 10 * this.pixel,
+        }
+
+        // 基于 block 大小计算宽度和高度
+        this.width = 40 * this.block.width;  // 40个block宽
+        this.height = 40 * this.block.height; // 40个block高
 
         // 创建 ZoomTool 实例
         this.zoomTool = new ZoomTool(this);
@@ -54,11 +61,6 @@ export default class Table {
                 y: 0,
             },
         };
-
-        this.block = {
-            width: 10 * this.pixel,
-            height: 10 * this.pixel,
-        }
 
         this.stage.container().style.cursor = 'crosshair'
 
