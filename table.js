@@ -22,8 +22,8 @@ export default class Table {
         }
 
         // 基于 block 大小计算宽度和高度 - 减小画布尺寸以提高性能
-        this.width = 60 * this.block.width;  // 减小为60个block宽
-        this.height = 60 * this.block.height; // 减小为60个block高
+        this.width = 120 * this.block.width;  // 减小为60个block宽
+        this.height = 120 * this.block.height; // 减小为60个block高
 
         // 创建 ZoomTool 实例
         this.zoomTool = new ZoomTool(this);
