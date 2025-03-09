@@ -27,12 +27,12 @@ export default class PixiTable {
         this.height = 60 * this.block.height;
         
         // 创建渲染器
+        console.log('PixiTable constructor', containerId, this.width, this.height);
         this.renderer = new PixiRenderer(containerId, this.width, this.height);
-        
+        console.log('PixiTable constructor', this.renderer);
         // 延迟初始化，等待 PixiRenderer 的异步初始化完成
-        setTimeout(() => {
-            this.initTable();
-        }, 100);
+        // this.initTable();
+
     }
     
     /**
@@ -69,6 +69,13 @@ export default class PixiTable {
         
         // 设置性能监控
         this.setupPerformanceMonitoring();
+        
+        // 设置默认工具为 pencil
+        if (this.tools.pencil) {
+            this.setActiveTool('pencil');
+        } else {
+            console.warn('默认工具 pencil 未注册，请确保在初始化后注册了 pencil 工具');
+        }
         
         console.log('PixiTable initialized');
     }
@@ -177,16 +184,11 @@ export default class PixiTable {
      * 设置事件监听
      */
     setupEventListeners() {
-        // 监听渲染器事件
-        this.renderer.on('pointerdown', this.handlePointerDown.bind(this));
-        this.renderer.on('pointermove', this.handlePointerMove.bind(this));
-        this.renderer.on('pointerup', this.handlePointerUp.bind(this));
-        this.renderer.on('wheel', this.handleWheel.bind(this));
-        this.renderer.on('multitouchstart', this.handleMultiTouchStart.bind(this));
-        this.renderer.on('multitouchmove', this.handleMultiTouchMove.bind(this));
-        this.renderer.on('multitouchend', this.handleMultiTouchEnd.bind(this));
-        
-        // 监听窗口大小变化
+        // 将所有事件监听器绑定到 window 对象上
+        window.addEventListener('pointerdown', this.handlePointerDown.bind(this));
+        window.addEventListener('pointermove', this.handlePointerMove.bind(this));
+        window.addEventListener('pointerup', this.handlePointerUp.bind(this));
+        window.addEventListener('wheel', this.handleWheel.bind(this));
         window.addEventListener('resize', this.handleResize.bind(this));
     }
     
@@ -246,9 +248,28 @@ export default class PixiTable {
      */
     updateDeviceTrackerInfo(eventType, event) {
         // 更新调试信息
+        let deviceType = event.pointerType || 'unknown';
+        let additionalInfo = {};
+        
+        // 为滚轮事件特殊处理设备类型和信息
+        if (eventType === 'wheel') {
+            deviceType = 'wheel';
+            additionalInfo = {
+                deltaMode: event.deltaMode === 0 ? 'PIXEL' : event.deltaMode === 1 ? 'LINE' : 'PAGE',
+                deltaX: event.deltaX.toFixed(2),
+                deltaY: event.deltaY.toFixed(2),
+                deltaZ: event.deltaZ.toFixed(2),
+                direction: event.deltaY > 0 ? '向下滚动' : event.deltaY < 0 ? '向上滚动' : '静止',
+                ctrlKey: event.ctrlKey,
+                altKey: event.altKey,
+                shiftKey: event.shiftKey,
+                metaKey: event.metaKey
+            };
+        }
+        
         updateDebugInfo('deviceTracker', {
             lastEvent: eventType,
-            deviceType: event.pointerType || 'unknown',
+            deviceType: deviceType,
             position: { x: event.clientX, y: event.clientY },
             pressure: event.pressure || 0,
             tiltX: event.tiltX || 0,
@@ -257,8 +278,11 @@ export default class PixiTable {
             pointerId: event.pointerId,
             pointerType: event.pointerType,
             isPrimary: event.isPrimary,
-            buttons: event.buttons
+            buttons: event.buttons,
+            ...additionalInfo
         });
+
+        console.log('updateDeviceTrackerInfo', eventType, event);
     }
     
     /**
@@ -313,37 +337,8 @@ export default class PixiTable {
             this.currentTool.wheel(e);
         } else if (this.tools.zoom && typeof this.tools.zoom.wheel === 'function') {
             // 如果当前工具没有 wheel 方法，但存在缩放工具，则使用缩放工具处理滚轮事件
+            console.log('handleWheel', e);
             this.tools.zoom.wheel(e);
-        }
-    }
-    
-    /**
-     * 处理多点触摸开始事件
-     * @param {Array} pointers - 触摸点数组
-     */
-    handleMultiTouchStart(pointers) {
-        if (this.currentTool && this.currentTool.handleMultiTouchStart) {
-            this.currentTool.handleMultiTouchStart(pointers);
-        }
-    }
-    
-    /**
-     * 处理多点触摸移动事件
-     * @param {Array} pointers - 触摸点数组
-     */
-    handleMultiTouchMove(pointers) {
-        if (this.currentTool && this.currentTool.handleMultiTouchMove) {
-            this.currentTool.handleMultiTouchMove(pointers);
-        }
-    }
-    
-    /**
-     * 处理多点触摸结束事件
-     * @param {PointerEvent} e - 指针事件
-     */
-    handleMultiTouchEnd(e) {
-        if (this.currentTool && this.currentTool.handleMultiTouchEnd) {
-            this.currentTool.handleMultiTouchEnd(e);
         }
     }
     
@@ -415,7 +410,11 @@ export default class PixiTable {
      * 销毁表格
      */
     destroy() {
-        // 移除事件监听
+        // 移除所有事件监听
+        window.removeEventListener('pointerdown', this.handlePointerDown);
+        window.removeEventListener('pointermove', this.handlePointerMove);
+        window.removeEventListener('pointerup', this.handlePointerUp);
+        window.removeEventListener('wheel', this.handleWheel);
         window.removeEventListener('resize', this.handleResize);
         
         // 销毁图层
