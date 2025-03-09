@@ -38,6 +38,7 @@ export default class ToolBar {
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         ` : '';
         
+        // 所有设备都在左上角显示
         this.toolbarContainer.style.cssText = `
             position: fixed;
             top: 20px;
@@ -101,94 +102,6 @@ export default class ToolBar {
 
         // 设置初始活动状态
         this.updateActiveButton(this.tools.find(t => t.name === 'pencil').button);
-        
-        // 添加移动设备上的拖动功能
-        if (this.isMobile) {
-            this.makeToolbarDraggable();
-        }
-    }
-    
-    // 使工具栏可拖动
-    makeToolbarDraggable() {
-        let isDragging = false;
-        let startX, startY, startLeft, startTop;
-        
-        // 创建拖动手柄
-        const dragHandle = document.createElement('div');
-        dragHandle.style.cssText = `
-            width: 100%;
-            height: 10px;
-            background-color: rgba(0,0,0,0.1);
-            border-radius: 5px;
-            margin-bottom: 5px;
-            cursor: move;
-        `;
-        
-        this.toolbarContainer.insertBefore(dragHandle, this.toolbarContainer.firstChild);
-        
-        // 鼠标/触摸事件
-        const startDrag = (e) => {
-            isDragging = true;
-            
-            // 获取起始位置
-            if (e.type.includes('touch')) {
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-            } else {
-                startX = e.clientX;
-                startY = e.clientY;
-            }
-            
-            // 获取工具栏当前位置
-            const rect = this.toolbarContainer.getBoundingClientRect();
-            startLeft = rect.left;
-            startTop = rect.top;
-            
-            // 阻止事件冒泡和默认行为
-            e.stopPropagation();
-            e.preventDefault();
-        };
-        
-        const onDrag = (e) => {
-            if (!isDragging) return;
-            
-            // 计算移动距离
-            let currentX, currentY;
-            if (e.type.includes('touch')) {
-                currentX = e.touches[0].clientX;
-                currentY = e.touches[0].clientY;
-            } else {
-                currentX = e.clientX;
-                currentY = e.clientY;
-            }
-            
-            const deltaX = currentX - startX;
-            const deltaY = currentY - startY;
-            
-            // 更新工具栏位置
-            this.updatePosition(startLeft + deltaX, startTop + deltaY);
-            
-            // 阻止事件冒泡和默认行为
-            e.stopPropagation();
-            e.preventDefault();
-        };
-        
-        const endDrag = (e) => {
-            isDragging = false;
-            
-            // 阻止事件冒泡
-            e.stopPropagation();
-        };
-        
-        // 添加事件监听器
-        dragHandle.addEventListener('mousedown', startDrag);
-        dragHandle.addEventListener('touchstart', startDrag, { passive: false });
-        
-        document.addEventListener('mousemove', onDrag);
-        document.addEventListener('touchmove', onDrag, { passive: false });
-        
-        document.addEventListener('mouseup', endDrag);
-        document.addEventListener('touchend', endDrag);
     }
     
     // 设置全局事件处理器
@@ -220,9 +133,6 @@ export default class ToolBar {
         
         // 添加触摸事件处理
         this.toolbarContainer.addEventListener('touchstart', (e) => {
-            // 如果是拖动手柄，不处理点击
-            if (e.target.style.cursor === 'move') return;
-            
             // 阻止默认行为和冒泡
             e.preventDefault();
             e.stopPropagation();
@@ -240,12 +150,9 @@ export default class ToolBar {
                 clientY: touch.clientY
             });
             
-            // 获取触摸的元素
-            const element = document.elementFromPoint(touch.clientX, touch.clientY);
-            if (element) {
-                element.dispatchEvent(clickEvent);
-            }
-        }, true);
+            // 在触摸位置触发点击事件
+            document.elementFromPoint(touch.clientX, touch.clientY).dispatchEvent(clickEvent);
+        });
         
         // 防止工具栏上的触摸事件传播到Canvas
         this.toolbarContainer.addEventListener('touchmove', (e) => {
@@ -301,14 +208,6 @@ export default class ToolBar {
                 tool.button.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             }
         });
-    }
-    
-    // 添加一个方法来更新工具栏的位置
-    updatePosition(x, y) {
-        if (this.toolbarContainer) {
-            this.toolbarContainer.style.left = `${x}px`;
-            this.toolbarContainer.style.top = `${y}px`;
-        }
     }
     
     // 添加一个方法来显示/隐藏工具栏
