@@ -21,9 +21,9 @@ export default class Table {
             height: 10 * this.pixel,
         }
 
-        // 基于 block 大小计算宽度和高度
-        this.width = 40 * this.block.width;  // 40个block宽
-        this.height = 40 * this.block.height; // 40个block高
+        // 基于 block 大小计算宽度和高度 - 减小画布尺寸以提高性能
+        this.width = 60 * this.block.width;  // 减小为60个block宽
+        this.height = 60 * this.block.height; // 减小为60个block高
 
         // 创建 ZoomTool 实例
         this.zoomTool = new ZoomTool(this);
@@ -47,12 +47,25 @@ export default class Table {
             height: this.height,
         });
 
-        // Setup the layers
-        this.gLayer = new Konva.Layer({
+        // 创建多个图层以优化性能
+        // 背景层 - 静态内容，很少更新
+        this.bgLayer = new Konva.Layer({
             listening: false,
             draggable: false,
         });
+        
+        // 内容层 - 用于绘制和交互
+        this.gLayer = new Konva.Layer({
+            listening: true,
+            draggable: false,
+            // 启用命中检测优化
+            hitGraphEnabled: true,
+        });
+        
+        // 添加图层到舞台
+        this.stage.add(this.bgLayer);
         this.stage.add(this.gLayer);
+        
         this.state = "idle";
 
         this.pointer = {
@@ -97,25 +110,55 @@ export default class Table {
         this.gridGroup = new Konva.Group({
             listening: false,
             draggable: false,
-        })
+        });
 
-        // 绘制点阵背景
-        for (let i = 1; i < this.width / this.block.width; i++) {
-            for (let j = 1; j < this.height / this.block.height; j++) {
-                var circle = new Konva.Circle({
-                    x: i * this.block.width,
-                    y: j * this.block.height,
-                    radius: 1, // 减小点的大小
-                    fill: "#555555", // 更深的点阵灰色
-                    listening: false,
-                    draggable: false,
-                });
-                this.gridGroup.add(circle);
+        // 使用更高效的方式绘制点阵背景
+        // 创建一个小的点阵模式，然后使用图像填充
+        const dotSize = 1; // 点的大小
+        const dotSpacing = this.block.width; // 点的间距
+        const patternSize = dotSpacing * 10; // 模式大小，包含10x10个点
+        
+        // 创建一个临时的离屏canvas来绘制点阵模式
+        const patternCanvas = document.createElement('canvas');
+        patternCanvas.width = patternSize;
+        patternCanvas.height = patternSize;
+        const patternCtx = patternCanvas.getContext('2d');
+        
+        // 绘制点阵模式
+        patternCtx.fillStyle = "#555555"; // 点的颜色
+        for (let i = 1; i < 10; i++) {
+            for (let j = 1; j < 10; j++) {
+                patternCtx.beginPath();
+                patternCtx.arc(i * dotSpacing, j * dotSpacing, dotSize, 0, Math.PI * 2);
+                patternCtx.fill();
             }
         }
-
-        this.gridGroup.cache()
-        this.gLayer.add(this.gridGroup)
+        
+        // 创建图像对象
+        const patternImage = new Image();
+        patternImage.onload = () => {
+            // 创建填充整个画布的矩形
+            const gridRect = new Konva.Rect({
+                x: 0,
+                y: 0,
+                width: this.width,
+                height: this.height,
+                fillPatternImage: patternImage,
+                fillPatternRepeat: 'repeat',
+                fillPatternOffset: { x: 0, y: 0 },
+                listening: false,
+                draggable: false,
+            });
+            
+            this.gridGroup.add(gridRect);
+            this.gridGroup.cache();
+            // 将网格添加到背景层
+            this.bgLayer.add(this.gridGroup);
+            this.bgLayer.batchDraw();
+        };
+        
+        // 将canvas内容转换为dataURL并加载到图像中
+        patternImage.src = patternCanvas.toDataURL();
     }
 
     /**
@@ -125,6 +168,7 @@ export default class Table {
      * init debug hit
      */
     initTable() {
+        // 创建背景矩形
         this.konva_attr = new Konva.Rect({
             listening: false,
             draggable: false,
@@ -137,16 +181,25 @@ export default class Table {
             strokeWidth: 4,    // 边框宽度
         });
 
-        this.gLayer.add(this.konva_attr);
-        // 确保背景在其他元素的下方(konva api)
+        // 将背景添加到背景层
+        this.bgLayer.add(this.konva_attr);
+        // 确保背景在其他元素的下方
         this.konva_attr.moveToBottom();
 
-
+        // 初始化网格背景
         this.initGridBG();
         
         // 创建16:9比例的paper对象
         this.createPaper();
 
+        // 确保两个图层的位置和缩放一致
+        this.bgLayer.scale({ x: 1, y: 1 });
+        this.gLayer.scale({ x: 1, y: 1 });
+        this.bgLayer.position({ x: 0, y: 0 });
+        this.gLayer.position({ x: 0, y: 0 });
+        
+        // 绘制所有层
+        this.bgLayer.batchDraw();
         this.gLayer.batchDraw();
 
         // 应用自适应DPR
@@ -175,7 +228,20 @@ export default class Table {
             this.createPaper();
         }
         
+        // 确保两个图层的位置和缩放一致
+        const currentScale = this.zoomTool.getCurrentScale();
+        const currentPos = {
+            x: this.gLayer.x(),
+            y: this.gLayer.y()
+        };
+        
+        this.bgLayer.scale({ x: currentScale, y: currentScale });
+        this.gLayer.scale({ x: currentScale, y: currentScale });
+        this.bgLayer.position(currentPos);
+        this.gLayer.position(currentPos);
+        
         // 重新绘制
+        this.bgLayer.batchDraw();
         this.gLayer.batchDraw();
     }
 
@@ -523,7 +589,7 @@ export default class Table {
         const x = (stageWidth - paperWidth) / 2;
         const y = (stageHeight - paperHeight) / 2;
         
-        // 创建paper对象
+        // 创建paper对象 - 简化阴影效果以提高性能
         this.paper = new Konva.Rect({
             x: x,
             y: y,
@@ -533,19 +599,15 @@ export default class Table {
             stroke: '#333333',
             strokeWidth: 1,
             cornerRadius: 5,
+            // 减少阴影效果，提高性能
             shadowColor: 'black',
-            shadowBlur: 10,
-            shadowOffset: { x: 5, y: 5 },
-            shadowOpacity: 0.3,
+            shadowBlur: 5,
+            shadowOffset: { x: 3, y: 3 },
+            shadowOpacity: 0.2,
             name: 'paper'
         });
         
-        // 将paper添加到图层
-        this.gLayer.add(this.paper);
-        
-        // 确保paper在背景之上，但在其他绘图元素之下
-        this.paper.moveUp();
-        
-        console.log('创建了16:9比例的paper，尺寸为:', paperWidth, 'x', paperHeight);
+        // 将paper添加到背景层 - 因为它是静态的，很少更新
+        this.bgLayer.add(this.paper);
     }
 }

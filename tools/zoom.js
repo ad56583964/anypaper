@@ -68,8 +68,9 @@ export default class ZoomTool {
         // 限制缩放范围
         this.config.current = Math.max(this.config.min, Math.min(this.config.max, newScale));
         
-        // 应用缩放
+        // 应用缩放到两个图层
         this.table.gLayer.scale({ x: this.config.current, y: this.config.current });
+        this.table.bgLayer.scale({ x: this.config.current, y: this.config.current });
         
         // 调整位置以保持鼠标位置不变
         const newPos = {
@@ -77,8 +78,13 @@ export default class ZoomTool {
             y: e.clientY - mousePointTo.y * this.config.current
         };
         
+        // 同时更新两个图层的位置
         this.table.gLayer.position(newPos);
+        this.table.bgLayer.position(newPos);
+        
+        // 重新绘制两个图层
         this.table.gLayer.batchDraw();
+        this.table.bgLayer.batchDraw();
         
         // 保存当前缩放状态到 stage 属性中
         this.table.stage.scaleX(this.config.current);
@@ -185,9 +191,18 @@ export default class ZoomTool {
         
         // 应用变换
         this.config.current = newScale;
+        
+        // 同时更新两个图层的缩放
         this.table.gLayer.scale({ x: newScale, y: newScale });
+        this.table.bgLayer.scale({ x: newScale, y: newScale });
+        
+        // 同时更新两个图层的位置
         this.table.gLayer.position({ x: newX, y: newY });
+        this.table.bgLayer.position({ x: newX, y: newY });
+        
+        // 重新绘制两个图层
         this.table.gLayer.batchDraw();
+        this.table.bgLayer.batchDraw();
         
         return true;
     }
@@ -278,11 +293,17 @@ export default class ZoomTool {
             const deltaX = currentPointerPos.x - this.touch.lastPosition.x;
             const deltaY = currentPointerPos.y - this.touch.lastPosition.y;
             
-            // 更新舞台位置
-            const newX = this.table.stage.x() + deltaX;
-            const newY = this.table.stage.y() + deltaY;
-            this.table.stage.position({x: newX, y: newY});
-            this.table.stage.batchDraw();
+            // 更新图层位置
+            const newX = this.table.gLayer.x() + deltaX;
+            const newY = this.table.gLayer.y() + deltaY;
+            
+            // 同时更新两个图层的位置
+            this.table.gLayer.position({x: newX, y: newY});
+            this.table.bgLayer.position({x: newX, y: newY});
+            
+            // 重新绘制两个图层
+            this.table.gLayer.batchDraw();
+            this.table.bgLayer.batchDraw();
             
             // 更新最后的指针位置
             this.touch.lastPosition = currentPointerPos;
