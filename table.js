@@ -15,8 +15,8 @@ export default class Table {
     constructor(containerId = 'a4-table', theme) {
         this.pixel = 2;
 
-        this.width = 20*40*this.pixel;
-        this.height = 20*30*this.pixel;
+        this.width = 10*40*this.pixel;
+        this.height = 10*40*this.pixel;
 
         // 创建 ZoomTool 实例
         this.zoomTool = new ZoomTool(this);
@@ -56,8 +56,8 @@ export default class Table {
         };
 
         this.block = {
-            width: 20 * this.pixel,
-            height: 40 * this.pixel,
+            width: 10 * this.pixel,
+            height: 10 * this.pixel,
         }
 
         this.stage.container().style.cursor = 'crosshair'
@@ -92,30 +92,58 @@ export default class Table {
      * 
      */
     initGridBG() {
+        // 创建一个组来包含所有点
         this.gridGroup = new Konva.Group({
             listening: false,
             draggable: false,
-        })
+        });
 
-        //使用这个方式描述 点阵背景会有运行时开销吗 ？
-        // draw grid background
-        // need many circles ??
+        // 创建一个离屏画布来绘制点阵
+        const gridSize = Math.max(this.width, this.height);
+        const scaleRatio = 3; // 更高的比例以确保清晰度
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = gridSize * scaleRatio;
+        offscreenCanvas.height = gridSize * scaleRatio;
+        
+        const ctx = offscreenCanvas.getContext('2d');
+        ctx.fillStyle = "#555555"; // 深灰色点
+        ctx.scale(scaleRatio, scaleRatio);
+        
+        // 在离屏画布上绘制点
         for (let i = 1; i < this.width / this.block.width; i++) {
             for (let j = 1; j < this.height / this.block.height; j++) {
-                var circle = new Konva.Circle({
-                    x: i * 20 * this.pixel,
-                    y: j * 40 * this.pixel,
-                    radius: this.pixel,
-                    fill: "black",
-                    listening: false,
-                    draggable: false,
-                });
-                this.gridGroup.add(circle);
+                const x = i * this.block.width;
+                const y = j * this.block.height;
+                
+                // 使用路径绘制圆形，而不是矩形像素
+                ctx.beginPath();
+                ctx.arc(x, y, 1, 0, Math.PI * 2, false);
+                ctx.fill();
             }
         }
-
-        this.gridGroup.cache()
-        this.gLayer.add(this.gridGroup)
+        
+        // 创建一个图像对象
+        const gridImage = new Image();
+        gridImage.onload = () => {
+            // 创建Konva图像对象
+            const gridKonvaImage = new Konva.Image({
+                image: gridImage,
+                x: 0,
+                y: 0,
+                width: this.width,
+                height: this.height,
+                listening: false,
+                draggable: false,
+            });
+            
+            // 将图像添加到组中
+            this.gridGroup.add(gridKonvaImage);
+            this.gLayer.add(this.gridGroup);
+            this.gLayer.batchDraw();
+        };
+        
+        // 将离屏画布转换为图像源
+        gridImage.src = offscreenCanvas.toDataURL();
     }
 
     /**
@@ -130,8 +158,8 @@ export default class Table {
             draggable: false,
             width: this.stage.width(),
             height: this.stage.height(),
-            //grey
-            fill: "grey",
+            // 更深的背景灰色
+            fill: "#DDDDDD",
         });
 
         this.gLayer.add(this.konva_attr);
