@@ -23,47 +23,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // 创建 PixiTable 实例
     const table = new PixiTable('a4-table');
     
-    // 创建工具
-    const pencilTool = new PixiPencilTool(table);
-    const zoomTool = new PixiZoomTool(table);
-    
-    // 注册工具
-    table.registerTool('pencil', pencilTool);
-    table.registerTool('zoom', zoomTool);
-    
-    // 设置默认工具
-    table.setActiveTool('pencil');
-    
-    // 添加键盘事件监听
-    document.addEventListener('keydown', (e) => {
-        // Escape 键退出缩放模式
-        if (e.key === 'Escape' && zoomTool.isZoomMode) {
-            zoomTool.exitZoomMode();
-        }
+    // 延迟创建工具，等待 PixiTable 初始化完成
+    setTimeout(() => {
+        // 创建工具
+        const pencilTool = new PixiPencilTool(table);
+        const zoomTool = new PixiZoomTool(table);
         
-        // Z 键切换缩放模式
-        if (e.key === 'z' || e.key === 'Z') {
-            if (zoomTool.isZoomMode) {
-                zoomTool.exitZoomMode();
-            } else {
-                zoomTool.enterZoomMode();
-            }
-        }
+        // 注册工具
+        table.registerTool('pencil', pencilTool);
+        table.registerTool('zoom', zoomTool);
         
-        // P 键切换到铅笔工具
-        if (e.key === 'p' || e.key === 'P') {
-            if (zoomTool.isZoomMode) {
+        // 设置默认工具
+        table.setActiveTool('pencil');
+        
+        // 添加键盘事件监听
+        document.addEventListener('keydown', (e) => {
+            // Escape 键退出缩放模式
+            if (e.key === 'Escape' && zoomTool.isZoomMode) {
                 zoomTool.exitZoomMode();
             }
-            table.setActiveTool('pencil');
-        }
-    });
-    
-    // 将 table 实例暴露到全局，方便调试
-    window.pixiTable = table;
-    
-    console.log('PixiTable initialized');
-    
-    // 初始化调试栏
-    initDebugbar();
+            
+            // Z 键切换缩放模式
+            if (e.key === 'z' || e.key === 'Z') {
+                if (zoomTool.isZoomMode) {
+                    zoomTool.exitZoomMode();
+                } else {
+                    zoomTool.enterZoomMode();
+                }
+            }
+            
+            // P 键切换到铅笔工具
+            if (e.key === 'p' || e.key === 'P') {
+                if (zoomTool.isZoomMode) {
+                    zoomTool.exitZoomMode();
+                }
+                table.setActiveTool('pencil');
+            }
+        });
+        
+        // 将 table 实例暴露到全局，方便调试
+        window.pixiTable = table;
+        
+        // 初始化调试栏
+        initDebugbar();
+        
+        console.log('Application initialized');
+    }, 200);
 });

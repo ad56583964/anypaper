@@ -19,33 +19,13 @@ export default class PixiRenderer {
         }
         
         // 创建 PIXI 应用 - 适配 PixiJS v8
-        this.app = new PIXI.Application({
-            width: width,
-            height: height,
-            backgroundColor: 0xdddddd, // 浅灰色背景
-            resolution: window.devicePixelRatio || 1,
-            antialias: true
-        });
+        this.app = new PIXI.Application();
         
-        // 添加到容器 - 在 PixiJS v8 中使用 app.renderer.view
-        container.appendChild(this.app.renderer.view);
-        
-        // 创建主要图层
-        this.bgLayer = new PIXI.Container(); // 背景层 - 静态内容
-        this.contentLayer = new PIXI.Container(); // 内容层 - 动态内容
-        
-        // 添加图层到舞台
-        this.app.stage.addChild(this.bgLayer);
-        this.app.stage.addChild(this.contentLayer);
+        // 初始化应用
+        this.initApp(container, width, height);
         
         // 跟踪活动的触摸点
         this.activePointers = new Map();
-        
-        // 初始化交互管理器
-        this.initInteraction();
-        
-        // 初始化视口裁剪
-        this.initViewportClipping();
         
         // 记录尺寸
         this.width = width;
@@ -55,19 +35,53 @@ export default class PixiRenderer {
     }
     
     /**
+     * 初始化 PIXI 应用
+     * @param {HTMLElement} container - 容器元素
+     * @param {number} width - 宽度
+     * @param {number} height - 高度
+     */
+    async initApp(container, width, height) {
+        // 初始化应用 - 在 PixiJS v8 中需要使用 await app.init()
+        await this.app.init({
+            width: width,
+            height: height,
+            backgroundColor: 0xdddddd, // 浅灰色背景
+            resolution: window.devicePixelRatio || 1,
+            antialias: true
+        });
+        
+        // 添加到容器 - 在 PixiJS v8 中使用 app.canvas
+        container.appendChild(this.app.canvas);
+        
+        // 创建主要图层
+        this.bgLayer = new PIXI.Container(); // 背景层 - 静态内容
+        this.contentLayer = new PIXI.Container(); // 内容层 - 动态内容
+        
+        // 添加图层到舞台
+        this.app.stage.addChild(this.bgLayer);
+        this.app.stage.addChild(this.contentLayer);
+        
+        // 初始化交互管理器
+        this.initInteraction();
+        
+        // 初始化视口裁剪
+        this.initViewportClipping();
+    }
+    
+    /**
      * 初始化交互系统
      */
     initInteraction() {
         // 设置舞台为交互式
         this.app.stage.eventMode = 'static';
-        this.app.stage.hitArea = new PIXI.Rectangle(0, 0, this.app.renderer.width, this.app.renderer.height);
+        this.app.stage.hitArea = new PIXI.Rectangle(0, 0, this.app.screen.width, this.app.screen.height);
         
-        // 添加事件监听器 - 在 PixiJS v8 中使用 app.renderer.view
-        this.app.renderer.view.addEventListener('pointerdown', this.handlePointerDown.bind(this));
-        this.app.renderer.view.addEventListener('pointermove', this.handlePointerMove.bind(this));
-        this.app.renderer.view.addEventListener('pointerup', this.handlePointerUp.bind(this));
-        this.app.renderer.view.addEventListener('pointercancel', this.handlePointerUp.bind(this));
-        this.app.renderer.view.addEventListener('wheel', this.handleWheel.bind(this));
+        // 添加事件监听器 - 在 PixiJS v8 中使用 app.canvas
+        this.app.canvas.addEventListener('pointerdown', this.handlePointerDown.bind(this));
+        this.app.canvas.addEventListener('pointermove', this.handlePointerMove.bind(this));
+        this.app.canvas.addEventListener('pointerup', this.handlePointerUp.bind(this));
+        this.app.canvas.addEventListener('pointercancel', this.handlePointerUp.bind(this));
+        this.app.canvas.addEventListener('wheel', this.handleWheel.bind(this));
     }
     
     /**
@@ -94,8 +108,8 @@ export default class PixiRenderer {
         const bounds = new PIXI.Rectangle(
             -this.contentLayer.x / this.contentLayer.scale.x,
             -this.contentLayer.y / this.contentLayer.scale.y,
-            this.app.renderer.width / this.contentLayer.scale.x,
-            this.app.renderer.height / this.contentLayer.scale.y
+            this.app.screen.width / this.contentLayer.scale.x,
+            this.app.screen.height / this.contentLayer.scale.y
         );
         
         // 添加边缘填充
@@ -265,11 +279,11 @@ export default class PixiRenderer {
      */
     destroy() {
         // 移除事件监听器
-        this.app.renderer.view.removeEventListener('pointerdown', this.handlePointerDown);
-        this.app.renderer.view.removeEventListener('pointermove', this.handlePointerMove);
-        this.app.renderer.view.removeEventListener('pointerup', this.handlePointerUp);
-        this.app.renderer.view.removeEventListener('pointercancel', this.handlePointerUp);
-        this.app.renderer.view.removeEventListener('wheel', this.handleWheel);
+        this.app.canvas.removeEventListener('pointerdown', this.handlePointerDown);
+        this.app.canvas.removeEventListener('pointermove', this.handlePointerMove);
+        this.app.canvas.removeEventListener('pointerup', this.handlePointerUp);
+        this.app.canvas.removeEventListener('pointercancel', this.handlePointerUp);
+        this.app.canvas.removeEventListener('wheel', this.handleWheel);
         
         // 销毁 PIXI 应用 - 在 PixiJS v8 中简化了 destroy 方法
         this.app.destroy();

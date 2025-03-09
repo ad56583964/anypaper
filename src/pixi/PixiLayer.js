@@ -16,9 +16,9 @@ export default class PixiLayer {
         this.renderer = renderer;
         this.container = new PIXI.Container();
         
-        // 设置名称
+        // 设置名称 - 在 PixiJS v8 中使用 label 代替 name
         if (options.name) {
-            this.container.name = options.name;
+            this.container.label = options.name;
         }
         
         // 添加到父容器
@@ -189,7 +189,7 @@ export default class PixiLayer {
      */
     _findByClassName(container, className, result) {
         for (const child of container.children) {
-            if (child.name === className) {
+            if (child.label === className) {
                 result.push(child);
             }
             

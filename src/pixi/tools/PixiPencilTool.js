@@ -5,6 +5,7 @@ import { updateDebugInfo } from '../../../debug.jsx';
 /**
  * PixiPencilTool 类 - 处理绘图功能
  * 替代原有的 Konva PencilTool
+ * 使用 PixiJS 8.0 API
  */
 export default class PixiPencilTool {
     /**
@@ -137,9 +138,9 @@ export default class PixiPencilTool {
         this.currentPoints = [[x, y]];
         this.currentPressures = [pressure];
         
-        // 创建新的图形对象
+        // 创建新的图形对象 - PixiJS 8.0 风格
         this.currentGraphics = new PIXI.Graphics();
-        this.currentGraphics.name = 'drawing'; // 添加类名，用于视口裁剪
+        this.currentGraphics.label = 'drawing'; // 添加标签，用于视口裁剪（在 PixiJS 8.0 中使用 label 代替 name）
         
         // 添加到绘图层
         this.table.drawingLayer.add(this.currentGraphics);
@@ -193,9 +194,6 @@ export default class PixiPencilTool {
         // 绘制最终笔画
         this.drawCurrentStroke(true);
         
-        // 在 PixiJS v8 中，我们可以直接使用图形对象，不需要转换为纹理
-        // 这样可以避免纹理生成的兼容性问题
-        
         // 更新统计信息
         this.stats.strokeCount++;
         this.stats.lastStrokePoints = this.currentPoints.length;
@@ -244,24 +242,28 @@ export default class PixiPencilTool {
         // 使用 perfect-freehand 生成笔画
         const stroke = getStroke(this.currentPoints, options);
         
-        // 清除当前图形
+        // 清除当前图形 - PixiJS 8.0 风格
         this.currentGraphics.clear();
         
-        // 设置填充样式
-        this.currentGraphics.beginFill(0x000000);
+        // 设置填充样式 - PixiJS 8.0 风格
+        this.currentGraphics.fill(0x000000);
         
-        // 绘制路径
+        // 绘制路径 - PixiJS 8.0 风格
         if (stroke.length >= 3) {
+            // 开始一个新路径
+            this.currentGraphics.beginPath();
+            
+            // 移动到第一个点
             this.currentGraphics.moveTo(stroke[0][0], stroke[0][1]);
             
+            // 绘制线段
             for (let i = 1; i < stroke.length; i++) {
                 this.currentGraphics.lineTo(stroke[i][0], stroke[i][1]);
             }
             
-            this.currentGraphics.lineTo(stroke[0][0], stroke[0][1]);
+            // 闭合路径
+            this.currentGraphics.closePath();
         }
-        
-        this.currentGraphics.endFill();
     }
     
     /**
@@ -302,9 +304,10 @@ export default class PixiPencilTool {
             this.finishStroke();
         }
         
-        // 清除所有绘图
+        // 清除所有绘图 - PixiJS 8.0 风格
         this.drawings.forEach(drawing => {
-            drawing.texture.destroy(true);
+            // 在 PixiJS 8.0 中，直接销毁图形对象
+            drawing.destroy();
         });
         
         this.drawings = [];
@@ -323,5 +326,15 @@ export default class PixiPencilTool {
             strokeCount: 0,
             totalPoints: 0
         });
+    }
+    
+    /**
+     * 处理滚轮事件
+     * 铅笔工具不需要处理滚轮事件，但需要提供此方法以保持接口一致
+     * @param {WheelEvent} e - 滚轮事件
+     */
+    wheel(e) {
+        // 铅笔工具不处理滚轮事件
+        // 如果需要在铅笔工具激活时处理缩放，可以在这里调用 ZoomTool 的方法
     }
 } 

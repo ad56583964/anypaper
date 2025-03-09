@@ -29,6 +29,17 @@ export default class PixiTable {
         // 创建渲染器
         this.renderer = new PixiRenderer(containerId, this.width, this.height);
         
+        // 延迟初始化，等待 PixiRenderer 的异步初始化完成
+        setTimeout(() => {
+            this.initTable();
+        }, 100);
+    }
+    
+    /**
+     * 初始化表格
+     * 在 PixiRenderer 初始化完成后调用
+     */
+    initTable() {
         // 创建图层
         this.bgLayer = new PixiLayer(this.renderer, { name: 'background', parent: 'background' });
         this.gridLayer = new PixiLayer(this.renderer, { name: 'grid', parent: 'background' });
@@ -49,9 +60,11 @@ export default class PixiTable {
         };
         
         // 初始化表格
-        this.initTable();
+        this.drawBackground();
+        this.drawGrid();
+        this.createPaper();
         
-        // 设置事件监听
+        // 设置事件监听器
         this.setupEventListeners();
         
         // 设置性能监控
@@ -61,29 +74,14 @@ export default class PixiTable {
     }
     
     /**
-     * 初始化表格
-     */
-    initTable() {
-        // 绘制背景
-        this.drawBackground();
-        
-        // 绘制网格
-        this.drawGrid();
-        
-        // 创建 paper
-        this.createPaper();
-    }
-    
-    /**
      * 绘制背景
      */
     drawBackground() {
         // 创建背景矩形
-        const bg = new PIXI.Graphics();
-        bg.beginFill(0xdddddd); // 浅灰色背景
-        bg.lineStyle(4, 0x8B4513); // 棕色边框
-        bg.drawRect(0, 0, this.width, this.height);
-        bg.endFill();
+        const bg = new PIXI.Graphics()
+            .setStrokeStyle(4, 0x8B4513)
+            .rect(0, 0, this.width, this.height)
+            .fill(0xdddddd)
         
         this.bgLayer.add(bg);
     }
@@ -96,12 +94,12 @@ export default class PixiTable {
         const gridGraphics = new PIXI.Graphics();
         
         // 设置点的样式
-        gridGraphics.beginFill(0x555555); // 深灰色点
+        gridGraphics.fill(0x555555); // 深灰色点
         
         // 绘制点阵
         for (let i = 1; i < this.width / this.block.width; i++) {
             for (let j = 1; j < this.height / this.block.height; j++) {
-                gridGraphics.drawCircle(
+                gridGraphics.circle(
                     i * this.block.width,
                     j * this.block.height,
                     1 // 点的半径
@@ -109,7 +107,7 @@ export default class PixiTable {
             }
         }
         
-        gridGraphics.endFill();
+        gridGraphics.fill();
         
         // 添加到网格图层
         this.gridLayer.add(gridGraphics);
@@ -143,25 +141,26 @@ export default class PixiTable {
         const y = (stageHeight - paperHeight) / 2;
         
         // 创建 paper 对象
-        const paper = new PIXI.Graphics();
-        paper.beginFill(0xffffff); // 白色
-        paper.lineStyle(1, 0x333333); // 深灰色边框
-        paper.drawRoundedRect(x, y, paperWidth, paperHeight, 5); // 圆角矩形
-        paper.endFill();
-        
+        const paper = new PIXI.Graphics()
+            .setStrokeStyle(1, 0x333333)
+            .roundRect(x, y, paperWidth, paperHeight, 5)
+            .fill(0xffffff)
+
         // 添加阴影效果
         const paperContainer = new PIXI.Container();
         paperContainer.addChild(paper);
         
         // 创建阴影
-        const shadow = new PIXI.Graphics();
-        shadow.beginFill(0x000000, 0.2); // 黑色半透明
-        shadow.drawRoundedRect(x + 5, y + 5, paperWidth, paperHeight, 5);
-        shadow.endFill();
+        const shadow = new PIXI.Graphics()
+            .roundRect(x + 5, y + 5, paperWidth, paperHeight, 5)
+            .fill({
+                color: 0x000000,
+                alpha: 0.2
+            })
         
         // 添加模糊滤镜
         const blurFilter = new PIXI.BlurFilter();
-        blurFilter.blur = 5;
+        blurFilter.strength = 5;
         shadow.filters = [blurFilter];
         
         // 确保阴影在 paper 下方
@@ -309,8 +308,12 @@ export default class PixiTable {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('wheel', e);
         
-        if (this.currentTool) {
+        // 确保当前工具存在且有 wheel 方法
+        if (this.currentTool && typeof this.currentTool.wheel === 'function') {
             this.currentTool.wheel(e);
+        } else if (this.tools.zoom && typeof this.tools.zoom.wheel === 'function') {
+            // 如果当前工具没有 wheel 方法，但存在缩放工具，则使用缩放工具处理滚轮事件
+            this.tools.zoom.wheel(e);
         }
     }
     
