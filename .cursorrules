@@ -1,9 +1,6 @@
 - 请使用中文进行回答
-- 该工程(anya4)使用 konva 实现笔记白板功能。
-- konva目前只用于渲染，事件处理由 vanilla-js 实现
-- react 在该工程中仅起到功能分发的作用，不参与任何绘制逻辑
-- 目前实现在 PC Web 下性能良好
-- 测试在 Android Tablet 下性能良好
-- 但是在 Android Phone 上存在卡顿问题, 等待排查
+- 该工程(anya4) 现在使用 pixijs 实现笔记白板功能。
+- pixijs 目前只用于渲染，事件处理由 vanilla-js 实现
+- react 在该工程中仅起到调试信息和外围挂件的作用，不参与任何绘制逻辑
 - 在执行路径操作时请以 /home/emasi/Documents/WORKSPACE/anya4_knova 绝对路径指定
-- src/konva src/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改
+- src/pixi src/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改
