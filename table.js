@@ -112,12 +112,22 @@ export default class Table {
             draggable: false,
         });
 
+        // 初始绘制点阵
+        this.drawGrid(this.zoomTool ? this.zoomTool.getCurrentScale() : 1);
+    }
+    
+    // 新增方法：根据缩放级别绘制点阵
+    drawGrid(scale) {
+        // 清除现有的网格
+        if (this.gridGroup) {
+            this.gridGroup.destroyChildren();
+        }
+        
         // 使用更高效的方式绘制点阵背景
-        // 创建一个小的点阵模式，然后使用图像填充
-        const dotSize = 1; // 点的大小
+        const dotSize = Math.max(1, Math.min(2, 1 / scale)); // 点的大小随缩放调整，但有最小和最大限制
         const dotSpacing = this.block.width; // 点的间距
         
-        // 修改：使用单个点间距作为模式大小，确保无缝拼接
+        // 使用单个点间距作为模式大小
         const patternSize = dotSpacing;
         
         // 创建一个临时的离屏canvas来绘制点阵模式
@@ -142,8 +152,8 @@ export default class Table {
             const gridRect = new Konva.Rect({
                 x: 0,
                 y: 0,
-                width: this.width,
-                height: this.height,
+                width: this.stage.width(),  // 使用 stage 的宽度而不是 this.width
+                height: this.stage.height(), // 使用 stage 的高度而不是 this.height
                 fillPatternImage: patternImage,
                 fillPatternRepeat: 'repeat',
                 fillPatternOffset: { x: 0, y: 0 },
@@ -154,12 +164,27 @@ export default class Table {
             this.gridGroup.add(gridRect);
             this.gridGroup.cache();
             // 将网格添加到背景层
-            this.bgLayer.add(this.gridGroup);
+            if (!this.bgLayer.hasChildren()) {
+                this.bgLayer.add(this.gridGroup);
+            } else {
+                // 确保网格在背景矩形之上
+                this.bgLayer.add(this.gridGroup);
+                this.konva_attr.moveToBottom();
+            }
             this.bgLayer.batchDraw();
         };
         
         // 将canvas内容转换为dataURL并加载到图像中
         patternImage.src = patternCanvas.toDataURL();
+    }
+    
+    // 新增方法：在缩放时更新点阵网格
+    updateGridForZoom(scale) {
+        // 只有当缩放变化较大时才重绘网格，避免频繁重绘
+        if (!this.lastGridScale || Math.abs(this.lastGridScale - scale) > 0.2) {
+            this.lastGridScale = scale;
+            this.drawGrid(scale);
+        }
     }
 
     /**
@@ -241,6 +266,9 @@ export default class Table {
         this.bgLayer.position(currentPos);
         this.gLayer.position(currentPos);
         
+        // 更新点阵网格以适应新的窗口大小
+        this.drawGrid(currentScale);
+        
         // 重新绘制
         this.bgLayer.batchDraw();
         this.gLayer.batchDraw();
@@ -321,6 +349,22 @@ export default class Table {
             this.eventListeners[eventType] = listener;
             window.addEventListener(eventType, listener);
         });
+
+        // 添加窗口大小变化的事件监听器
+        const resizeListener = () => this.fitWindow();
+        this.eventListeners['resize'] = resizeListener;
+        window.addEventListener('resize', resizeListener);
+        
+        // 阻止右键菜单
+        const contextMenuListener = (e) => {
+            // 检查事件是否来自画布
+            if (e.target && e.target.closest && e.target.closest('#' + this.stage.container().id)) {
+                e.preventDefault();
+                return false;
+            }
+        };
+        this.eventListeners['contextmenu'] = contextMenuListener;
+        window.addEventListener('contextmenu', contextMenuListener);
     }
 
     removeEventListeners() {
@@ -330,7 +374,9 @@ export default class Table {
             'pointerdown', 
             'pointerup',
             'pointercancel',
-            'keyup'
+            'keyup',
+            'resize',
+            'contextmenu'  // 添加 contextmenu 事件到移除列表
         ];
         events.forEach(eventType => {
             const listener = this.eventListeners[eventType];
@@ -357,12 +403,14 @@ export default class Table {
                 y: event.clientY,
                 pointerType: event.pointerType,
                 pressure: event.pressure || 0,
-                isPrimary: event.isPrimary
+                isPrimary: event.isPrimary,
+                button: event.button  // 记录按下的鼠标按钮
             });
         } else if (eventType === 'pointermove') {
             if (this.activePointers.has(event.pointerId)) {
+                const pointer = this.activePointers.get(event.pointerId);
                 this.activePointers.set(event.pointerId, {
-                    id: event.pointerId,
+                    ...pointer,
                     clientX: event.clientX,
                     clientY: event.clientY,
                     x: event.clientX,
@@ -387,6 +435,68 @@ export default class Table {
         )) {
             // 如果事件来自工具栏，不处理Canvas事件
             return;
+        }
+
+        // 处理鼠标右键拖动平移 - 优先级高于其他操作
+        if (event.pointerType === 'mouse') {
+            // 检查是否是鼠标右键
+            const isRightButton = event.button === 2 || 
+                                 (this.activePointers.has(event.pointerId) && 
+                                  this.activePointers.get(event.pointerId).button === 2);
+            
+            if (isRightButton) {
+                // 阻止默认的右键菜单
+                event.preventDefault();
+                
+                // 使用 ZoomTool 的方法处理平移
+                switch(eventType) {
+                    case 'pointerdown':
+                        // 初始化拖动状态
+                        this.zoomTool.isDragging = true;
+                        this.zoomTool.dragStartPosition = {
+                            x: this.stage.x(),
+                            y: this.stage.y()
+                        };
+                        this.zoomTool.touch.lastPosition = {
+                            x: event.clientX,
+                            y: event.clientY
+                        };
+                        return;
+                    case 'pointermove':
+                        // 如果正在拖动，执行平移
+                        if (this.zoomTool.isDragging) {
+                            const currentPointerPos = {
+                                x: event.clientX,
+                                y: event.clientY
+                            };
+                            
+                            // 计算移动距离
+                            const deltaX = currentPointerPos.x - this.zoomTool.touch.lastPosition.x;
+                            const deltaY = currentPointerPos.y - this.zoomTool.touch.lastPosition.y;
+                            
+                            // 更新图层位置
+                            const newX = this.gLayer.x() + deltaX;
+                            const newY = this.gLayer.y() + deltaY;
+                            
+                            // 同时更新两个图层的位置
+                            this.gLayer.position({x: newX, y: newY});
+                            this.bgLayer.position({x: newX, y: newY});
+                            
+                            // 重新绘制两个图层
+                            this.gLayer.batchDraw();
+                            this.bgLayer.batchDraw();
+                            
+                            // 更新最后的指针位置
+                            this.zoomTool.touch.lastPosition = currentPointerPos;
+                        }
+                        return;
+                    case 'pointerup':
+                    case 'pointercancel':
+                        // 结束拖动状态
+                        this.zoomTool.isDragging = false;
+                        return;
+                }
+            }
         }
 
         // 处理多指触摸缩放 - 在任何工具下都可用，优先级最高

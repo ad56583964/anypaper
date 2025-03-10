@@ -82,6 +82,9 @@ export default class ZoomTool {
         this.table.gLayer.position(newPos);
         this.table.bgLayer.position(newPos);
         
+        // 更新点阵网格以适应当前缩放级别
+        this.table.updateGridForZoom(this.config.current);
+        
         // 重新绘制两个图层
         this.table.gLayer.batchDraw();
         this.table.bgLayer.batchDraw();
@@ -199,6 +202,9 @@ export default class ZoomTool {
         // 同时更新两个图层的位置
         this.table.gLayer.position({ x: newX, y: newY });
         this.table.bgLayer.position({ x: newX, y: newY });
+        
+        // 更新点阵网格以适应当前缩放级别
+        this.table.updateGridForZoom(newScale);
         
         // 重新绘制两个图层
         this.table.gLayer.batchDraw();
