@@ -680,36 +680,66 @@ export default class Table {
 
     // 创建居中的16:9比例paper对象
     createPaper() {
-        // 计算paper的尺寸，使其保持16:9比例
+        // 计算paper的尺寸，使其保持16:9比例，并按block数量计算
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
         
-        // 确定paper的宽度和高度，取较小的一边作为限制
-        let paperWidth, paperHeight;
-        if (stageWidth / 16 < stageHeight / 9) {
-            // 如果舞台更宽，则以宽度为基准
-            paperWidth = stageWidth * 0.8; // 留出一些边距
-            paperHeight = paperWidth * 9 / 16;
-        } else {
-            // 如果舞台更高，则以高度为基准
-            paperHeight = stageHeight * 0.8; // 留出一些边距
-            paperWidth = paperHeight * 16 / 9;
+        // 定义paper的block数量，保持16:9比例
+        const blocksWidth = 32; // 横向32个block
+        const blocksHeight = 18; // 纵向18个block (16:9比例)
+        
+        // 根据block大小计算实际像素尺寸
+        const paperWidth = blocksWidth * this.block.width;
+        const paperHeight = blocksHeight * this.block.height;
+        
+        // 确保paper不会超出舞台
+        const maxPaperWidth = stageWidth * 0.9;
+        const maxPaperHeight = stageHeight * 0.9;
+        
+        // 如果计算的尺寸超出舞台，则按比例缩小
+        let scale = 1;
+        if (paperWidth > maxPaperWidth || paperHeight > maxPaperHeight) {
+            const scaleX = maxPaperWidth / paperWidth;
+            const scaleY = maxPaperHeight / paperHeight;
+            scale = Math.min(scaleX, scaleY);
         }
         
+        // 应用缩放，确保宽高是block大小的整数倍
+        const finalPaperWidth = Math.floor(paperWidth * scale / this.block.width) * this.block.width;
+        const finalPaperHeight = Math.floor(paperHeight * scale / this.block.height) * this.block.height;
+        
         // 计算居中位置
-        const x = (stageWidth - paperWidth) / 2;
-        const y = (stageHeight - paperHeight) / 2;
+        // 由于点阵网格的点是在每个block的中心位置，我们需要将paper的边缘对齐到这些点上
+        const halfBlockWidth = this.block.width / 2;
+        const halfBlockHeight = this.block.height / 2;
+        
+        // 计算舞台中心
+        const stageCenterX = stageWidth / 2;
+        const stageCenterY = stageHeight / 2;
+        
+        // 计算paper左上角应该在的位置，使其居中
+        let rawX = stageCenterX - finalPaperWidth / 2;
+        let rawY = stageCenterY - finalPaperHeight / 2;
+        
+        // 找到最近的网格点，并将paper的左上角对齐到该点
+        // 网格点间距是block的宽度/高度，点位于block的中心
+        const x = Math.round((rawX - halfBlockWidth) / this.block.width) * this.block.width + halfBlockWidth;
+        const y = Math.round((rawY - halfBlockHeight) / this.block.height) * this.block.height + halfBlockHeight;
+        
+        console.log('Paper position:', x, y);
+        console.log('Block size:', this.block.width, this.block.height);
+        console.log('Paper size:', finalPaperWidth, finalPaperHeight);
         
         // 创建paper对象 - 简化阴影效果以提高性能
         this.paper = new Konva.Rect({
             x: x,
             y: y,
-            width: paperWidth,
-            height: paperHeight,
+            width: finalPaperWidth,
+            height: finalPaperHeight,
             fill: 'white',
             stroke: '#333333',
             strokeWidth: 1,
-            cornerRadius: 5,
+            cornerRadius: 0, // 移除圆角以便完美对齐网格
             // 减少阴影效果，提高性能
             shadowColor: 'black',
             shadowBlur: 5,
