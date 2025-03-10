@@ -44,7 +44,7 @@ export default class ZoomTool {
         return this.config.current;
     }
     
-    // 设置缩放值
+    // 设置缩放值 // ？这个没人用？
     setScale(scale) {
         this.config.current = Math.max(this.config.min, Math.min(this.config.max, scale));
         return this.config.current;
@@ -90,8 +90,8 @@ export default class ZoomTool {
         this.table.bgLayer.batchDraw();
         
         // 保存当前缩放状态到 stage 属性中
-        this.table.stage.scaleX(this.config.current);
-        this.table.stage.scaleY(this.config.current);
+        // this.table.stage.scaleX(this.config.current);
+        // this.table.stage.scaleY(this.config.current);
     }
     
     // 计算两个触摸点之间的距离
