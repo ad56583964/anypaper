@@ -5,8 +5,6 @@ import { updateDebugInfo } from '../debug';
 export default class PencilTool {
     constructor(table){
         this.table = table;
-        this.initHitDebug();
-
         this.isdrawing = false;
         this.currentPoints = [];
         this.currentPressures = [];
@@ -157,7 +155,6 @@ export default class PencilTool {
         console.log("PencilTool pointerdown");
         this.table.updateCurrentPointer();
         this.startStroke([this.table.currentPointer.x, this.table.currentPointer.y]);
-        this.updateHit();
         
         console.log("Start drawing");
     }
@@ -178,8 +175,6 @@ export default class PencilTool {
         if (this.isdrawing) {
             this.updateStroke([this.table.currentPointer.x, this.table.currentPointer.y]);
         }
-        
-        this.updateHit();
         
         // 更新鼠标位置信息（使用 requestAnimationFrame 来限制更新频率）
         if (!this._updateDebugScheduled) {
@@ -204,27 +199,5 @@ export default class PencilTool {
         
         console.log("PencilTool wheel");
         this.table.updateZoom(e);
-    }
-
-    updateHit(){
-        this.hit.setAttrs({
-            x: this.table.currentPointer.x,
-            y: this.table.currentPointer.y
-        })
-        this.table.gLayer.batchDraw();
-    }
-
-    initHitDebug(){
-        // debug shape
-        this.hit = new Konva.Circle({
-            radius: 5,
-            fill:"red",
-            x: 0,
-            y: 0,
-            listening: false,
-            draggable: false,
-        })
-
-        this.table.gLayer.add(this.hit);
     }
 }

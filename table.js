@@ -3,7 +3,6 @@ import AnyA4Tool from "./commands";
 import PaperTool from "./tools/paper";
 import PencilTool from "./tools/pencil";
 import SelectTool from "./tools/select";
-import HitUpdateOnlyTool from "./tools/hitUpdateOnly";
 import AdaptiveDpr from "./tools/adaptiveDpr";
 import ZoomTool from "./tools/zoom";
 import ToolBar from "./components/ToolBar";
@@ -62,9 +61,30 @@ export default class Table {
             hitGraphEnabled: true,
         });
         
+        // 添加独立的 hitpointer 图层 - 不随缩放而改变大小
+        this.hitpointerLayer = new Konva.Layer({
+            listening: false,
+            draggable: false,
+        });
+        
         // 添加图层到舞台
         this.stage.add(this.bgLayer);
         this.stage.add(this.gLayer);
+        this.stage.add(this.hitpointerLayer);
+        
+        // 创建 hitpointer 指示器
+        this.hitpointer = new Konva.Circle({
+            x: 0,
+            y: 0,
+            radius: 5,
+            fill: 'rgba(255, 0, 0, 0.5)',
+            stroke: 'black',
+            strokeWidth: 1,
+            visible: true,
+        });
+        
+        // 将 hitpointer 添加到 hitpointerLayer
+        this.hitpointerLayer.add(this.hitpointer);
         
         this.state = "idle";
 
@@ -91,7 +111,6 @@ export default class Table {
         this.registerTool("select", new SelectTool(this));
         // this.registerTool("paper",new PaperTool(this))
         this.registerTool("pencil", new PencilTool(this));
-        this.registerTool("hitUpdateOnly", new HitUpdateOnlyTool(this));
         
         // 初始化工具栏
         this.toolBar = new ToolBar(this);
@@ -266,12 +285,20 @@ export default class Table {
         this.bgLayer.position(currentPos);
         this.gLayer.position(currentPos);
         
+        // 确保 hitpointerLayer 不受缩放影响
+        this.hitpointerLayer.scale({ x: 1, y: 1 });
+        this.hitpointerLayer.position({ x: 0, y: 0 });
+        
         // 更新点阵网格以适应新的窗口大小
         this.drawGrid(currentScale);
+        
+        // 更新 hitpointer 位置
+        this.updateCurrentPointer();
         
         // 重新绘制
         this.bgLayer.batchDraw();
         this.gLayer.batchDraw();
+        this.hitpointerLayer.batchDraw();
     }
 
     // global use
@@ -282,9 +309,17 @@ export default class Table {
         var gLayerPos = this.gLayer.getAbsolutePosition();
         if (!gLayerPos) return;  // 如果没有获取到图层位置，直接返回
 
+        // 计算在缩放下的实际坐标
         this.currentPointer = {
             x: (gPointer.x - gLayerPos.x) / this.zoomTool.getCurrentScale(),
             y: (gPointer.y - gLayerPos.y) / this.zoomTool.getCurrentScale(),
+        };
+        
+        // 更新 hitpointer 的位置 - 使用舞台坐标，不应用缩放
+        if (this.hitpointer) {
+            this.hitpointer.x(gPointer.x);
+            this.hitpointer.y(gPointer.y);
+            this.hitpointerLayer.batchDraw();
         }
     }
 
@@ -482,7 +517,10 @@ export default class Table {
                             this.gLayer.position({x: newX, y: newY});
                             this.bgLayer.position({x: newX, y: newY});
                             
-                            // 重新绘制两个图层
+                            // 更新 hitpointer 位置
+                            this.updateCurrentPointer();
+                            
+                            // 重新绘制图层
                             this.gLayer.batchDraw();
                             this.bgLayer.batchDraw();
                             

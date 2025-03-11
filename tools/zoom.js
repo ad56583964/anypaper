@@ -85,13 +85,12 @@ export default class ZoomTool {
         // 更新点阵网格以适应当前缩放级别
         this.table.updateGridForZoom(this.config.current);
         
-        // 重新绘制两个图层
+        // 更新 hitpointer 位置
+        this.table.updateCurrentPointer();
+        
+        // 重新绘制图层
         this.table.gLayer.batchDraw();
         this.table.bgLayer.batchDraw();
-        
-        // 保存当前缩放状态到 stage 属性中
-        // this.table.stage.scaleX(this.config.current);
-        // this.table.stage.scaleY(this.config.current);
     }
     
     // 计算两个触摸点之间的距离
@@ -205,6 +204,9 @@ export default class ZoomTool {
         
         // 更新点阵网格以适应当前缩放级别
         this.table.updateGridForZoom(newScale);
+        
+        // 更新 hitpointer 位置
+        this.table.updateCurrentPointer();
         
         // 重新绘制两个图层
         this.table.gLayer.batchDraw();
