@@ -143,7 +143,7 @@ export default class PixiPencilTool {
         this.currentGraphics.label = 'drawing'; // 添加标签，用于视口裁剪（在 PixiJS 8.0 中使用 label 代替 name）
         
         // 添加到绘图层
-        this.table.drawingLayer.add(this.currentGraphics);
+        this.table.drawingContainer.addChild(this.currentGraphics);
         
         // 绘制初始点
         this.drawCurrentStroke(false);
@@ -311,7 +311,7 @@ export default class PixiPencilTool {
         });
         
         this.drawings = [];
-        this.table.drawingLayer.clear();
+        this.table.drawingContainer.removeChildren();
         
         // 重置统计信息
         this.stats.strokeCount = 0;

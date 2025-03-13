@@ -44,16 +44,8 @@ export default class PixiPointer {
         const pointer = new PIXI.Graphics();
         this.drawPointer(pointer);
         
-        // 创建一个专门的容器来放置光标，确保它不受内容层的变换影响
-        this.pointerContainer = new PIXI.Container();
-        this.pointerContainer.sortableChildren = true;
-        this.pointerContainer.zIndex = 1000; // 确保在最上层
-        
-        // 将光标添加到容器
-        this.pointerContainer.addChild(pointer);
-        
-        // 将容器添加到舞台
-        this.renderer.app.stage.addChild(this.pointerContainer);
+        // 将光标直接添加到内容层
+        this.renderer.contentLayer.addChild(pointer);
         
         // 保存引用
         this.pointer = pointer;
@@ -109,34 +101,21 @@ export default class PixiPointer {
         // 创建指针信息对象
         const pointer = createPointerInfo(e);
         
-        // 获取应用的视图（canvas）的边界
-        const bounds = this.renderer.app.view.getBoundingClientRect();
+        // 使用工具函数获取所有坐标信息，传递 renderer 参数
+        const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer, this.renderer);
         
-        // 计算相对于canvas的坐标
-        const localX = pointer.x - bounds.left;
-        const localY = pointer.y - bounds.top;
-        
-        // 使用PixiJS的全局坐标转换
-        const globalPoint = new PIXI.Point(localX, localY);
-        
-        // 将全局坐标转换为指针容器的本地坐标
-        const localPoint = this.pointerContainer.toLocal(globalPoint);
-        
-        // 设置光标位置
-        this.pointer.position.copyFrom(localPoint);
-        
-        // 使用工具函数获取所有坐标信息（用于调试）
-        const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer);
+        // 直接使用世界坐标设置光标位置
+        this.pointer.position.set(coords.worldX, coords.worldY);
         
         // 更新上次更新时间
         this.lastUpdateTime = now;
         
         // 更新调试信息
         if (this.options.debug && this.debugText) {
-            // 添加更多调试信息
-            coords.localPoint = localPoint;
-            coords.globalPoint = globalPoint;
-            this.updateDebugInfo(coords);
+            this.updateDebugInfo({
+                ...coords,
+                pointer
+            });
         }
     }
     
@@ -151,11 +130,10 @@ export default class PixiPointer {
         this.debugText.text = [
             `Client: (${info.pointer?.x.toFixed(1)}, ${info.pointer?.y.toFixed(1)})`,
             `Canvas: (${info.canvasX.toFixed(1)}, ${info.canvasY.toFixed(1)})`,
-            `Global: (${info.globalPoint?.x.toFixed(1)}, ${info.globalPoint?.y.toFixed(1)})`,
-            `Local: (${info.localPoint?.x.toFixed(1)}, ${info.localPoint?.y.toFixed(1)})`,
             `Offset: (${info.offsetX.toFixed(1)}, ${info.offsetY.toFixed(1)})`,
             `Scale: ${info.scale.toFixed(2)}`,
-            `World: (${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`
+            `World: (${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`,
+            `Pointer: (${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`
         ].join('\n');
         
         // 每100帧输出一次日志
@@ -163,11 +141,10 @@ export default class PixiPointer {
             console.log('Pointer Debug:', {
                 client: info.pointer ? `(${info.pointer.x.toFixed(1)}, ${info.pointer.y.toFixed(1)})` : 'N/A',
                 canvas: `(${info.canvasX.toFixed(1)}, ${info.canvasY.toFixed(1)})`,
-                global: info.globalPoint ? `(${info.globalPoint.x.toFixed(1)}, ${info.globalPoint.y.toFixed(1)})` : 'N/A',
-                local: info.localPoint ? `(${info.localPoint.x.toFixed(1)}, ${info.localPoint.y.toFixed(1)})` : 'N/A',
                 offset: `(${info.offsetX.toFixed(1)}, ${info.offsetY.toFixed(1)})`,
                 scale: info.scale.toFixed(2),
-                world: `(${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`
+                world: `(${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`,
+                pointer: `(${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`
             });
         }
     }
@@ -241,13 +218,12 @@ export default class PixiPointer {
      * 销毁光标指示器
      */
     destroy() {
-        // 移除光标容器
-        if (this.pointerContainer) {
-            if (this.pointerContainer.parent) {
-                this.pointerContainer.parent.removeChild(this.pointerContainer);
+        // 移除光标
+        if (this.pointer) {
+            if (this.pointer.parent) {
+                this.pointer.parent.removeChild(this.pointer);
             }
-            this.pointerContainer.destroy({ children: true });
-            this.pointerContainer = null;
+            this.pointer.destroy();
             this.pointer = null;
         }
         

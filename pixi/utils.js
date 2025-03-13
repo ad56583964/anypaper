@@ -51,9 +51,10 @@ export function canvasToWorldCoordinates(coords, contentLayer) {
  * @param {PointerInfo} pointer - 包含x和y的指针信息对象
  * @param {HTMLCanvasElement} canvas - 画布元素
  * @param {PIXI.Container} contentLayer - 内容层容器
+ * @param {PIXI.Renderer} [renderer] - PixiJS 渲染器实例（可选）
  * @returns {Object} - 包含画布坐标和世界坐标的对象
  */
-export function getCoordinates(pointer, canvas, contentLayer) {
+export function getCoordinates(pointer, canvas, contentLayer, renderer) {
     // 获取画布坐标
     const { canvasX, canvasY } = getCanvasCoordinates(pointer, canvas);
     
@@ -63,8 +64,23 @@ export function getCoordinates(pointer, canvas, contentLayer) {
     const offsetY = contentLayer.position.y;
     
     // 计算世界坐标
-    const worldX = (canvasX - offsetX) / scale;
-    const worldY = (canvasY - offsetY) / scale;
+    let worldX, worldY;
+    
+    // 如果提供了渲染器，使用 PixiJS 的交互系统获取更准确的坐标
+    if (renderer && renderer.plugins && renderer.plugins.interaction) {
+        // 创建一个临时点来存储结果
+        const tempPoint = new PIXI.Point();
+        
+        // 使用 PixiJS 的交互系统将客户端坐标映射到舞台坐标
+        renderer.plugins.interaction.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
+        
+        worldX = tempPoint.x;
+        worldY = tempPoint.y;
+    } else {
+        // 回退到传统计算方法
+        worldX = (canvasX - offsetX) / scale;
+        worldY = (canvasY - offsetY) / scale;
+    }
     
     return {
         canvasX,

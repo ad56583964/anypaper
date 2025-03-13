@@ -1,6 +1,5 @@
 import * as PIXI from 'pixi.js';
 import PixiRenderer from './PixiRenderer';
-import PixiLayer from './PixiLayer';
 import PixiPointer from './PixiPointer';
 import { updateDebugInfo } from '../debug.jsx';
 import PixiPencilTool from '../tools/PixiPencilTool';
@@ -100,11 +99,26 @@ export default class PixiTable {
      * 在 PixiRenderer 初始化完成后调用
      */
     initTable() {
-        // 创建图层
-        this.bgLayer = new PixiLayer(this.renderer, { name: 'background', parent: 'background' });
-        this.gridLayer = new PixiLayer(this.renderer, { name: 'grid', parent: 'background' });
-        this.paperLayer = new PixiLayer(this.renderer, { name: 'paper', parent: 'background' });
-        this.drawingLayer = new PixiLayer(this.renderer, { name: 'drawing' });
+        // 创建容器，直接使用 PIXI.Container 替代 PixiLayer
+        // 背景层容器
+        this.bgContainer = new PIXI.Container();
+        this.bgContainer.label = 'background';
+        this.renderer.bgLayer.addChild(this.bgContainer);
+        
+        // 网格层容器
+        this.gridContainer = new PIXI.Container();
+        this.gridContainer.label = 'grid';
+        this.renderer.bgLayer.addChild(this.gridContainer);
+        
+        // 纸张层容器
+        this.paperContainer = new PIXI.Container();
+        this.paperContainer.label = 'paper';
+        this.renderer.bgLayer.addChild(this.paperContainer);
+        
+        // 绘图层容器
+        this.drawingContainer = new PIXI.Container();
+        this.drawingContainer.label = 'drawing';
+        this.renderer.contentLayer.addChild(this.drawingContainer);
         
         // 工具管理
         this.tools = {};
@@ -199,7 +213,7 @@ export default class PixiTable {
     drawGridAsTilemap() {
         // 创建瓦片容器
         this.tilesContainer = new PIXI.Container();
-        this.gridLayer.add(this.tilesContainer);
+        this.gridContainer.addChild(this.tilesContainer);
         
         // 计算需要的瓦片数量
         const tilesX = Math.ceil(this.width / this.tileSize);
@@ -311,7 +325,7 @@ export default class PixiTable {
         gridGraphics.fill();
         
         // 添加到网格图层
-        this.gridLayer.add(gridGraphics);
+        this.gridContainer.addChild(gridGraphics);
     }
     
     /**
@@ -380,7 +394,7 @@ export default class PixiTable {
             .rect(0, 0, this.width, this.height)
             .fill(0xdddddd)
         
-        this.bgLayer.add(bg);
+        this.bgContainer.addChild(bg);
     }
     
     /**
@@ -434,7 +448,7 @@ export default class PixiTable {
         paperContainer.addChildAt(shadow, 0);
         
         // 添加到 paper 图层
-        this.paperLayer.add(paperContainer);
+        this.paperContainer.addChild(paperContainer);
         
         // 保存 paper 引用
         this.paper = paper;
@@ -623,7 +637,7 @@ export default class PixiTable {
         this.renderer.resize(window.innerWidth, window.innerHeight);
         
         // 重新创建 paper
-        this.paperLayer.clear();
+        this.paperContainer.removeChildren();
         this.createPaper();
     }
     
@@ -728,10 +742,10 @@ export default class PixiTable {
         }
         
         // 销毁图层
-        this.bgLayer.destroy();
-        this.gridLayer.destroy();
-        this.paperLayer.destroy();
-        this.drawingLayer.destroy();
+        this.bgContainer.removeChildren();
+        this.gridContainer.removeChildren();
+        this.paperContainer.removeChildren();
+        this.drawingContainer.removeChildren();
         
         // 销毁渲染器
         this.renderer.destroy();
