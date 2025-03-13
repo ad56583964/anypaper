@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import PixiRenderer from './PixiRenderer';
 import PixiLayer from './PixiLayer';
+import PixiPointer from './PixiPointer';
 import { updateDebugInfo } from '../debug.jsx';
 import PixiPencilTool from '../tools/PixiPencilTool';
 import PixiZoomTool from '../tools/PixiZoomTool';
@@ -26,8 +27,12 @@ export default class PixiTable {
         };
         
         // 计算画布大小
-        this.width = 60 * this.block.width;
-        this.height = 60 * this.block.height;
+        this.width = 80 * this.block.width;
+        this.height = 80 * this.block.height;
+        
+        // Tilemap 配置
+        this.tileSize = 256; // 每个瓦片的大小
+        this.useTilemap = options.useTilemap !== undefined ? options.useTilemap : true;
         
         // 创建渲染器
         console.log('PixiTable constructor', containerId, this.width, this.height);
@@ -46,11 +51,47 @@ export default class PixiTable {
                 // 初始化工具
                 this.initTools();
                 
+                // 创建光标指示器
+                this.initPointer(options.pointerOptions);
+                
                 resolve(this);
             } catch (error) {
                 console.error('PixiTable initialization error:', error);
             }
         });
+    }
+    
+    /**
+     * 初始化光标指示器
+     * @param {Object} options - 光标指示器选项
+     */
+    initPointer(options = {}) {
+        // 创建光标指示器
+        this.pointer = new PixiPointer(this.renderer, {
+            debug: options?.debug !== undefined ? options.debug : true,
+            size: options?.size || 10,
+            color: options?.color || 'rgba(255, 0, 0, 0.7)',
+            updateInterval: options?.updateInterval || 5
+        });
+    }
+    
+    /**
+     * 更新光标指示器位置
+     * @param {PointerEvent} e - 指针事件
+     */
+    updateHitPointer(e) {
+        if (this.pointer) {
+            this.pointer.update(e);
+        }
+    }
+    
+    /**
+     * 更新调试信息
+     * @param {Object} info - 调试信息
+     */
+    updateDebugInfo(info) {
+        // 该方法现在由 PixiPointer 类处理
+        // 保留此方法是为了兼容性
     }
     
     /**
@@ -79,7 +120,14 @@ export default class PixiTable {
         
         // 初始化表格
         this.drawBackground();
-        this.drawGrid();
+        
+        // 使用 Tilemap 绘制网格
+        if (this.useTilemap) {
+            this.drawGridAsTilemap();
+        } else {
+            this.drawGrid();
+        }
+        
         this.createPaper();
         
         // 设置事件监听器
@@ -88,7 +136,153 @@ export default class PixiTable {
         // 设置性能监控
         this.setupPerformanceMonitoring();
         
+        // 设置视口裁剪
+        this.setupViewportCulling();
+        
         console.log('PixiTable initialized');
+    }
+    
+    /**
+     * 设置视口裁剪，只渲染可见区域
+     */
+    setupViewportCulling() {
+        // 启用内容层的裁剪
+        this.renderer.contentLayer.cullable = true;
+        
+        // 添加到渲染循环，动态更新可见区域
+        this.renderer.app.ticker.add(() => {
+            this.updateVisibleTiles();
+        });
+    }
+    
+    /**
+     * 更新可见瓦片，只渲染视口内的瓦片
+     */
+    updateVisibleTiles() {
+        if (!this.tilesContainer || !this.useTilemap) return;
+        
+        // 获取视口信息
+        const scale = this.renderer.contentLayer.scale.x;
+        const viewportX = -this.renderer.contentLayer.x / scale;
+        const viewportY = -this.renderer.contentLayer.y / scale;
+        const viewportWidth = this.renderer.app.screen.width / scale;
+        const viewportHeight = this.renderer.app.screen.height / scale;
+        
+        // 计算可见瓦片的范围
+        const startTileX = Math.floor(viewportX / this.tileSize);
+        const startTileY = Math.floor(viewportY / this.tileSize);
+        const endTileX = Math.ceil((viewportX + viewportWidth) / this.tileSize);
+        const endTileY = Math.ceil((viewportY + viewportHeight) / this.tileSize);
+        
+        // 更新瓦片可见性
+        for (const tile of this.tilesContainer.children) {
+            const tileX = tile.tileX;
+            const tileY = tile.tileY;
+            
+            // 判断瓦片是否在视口内
+            const isVisible = (
+                tileX >= startTileX - 1 && 
+                tileX <= endTileX + 1 && 
+                tileY >= startTileY - 1 && 
+                tileY <= endTileY + 1
+            );
+            
+            // 设置瓦片可见性
+            tile.visible = isVisible;
+        }
+    }
+    
+    /**
+     * 使用 Tilemap 方式绘制网格
+     */
+    drawGridAsTilemap() {
+        // 创建瓦片容器
+        this.tilesContainer = new PIXI.Container();
+        this.gridLayer.add(this.tilesContainer);
+        
+        // 计算需要的瓦片数量
+        const tilesX = Math.ceil(this.width / this.tileSize);
+        const tilesY = Math.ceil(this.height / this.tileSize);
+        
+        // 创建瓦片纹理缓存
+        this.createTileTexture();
+        
+        // 创建瓦片
+        for (let y = 0; y < tilesY; y++) {
+            for (let x = 0; x < tilesX; x++) {
+                // 创建瓦片精灵
+                const tile = new PIXI.Sprite(this.tileTexture);
+                tile.x = x * this.tileSize;
+                tile.y = y * this.tileSize;
+                
+                // 存储瓦片坐标，用于视口裁剪
+                tile.tileX = x;
+                tile.tileY = y;
+                
+                // 添加到瓦片容器
+                this.tilesContainer.addChild(tile);
+            }
+        }
+        
+        console.log(`Created tilemap grid with ${tilesX}x${tilesY} tiles`);
+    }
+    
+    /**
+     * 创建瓦片纹理
+     */
+    createTileTexture() {
+        // 创建一个临时图形对象来绘制瓦片
+        const tileGraphics = new PIXI.Graphics();
+        
+        // 设置点的样式
+        tileGraphics.fill(0x555555); // 深灰色点
+        
+        // 计算瓦片内的点数
+        const pointsPerTileX = Math.ceil(this.tileSize / this.block.width);
+        const pointsPerTileY = Math.ceil(this.tileSize / this.block.height);
+        
+        // 绘制点阵
+        for (let i = 0; i < pointsPerTileX; i++) {
+            for (let j = 0; j < pointsPerTileY; j++) {
+                tileGraphics.circle(
+                    i * this.block.width,
+                    j * this.block.height,
+                    1 // 点的半径
+                );
+            }
+        }
+        
+        tileGraphics.fill();
+        
+        // 生成纹理
+        this.tileTexture = this.renderer.app.renderer.generateTexture(tileGraphics);
+    }
+    
+    /**
+     * 绘制网格 (非 Tilemap 方式)
+     */
+    drawGrid() {
+        // 创建网格容器
+        const gridGraphics = new PIXI.Graphics();
+        
+        // 设置点的样式
+        gridGraphics.fill(0x555555); // 深灰色点
+        
+        // 绘制点阵
+        for (let i = 1; i < this.width / this.block.width; i++) {
+            for (let j = 1; j < this.height / this.block.height; j++) {
+                gridGraphics.circle(
+                    i * this.block.width,
+                    j * this.block.height,
+                    1 // 点的半径
+                );
+            }
+        }
+        
+        gridGraphics.fill();
+        
+        // 添加到网格图层
+        this.gridLayer.add(gridGraphics);
     }
     
     /**
@@ -158,36 +352,6 @@ export default class PixiTable {
             .fill(0xdddddd)
         
         this.bgLayer.add(bg);
-    }
-    
-    /**
-     * 绘制网格
-     */
-    drawGrid() {
-        // 创建网格容器
-        const gridGraphics = new PIXI.Graphics();
-        
-        // 设置点的样式
-        gridGraphics.fill(0x555555); // 深灰色点
-        
-        // 绘制点阵
-        for (let i = 1; i < this.width / this.block.width; i++) {
-            for (let j = 1; j < this.height / this.block.height; j++) {
-                gridGraphics.circle(
-                    i * this.block.width,
-                    j * this.block.height,
-                    1 // 点的半径
-                );
-            }
-        }
-        
-        gridGraphics.fill();
-        
-        // 添加到网格图层
-        this.gridLayer.add(gridGraphics);
-        
-        // 在 PixiJS v8 中，我们可以直接使用图形对象，不需要转换为纹理
-        // 这样可以避免纹理生成的兼容性问题
     }
     
     /**
@@ -349,7 +513,7 @@ export default class PixiTable {
             ...additionalInfo
         });
 
-        console.log('updateDeviceTrackerInfo', eventType, event);
+        // console.log('updateDeviceTrackerInfo', eventType, event);
     }
     
     /**
@@ -359,6 +523,9 @@ export default class PixiTable {
     handlePointerDown(e) {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('pointerdown', e);
+        
+        // 更新光标指示器位置
+        this.updateHitPointer(e);
         
         if (this.currentTool) {
             this.currentTool.pointerdown(e);
@@ -370,8 +537,13 @@ export default class PixiTable {
      * @param {PointerEvent} e - 指针事件
      */
     handlePointerMove(e) {
-        // 更新设备追踪信息
-        this.updateDeviceTrackerInfo('pointermove', e);
+        // 更新设备追踪信息 - 使用节流减少更新频率
+        if (performance.now() % 5 === 0) {
+            this.updateDeviceTrackerInfo('pointermove', e);
+        }
+        
+        // 更新光标指示器位置 - 这里不需要节流，因为updateHitPointer内部已有节流
+        this.updateHitPointer(e);
         
         if (this.currentTool) {
             this.currentTool.pointermove(e);
@@ -385,6 +557,9 @@ export default class PixiTable {
     handlePointerUp(e) {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('pointerup', e);
+        
+        // 更新光标指示器位置
+        this.updateHitPointer(e);
         
         if (this.currentTool) {
             this.currentTool.pointerup(e);
@@ -404,9 +579,11 @@ export default class PixiTable {
             this.currentTool.wheel(e);
         } else if (this.tools.zoom && typeof this.tools.zoom.wheel === 'function') {
             // 如果当前工具没有 wheel 方法，但存在缩放工具，则使用缩放工具处理滚轮事件
-            console.log('handleWheel', e);
             this.tools.zoom.wheel(e);
         }
+        
+        // 在缩放后更新光标位置
+        this.updateHitPointer(e);
     }
     
     /**
@@ -489,6 +666,35 @@ export default class PixiTable {
             document.removeEventListener('keydown', this._handleKeyDown);
         }
         
+        // 销毁光标指示器
+        if (this.pointer) {
+            this.pointer.destroy();
+            this.pointer = null;
+        }
+        
+        // 清理指针容器
+        if (this.pointerContainer) {
+            this.renderer.app.stage.removeChild(this.pointerContainer);
+            this.pointerContainer.destroy();
+            this.pointerContainer = null;
+        }
+        
+        // 清理 Tilemap 资源
+        if (this.tileTexture) {
+            this.tileTexture.destroy(true);
+            this.tileTexture = null;
+        }
+        
+        if (this.tilesContainer) {
+            // 清理所有瓦片
+            while (this.tilesContainer.children.length > 0) {
+                const tile = this.tilesContainer.children[0];
+                this.tilesContainer.removeChild(tile);
+                tile.destroy();
+            }
+            this.tilesContainer = null;
+        }
+        
         // 销毁图层
         this.bgLayer.destroy();
         this.gridLayer.destroy();
@@ -500,4 +706,4 @@ export default class PixiTable {
         
         console.log('PixiTable destroyed');
     }
-} 
+}
