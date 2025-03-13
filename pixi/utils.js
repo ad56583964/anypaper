@@ -67,15 +67,24 @@ export function getCoordinates(pointer, canvas, contentLayer, renderer) {
     let worldX, worldY;
     
     // 如果提供了渲染器，使用 PixiJS 的交互系统获取更准确的坐标
-    if (renderer && renderer.plugins && renderer.plugins.interaction) {
+    if (renderer && renderer.app && renderer.app.renderer) {
         // 创建一个临时点来存储结果
         const tempPoint = new PIXI.Point();
         
         // 使用 PixiJS 的交互系统将客户端坐标映射到舞台坐标
-        renderer.plugins.interaction.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
+        if (renderer.app.renderer.events) {
+            // PixiJS v8 方式
+            renderer.app.renderer.events.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
+        } else if (renderer.app.renderer.plugins && renderer.app.renderer.plugins.interaction) {
+            // PixiJS v7 及以下方式
+            renderer.app.renderer.plugins.interaction.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
+        }
         
-        worldX = tempPoint.x;
-        worldY = tempPoint.y;
+        // 将舞台坐标转换为内容层的本地坐标
+        const localPos = contentLayer.worldTransform.applyInverse(tempPoint);
+        
+        worldX = localPos.x;
+        worldY = localPos.y;
     } else {
         // 回退到传统计算方法
         worldX = (canvasX - offsetX) / scale;

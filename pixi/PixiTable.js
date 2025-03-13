@@ -545,8 +545,10 @@ export default class PixiTable {
         // 创建指针信息对象
         const pointer = createPointerInfo(event);
         
-        // 使用工具函数获取世界坐标
-        const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer);
+        // 使用工具函数获取世界坐标，传递渲染器参数以使用 PixiJS 的交互系统
+        const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer, this.renderer);
+        
+        // 返回世界坐标
         return { x: coords.worldX, y: coords.worldY };
     }
     

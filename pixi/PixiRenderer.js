@@ -124,7 +124,7 @@ export default class PixiRenderer {
         
         // 绘制矩形边框，稍微缩小一点以确保边框完全可见
         // 将边框向内缩进1.5像素（线宽的一半），确保边框完全在舞台内部
-        border.rect(1.5, 1.5, this.width - 3, this.height - 3);
+        border.rect(1.5, 1.5, this.width - 10, this.height - 10);
         border.stroke();
         
         // 将边框添加到最顶层
