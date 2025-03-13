@@ -1,4 +1,5 @@
 import * as PIXI from 'pixi.js';
+import { getCoordinates } from './utils';
 
 /**
  * PixiPointer 类 - 光标指示器
@@ -93,47 +94,26 @@ export default class PixiPointer {
             return;
         }
         
-        // 获取相对于canvas的坐标
-        const rect = this.renderer.app.canvas.getBoundingClientRect();
-        const canvasX = e.clientX - rect.left;
-        const canvasY = e.clientY - rect.top;
+        // 使用工具函数获取所有坐标信息
+        const coords = getCoordinates(e, this.renderer.app.canvas, this.renderer.contentLayer);
         
-        // 获取内容层的变换信息
-        const contentLayer = this.renderer.contentLayer;
-        const scale = contentLayer.scale.x;
-        const offsetX = contentLayer.position.x;
-        const offsetY = contentLayer.position.y;
+        // 设置DOM元素的位置（使用canvas坐标，因为DOM元素是相对于canvas父元素放置的）
+        this.element.style.left = `${coords.canvasX}px`;
+        this.element.style.top = `${coords.canvasY}px`;
         
-        // 计算世界坐标（考虑内容层的缩放和平移）
-        const worldX = (canvasX - offsetX) / scale;
-        const worldY = (canvasY - offsetY) / scale;
-        
-        // 将世界坐标转换回屏幕坐标
-        const screenX = worldX * scale + offsetX;
-        const screenY = worldY * scale + offsetY;
-        
-        // 直接设置DOM元素的位置
-        this.element.style.left = `${screenX}px`;
-        this.element.style.top = `${screenY}px`;
+        // 更新光标大小，根据缩放比例调整
+        if (coords.scale !== 1) {
+            const size = this.options.size / coords.scale;
+            this.element.style.width = `${size}px`;
+            this.element.style.height = `${size}px`;
+        }
         
         // 更新上次更新时间
         this.lastUpdateTime = now;
         
         // 更新调试信息
         if (this.options.debug && this.debugText) {
-            this.updateDebugInfo({
-                clientX: e.clientX,
-                clientY: e.clientY,
-                canvasX: canvasX,
-                canvasY: canvasY,
-                offsetX: offsetX,
-                offsetY: offsetY,
-                scale: scale,
-                worldX: worldX,
-                worldY: worldY,
-                screenX: screenX,
-                screenY: screenY
-            });
+            this.updateDebugInfo(coords);
         }
     }
     
@@ -146,23 +126,20 @@ export default class PixiPointer {
         
         // 更新调试文本
         this.debugText.text = [
-            `Client: (${info.clientX.toFixed(1)}, ${info.clientY.toFixed(1)})`,
+            `Client: (${info.canvasX.toFixed(1)}, ${info.canvasY.toFixed(1)})`,
             `Canvas: (${info.canvasX.toFixed(1)}, ${info.canvasY.toFixed(1)})`,
             `Offset: (${info.offsetX.toFixed(1)}, ${info.offsetY.toFixed(1)})`,
             `Scale: ${info.scale.toFixed(2)}`,
-            `World: (${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`,
-            `Screen: (${info.screenX.toFixed(1)}, ${info.screenY.toFixed(1)})`
+            `World: (${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`
         ].join('\n');
         
         // 每100帧输出一次日志
         if (Math.floor(performance.now() / 100) % 10 === 0) {
             console.log('Pointer Debug:', {
-                client: `(${info.clientX.toFixed(1)}, ${info.clientY.toFixed(1)})`,
                 canvas: `(${info.canvasX.toFixed(1)}, ${info.canvasY.toFixed(1)})`,
                 offset: `(${info.offsetX.toFixed(1)}, ${info.offsetY.toFixed(1)})`,
                 scale: info.scale.toFixed(2),
-                world: `(${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`,
-                screen: `(${info.screenX.toFixed(1)}, ${info.screenY.toFixed(1)})`
+                world: `(${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`
             });
         }
     }
@@ -174,8 +151,12 @@ export default class PixiPointer {
     setSize(size) {
         this.options.size = size;
         if (this.element) {
-            this.element.style.width = `${size}px`;
-            this.element.style.height = `${size}px`;
+            // 应用当前缩放因子
+            const scale = this.renderer.contentLayer.scale.x;
+            const scaledSize = size / scale;
+            
+            this.element.style.width = `${scaledSize}px`;
+            this.element.style.height = `${scaledSize}px`;
         }
     }
     

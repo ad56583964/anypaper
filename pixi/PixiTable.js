@@ -5,6 +5,7 @@ import PixiPointer from './PixiPointer';
 import { updateDebugInfo } from '../debug.jsx';
 import PixiPencilTool from '../tools/PixiPencilTool';
 import PixiZoomTool from '../tools/PixiZoomTool';
+import { getCoordinates } from './utils';
 
 /**
  * PixiTable 类 - 主要的表格组件
@@ -641,13 +642,9 @@ export default class PixiTable {
      * @returns {Object} - 世界坐标
      */
     getWorldPoint(pointer) {
-        // 转换为世界坐标
-        const worldPoint = {
-            x: (pointer.x - this.renderer.contentLayer.x) / this.renderer.contentLayer.scale.x,
-            y: (pointer.y - this.renderer.contentLayer.y) / this.renderer.contentLayer.scale.y
-        };
-        
-        return worldPoint;
+        // 使用工具函数获取世界坐标
+        const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer);
+        return { x: coords.worldX, y: coords.worldY };
     }
     
     /**
