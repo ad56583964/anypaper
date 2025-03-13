@@ -6,6 +6,40 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Vite App</title>
+    <style>
+      #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        transition: opacity 0.5s ease-out;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left-color: #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      .loading-text {
+        margin-top: 20px;
+        font-family: sans-serif;
+        font-size: 16px;
+        color: #333;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>
@@ -13,6 +47,13 @@
     <div id="debugbar"></div>
     <div id="version-hash" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; padding: 5px; border-radius: 5px; z-index: 9999;"></div>
     <div id="touch-debug" style="position: fixed; bottom: 40px; right: 10px; background: rgba(0,0,0,0.5); color: white; padding: 5px; border-radius: 5px; z-index: 9999;"></div>
+    
+    <!-- 加载界面 -->
+    <div id="loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-text">应用正在加载中...</div>
+    </div>
+    
     <script type="module" src="/main.js"></script>
   </body>
 </html>
