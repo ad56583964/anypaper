@@ -104,12 +104,9 @@ export default class PixiPointer {
         this.element.style.left = `${coords.canvasX}px`;
         this.element.style.top = `${coords.canvasY}px`;
         
-        // 更新光标大小，根据缩放比例调整
-        if (coords.scale !== 1) {
-            const size = this.options.size / coords.scale;
-            this.element.style.width = `${size}px`;
-            this.element.style.height = `${size}px`;
-        }
+        // 更新光标大小，保持固定大小，不受缩放影响
+        this.element.style.width = `${this.options.size}px`;
+        this.element.style.height = `${this.options.size}px`;
         
         // 更新上次更新时间
         this.lastUpdateTime = now;
@@ -154,12 +151,9 @@ export default class PixiPointer {
     setSize(size) {
         this.options.size = size;
         if (this.element) {
-            // 应用当前缩放因子
-            const scale = this.renderer.contentLayer.scale.x;
-            const scaledSize = size / scale;
-            
-            this.element.style.width = `${scaledSize}px`;
-            this.element.style.height = `${scaledSize}px`;
+            // 直接设置固定大小，不受缩放影响
+            this.element.style.width = `${size}px`;
+            this.element.style.height = `${size}px`;
         }
     }
     
