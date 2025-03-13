@@ -3,4 +3,4 @@
 - pixijs 目前只用于渲染，事件处理由 vanilla-js 实现
 - react 在该工程中仅起到调试信息和外围挂件的作用，不参与任何绘制逻辑
 - 在执行路径操作时请以 /home/emasi/Documents/WORKSPACE/anya4_knova 绝对路径指定
-- src/pixi src/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改
+- lib/pixijs lib/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改
