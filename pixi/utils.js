@@ -3,18 +3,25 @@
  */
 
 /**
- * 计算客户端坐标到画布坐标系的转换
- * @param {Object} e - 包含clientX和clientY的事件对象
- * @param {HTMLCanvasElement} canvas - 画布元素
- * @returns {Object} - 包含画布坐标和世界坐标的对象
+ * 指针信息接口
+ * @typedef {Object} PointerInfo
+ * @property {number} x - 指针在客户端坐标系的X坐标
+ * @property {number} y - 指针在客户端坐标系的Y坐标
  */
-export function getCanvasCoordinates(e, canvas) {
+
+/**
+ * 计算客户端坐标到画布坐标系的转换
+ * @param {PointerInfo} pointer - 包含x和y的指针信息对象
+ * @param {HTMLCanvasElement} canvas - 画布元素
+ * @returns {Object} - 包含画布坐标的对象
+ */
+export function getCanvasCoordinates(pointer, canvas) {
     // 获取Canvas的边界矩形
     const rect = canvas.getBoundingClientRect();
     
     // 计算相对于canvas的坐标
-    const canvasX = e.clientX - rect.left;
-    const canvasY = e.clientY - rect.top;
+    const canvasX = pointer.x - rect.left;
+    const canvasY = pointer.y - rect.top;
     
     return { canvasX, canvasY };
 }
@@ -41,14 +48,14 @@ export function canvasToWorldCoordinates(coords, contentLayer) {
 
 /**
  * 获取从客户端坐标到世界坐标的完整转换
- * @param {Object} e - 包含clientX和clientY的事件对象
+ * @param {PointerInfo} pointer - 包含x和y的指针信息对象
  * @param {HTMLCanvasElement} canvas - 画布元素
  * @param {PIXI.Container} contentLayer - 内容层容器
  * @returns {Object} - 包含画布坐标和世界坐标的对象
  */
-export function getCoordinates(e, canvas, contentLayer) {
+export function getCoordinates(pointer, canvas, contentLayer) {
     // 获取画布坐标
-    const { canvasX, canvasY } = getCanvasCoordinates(e, canvas);
+    const { canvasX, canvasY } = getCanvasCoordinates(pointer, canvas);
     
     // 获取内容层的变换信息
     const scale = contentLayer.scale.x;
@@ -67,5 +74,17 @@ export function getCoordinates(e, canvas, contentLayer) {
         scale,
         offsetX,
         offsetY
+    };
+}
+
+/**
+ * 从事件对象创建指针信息对象
+ * @param {Event} e - 事件对象(如鼠标事件、触摸事件等)
+ * @returns {PointerInfo} - 标准化的指针信息对象
+ */
+export function createPointerInfo(e) {
+    return {
+        x: e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0),
+        y: e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0)
     };
 }

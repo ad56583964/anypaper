@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { getCoordinates } from './utils';
+import { getCoordinates, createPointerInfo } from './utils';
 
 /**
  * PixiPointer 类 - 光标指示器
@@ -94,8 +94,11 @@ export default class PixiPointer {
             return;
         }
         
+        // 创建指针信息对象
+        const pointer = createPointerInfo(e);
+        
         // 使用工具函数获取所有坐标信息
-        const coords = getCoordinates(e, this.renderer.app.canvas, this.renderer.contentLayer);
+        const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer);
         
         // 设置DOM元素的位置（使用canvas坐标，因为DOM元素是相对于canvas父元素放置的）
         this.element.style.left = `${coords.canvasX}px`;

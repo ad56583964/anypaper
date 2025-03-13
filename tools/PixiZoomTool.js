@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { updateDebugInfo } from '../debug.jsx';
+import { getCoordinates, createPointerInfo } from '../pixi/utils';
 
 /**
  * PixiZoomTool 类 - 处理缩放和平移功能
@@ -102,16 +103,17 @@ export default class PixiZoomTool {
     wheel(e) {
         e.preventDefault();
         
-        // 获取当前缩放和位置
+        // 获取当前缩放和图层引用
         const oldScale = this.config.current;
         const contentLayer = this.table.renderer.contentLayer;
         const bgLayer = this.table.renderer.bgLayer;
+        const canvas = this.table.renderer.app.canvas;
         
-        // 计算鼠标在世界坐标系中的位置
-        const mousePointTo = {
-            x: (e.clientX - contentLayer.x) / oldScale,
-            y: (e.clientY - contentLayer.y) / oldScale
-        };
+        // 创建指针信息对象
+        const pointer = createPointerInfo(e);
+        
+        // 使用坐标工具获取鼠标在画布上和世界中的位置
+        const coords = getCoordinates(pointer, canvas, contentLayer);
         
         // 根据滚轮方向调整缩放
         const direction = e.deltaY > 0 ? -1 : 1;
@@ -119,26 +121,39 @@ export default class PixiZoomTool {
         const newScale = direction > 0 ? oldScale * (1 + factor) : oldScale / (1 + factor);
         
         // 限制缩放范围
-        this.config.current = Math.max(this.config.min, Math.min(this.config.max, newScale));
+        const constrainedScale = Math.max(this.config.min, Math.min(this.config.max, newScale));
+        this.config.current = constrainedScale;
         
-        // 应用缩放到两个图层
-        contentLayer.scale.set(this.config.current, this.config.current);
-        bgLayer.scale.set(this.config.current, this.config.current);
+        // 计算新位置，以保持鼠标指针处的内容在缩放前后保持一致
+        // 公式：newPos = pointer - (pointer - oldPos) * (newScale / oldScale)
+        // 这里pointer是鼠标在客户端坐标系的位置，oldPos是图层当前位置
+        const newX = pointer.x - (coords.worldX * constrainedScale);
+        const newY = pointer.y - (coords.worldY * constrainedScale);
         
-        // 调整位置以保持鼠标位置不变
-        const newPos = {
-            x: e.clientX - mousePointTo.x * this.config.current,
-            y: e.clientY - mousePointTo.y * this.config.current
-        };
+        // 应用新的缩放和位置到两个图层
+        contentLayer.scale.set(constrainedScale);
+        bgLayer.scale.set(constrainedScale);
         
-        // 同时更新两个图层的位置
-        contentLayer.position.set(newPos.x, newPos.y);
-        bgLayer.position.set(newPos.x, newPos.y);
+        contentLayer.position.set(newX, newY);
+        bgLayer.position.set(newX, newY);
         
         // 更新调试信息
         this.updateDebugInfo();
+        
+        // 额外调试信息
+        if (Math.random() < 0.05) { // 只显示5%的调试信息，避免日志过多
+            console.log('Zoom Debug:', {
+                oldScale,
+                newScale: constrainedScale,
+                worldPos: { x: coords.worldX, y: coords.worldY },
+                oldPos: { x: contentLayer.position.x, y: contentLayer.position.y },
+                newPos: { x: newX, y: newY },
+                clientPos: { x: pointer.x, y: pointer.y }
+            });
+        }
     }
     
+
     /**
      * 计算两个触摸点之间的距离
      * @param {Object} point1 - 第一个触摸点
@@ -396,9 +411,11 @@ export default class PixiZoomTool {
                 y: contentLayer.y
             };
             
+            // 创建指针信息对象
+            const pointer = createPointerInfo(e);
             this.touch.lastPosition = {
-                x: e.clientX,
-                y: e.clientY
+                x: pointer.x,
+                y: pointer.y
             };
             
             // 更新调试信息
@@ -407,7 +424,7 @@ export default class PixiZoomTool {
                 isZoomMode: true,
                 isDragging: true,
                 dragStartPosition: this.dragStartPosition,
-                pointerPosition: { x: e.clientX, y: e.clientY }
+                pointerPosition: { x: pointer.x, y: pointer.y }
             });
             
             return true;
@@ -422,9 +439,11 @@ export default class PixiZoomTool {
      */
     pointermove(e) {
         if (this.isZoomMode && this.isDragging) {
+            // 创建指针信息对象
+            const pointer = createPointerInfo(e);
             const currentPointerPos = {
-                x: e.clientX,
-                y: e.clientY
+                x: pointer.x,
+                y: pointer.y
             };
             
             // 计算移动距离
@@ -485,4 +504,4 @@ export default class PixiZoomTool {
         }
         return false;
     }
-} 
+}
