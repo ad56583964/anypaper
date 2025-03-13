@@ -8,47 +8,54 @@ export default class PixiRenderer {
     /**
      * 创建一个新的 PixiRenderer 实例
      * @param {string} containerId - 容器元素的 ID
-     * @param {number} width - 画布宽度
-     * @param {number} height - 画布高度
+     * @param {number} contentWidth - 内容宽度
+     * @param {number} contentHeight - 内容高度
      */
-    constructor(containerId, width, height) {
+    constructor(containerId, contentWidth, contentHeight) {
         // 获取容器
         const container = document.getElementById(containerId);
         if (!container) {
             throw new Error(`Container with id "${containerId}" not found`);
         }
         
+        // 记录内容尺寸
+        this.contentWidth = contentWidth;
+        this.contentHeight = contentHeight;
+        
         // 创建 PIXI 应用 - 适配 PixiJS v8
         this.app = new PIXI.Application();
         
         // 创建初始化完成的Promise
-        this.initPromise = this.initApp(container, width, height);
+        this.initPromise = this.initApp(container);
         
         // 跟踪活动的触摸点
         this.activePointers = new Map();
         
-        // 记录尺寸
-        this.width = width;
-        this.height = height;
-        
-        console.log('PixiRenderer initialized', { width, height });
+        console.log('PixiRenderer initialized', { 
+            contentWidth, 
+            contentHeight,
+            windowWidth: window.innerWidth,
+            windowHeight: window.innerHeight
+        });
     }
     
     /**
      * 初始化 PIXI 应用
      * @param {HTMLElement} container - 容器元素
-     * @param {number} width - 宽度
-     * @param {number} height - 高度
      */
-    async initApp(container, width, height) {
-        // 初始化应用 - 在 PixiJS v8 中需要使用 await app.init()
+    async initApp(container) {
+        // 使用窗口大小初始化应用 - 在 PixiJS v8 中需要使用 await app.init()
         await this.app.init({
-            width: width,
-            height: height,
+            width: window.innerWidth,
+            height: window.innerHeight,
             backgroundColor: 0xdddddd, // 浅灰色背景
             resolution: window.devicePixelRatio || 1,
             antialias: true
         });
+        
+        // 记录舞台尺寸
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
         
         // 添加到容器 - 在 PixiJS v8 中使用 app.canvas
         container.appendChild(this.app.canvas);
@@ -61,11 +68,72 @@ export default class PixiRenderer {
         this.app.stage.addChild(this.bgLayer);
         this.app.stage.addChild(this.contentLayer);
         
+        // 初始化内容位置 - 居中显示内容
+        this.centerContent();
+        
+        // 绘制舞台边框
+        this.drawStageBorder();
+        
         // 初始化交互管理器
         this.initInteraction();
         
         // 初始化视口裁剪
         this.initViewportClipping();
+        
+        // 添加窗口大小变化监听
+        window.addEventListener('resize', this.handleResize.bind(this));
+    }
+    
+    /**
+     * 居中显示内容
+     */
+    centerContent() {
+        // 计算内容应该在舞台中的位置
+        const centerX = (this.width - this.contentWidth) / 2;
+        const centerY = (this.height - this.contentHeight) / 2;
+        
+        // 设置内容层的初始位置
+        this.contentLayer.position.set(centerX, centerY);
+        this.bgLayer.position.set(centerX, centerY);
+        
+        console.log('Content centered', { centerX, centerY });
+    }
+    
+    /**
+     * 处理窗口大小变化
+     */
+    handleResize() {
+        this.resize(window.innerWidth, window.innerHeight);
+    }
+    
+    /**
+     * 绘制舞台边框
+     * 使用深红色绘制舞台的边界
+     */
+    drawStageBorder() {
+        // 创建一个图形对象用于绘制边框
+        const border = new PIXI.Graphics();
+        
+        // 设置线条样式 - 深红色，宽度为3像素
+        border.setStrokeStyle({
+            width: 3,
+            color: 0x990000, // 深红色
+            alpha: 1,
+            alignment: 0 // 设置线条对齐方式为居中，确保线条不会超出舞台边界
+        });
+        
+        // 绘制矩形边框，稍微缩小一点以确保边框完全可见
+        // 将边框向内缩进1.5像素（线宽的一半），确保边框完全在舞台内部
+        border.rect(1.5, 1.5, this.width - 3, this.height - 3);
+        border.stroke();
+        
+        // 将边框添加到最顶层
+        this.app.stage.addChild(border);
+        
+        // 保存边框引用，以便后续可能的更新
+        this.stageBorder = border;
+        
+        console.log('Stage border drawn', { width: this.width, height: this.height });
     }
     
     /**
@@ -270,8 +338,27 @@ export default class PixiRenderer {
         this.width = width;
         this.height = height;
         
+        // 重新居中内容
+        this.centerContent();
+        
         // 更新视口
         this.updateViewport();
+        
+        // 更新舞台边框
+        if (this.stageBorder) {
+            this.stageBorder.clear();
+            this.stageBorder.setStrokeStyle({
+                width: 3,
+                color: 0x990000, // 深红色
+                alpha: 1,
+                alignment: 0 // 设置线条对齐方式为居中
+            });
+            // 将边框向内缩进1.5像素（线宽的一半），确保边框完全在舞台内部
+            this.stageBorder.rect(1.5, 1.5, width - 3, height - 3);
+            this.stageBorder.stroke();
+        }
+        
+        console.log('Renderer resized', { width, height });
     }
     
     /**

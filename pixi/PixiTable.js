@@ -26,15 +26,11 @@ export default class PixiTable {
             height: 10 * this.pixel,
         };
         
-        // 计算画布大小
+        // 计算内容大小
         this.width = 80 * this.block.width;
         this.height = 80 * this.block.height;
         
-        // Tilemap 配置
-        this.tileSize = 256; // 每个瓦片的大小
-        this.useTilemap = options.useTilemap !== undefined ? options.useTilemap : true;
-        
-        // 创建渲染器
+        // 创建渲染器 - 传递内容大小而不是舞台大小
         console.log('PixiTable constructor', containerId, this.width, this.height);
         this.renderer = new PixiRenderer(containerId, this.width, this.height);
         console.log('PixiTable constructor', this.renderer);
@@ -135,14 +131,7 @@ export default class PixiTable {
         
         // 初始化表格
         this.drawBackground();
-        
-        // 使用 Tilemap 绘制网格
-        if (this.useTilemap) {
-            this.drawGridAsTilemap();
-        } else {
-            this.drawGrid();
-        }
-        
+        this.drawGrid();
         this.createPaper();
         
         // 设置事件监听器
@@ -163,146 +152,10 @@ export default class PixiTable {
     setupViewportCulling() {
         // 启用内容层的裁剪
         this.renderer.contentLayer.cullable = true;
-        
-        // 添加到渲染循环，动态更新可见区域
-        this.renderer.app.ticker.add(() => {
-            this.updateVisibleTiles();
-        });
     }
     
     /**
-     * 更新可见瓦片，只渲染视口内的瓦片
-     */
-    updateVisibleTiles() {
-        if (!this.tilesContainer || !this.useTilemap) return;
-        
-        // 获取视口信息
-        const scale = this.renderer.contentLayer.scale.x;
-        const viewportX = -this.renderer.contentLayer.x / scale;
-        const viewportY = -this.renderer.contentLayer.y / scale;
-        const viewportWidth = this.renderer.app.screen.width / scale;
-        const viewportHeight = this.renderer.app.screen.height / scale;
-        
-        // 计算可见瓦片的范围
-        const startTileX = Math.floor(viewportX / this.tileSize);
-        const startTileY = Math.floor(viewportY / this.tileSize);
-        const endTileX = Math.ceil((viewportX + viewportWidth) / this.tileSize);
-        const endTileY = Math.ceil((viewportY + viewportHeight) / this.tileSize);
-        
-        // 更新瓦片可见性
-        for (const tile of this.tilesContainer.children) {
-            const tileX = tile.tileX;
-            const tileY = tile.tileY;
-            
-            // 判断瓦片是否在视口内
-            const isVisible = (
-                tileX >= startTileX - 1 && 
-                tileX <= endTileX + 1 && 
-                tileY >= startTileY - 1 && 
-                tileY <= endTileY + 1
-            );
-            
-            // 设置瓦片可见性
-            tile.visible = isVisible;
-        }
-    }
-    
-    /**
-     * 使用 Tilemap 方式绘制网格
-     */
-    drawGridAsTilemap() {
-        // 创建瓦片容器
-        this.tilesContainer = new PIXI.Container();
-        this.gridContainer.addChild(this.tilesContainer);
-        
-        // 计算需要的瓦片数量
-        const tilesX = Math.ceil(this.width / this.tileSize);
-        const tilesY = Math.ceil(this.height / this.tileSize);
-        
-        // 创建瓦片
-        for (let y = 0; y < tilesY; y++) {
-            for (let x = 0; x < tilesX; x++) {
-                // 为每个位置创建特定的瓦片
-                const tileTexture = this.createTileTexture(x, y);
-                
-                // 创建瓦片精灵
-                const tile = new PIXI.Sprite(tileTexture);
-                tile.x = x * this.tileSize;
-                tile.y = y * this.tileSize;
-                
-                // 存储瓦片坐标，用于视口裁剪
-                tile.tileX = x;
-                tile.tileY = y;
-                
-                // 添加到瓦片容器
-                this.tilesContainer.addChild(tile);
-            }
-        }
-        
-        console.log(`Created tilemap grid with ${tilesX}x${tilesY} tiles`);
-    }
-    
-    /**
-     * 创建瓦片纹理
-     */
-    createTileTexture(tileX, tileY) {
-        // 创建一个临时图形对象来绘制瓦片
-        const tileGraphics = new PIXI.Graphics();
-        
-        // 计算该瓦片在全局网格中的起始位置
-        const startX = tileX * this.tileSize;
-        const startY = tileY * this.tileSize;
-        
-        // 设置点的样式
-        tileGraphics.fill(0x555555); // 深灰色点
-        
-        // 计算瓦片内应该包含的点的范围
-        // 为了保持整体网格的均匀性，我们基于全局位置计算点
-        const startPointX = Math.ceil(startX / this.block.width);
-        const startPointY = Math.ceil(startY / this.block.height);
-        const endPointX = Math.ceil((startX + this.tileSize) / this.block.width);
-        const endPointY = Math.ceil((startY + this.tileSize) / this.block.height);
-        
-        // 绘制点阵，坐标相对于瓦片原点
-        for (let i = startPointX; i < endPointX; i++) {
-            for (let j = startPointY; j < endPointY; j++) {
-                // 计算点在瓦片本地坐标系中的位置
-                const localX = (i * this.block.width) - startX;
-                const localY = (j * this.block.height) - startY;
-                
-                // 只有在瓦片范围内的点才绘制
-                if (localX >= 0 && localX <= this.tileSize && 
-                    localY >= 0 && localY <= this.tileSize) {
-                    tileGraphics.circle(
-                        localX,
-                        localY,
-                        1 // 点的半径
-                    );
-                }
-            }
-        }
-        
-        tileGraphics.fill();
-        
-        // 生成纹理
-        const texture = this.renderer.app.renderer.generateTexture(tileGraphics);
-        
-        // 将纹理引用存储到瓦片纹理缓存中
-        if (!this.tileTextures) {
-            this.tileTextures = [];
-        }
-        
-        if (!this.tileTextures[tileY]) {
-            this.tileTextures[tileY] = [];
-        }
-        
-        this.tileTextures[tileY][tileX] = texture;
-        
-        return texture;
-    }
-    
-    /**
-     * 绘制网格 (非 Tilemap 方式)
+     * 绘制网格
      */
     drawGrid() {
         // 创建网格容器
@@ -633,12 +486,17 @@ export default class PixiTable {
      * 处理窗口大小变化事件
      */
     handleResize() {
-        // 调整渲染器大小
-        this.renderer.resize(window.innerWidth, window.innerHeight);
-        
-        // 重新创建 paper
+        // 不再需要手动调整渲染器大小，PixiRenderer 会自动处理
+        // 只需要重新创建 paper
         this.paperContainer.removeChildren();
         this.createPaper();
+        
+        // 更新调试信息
+        updateDebugInfo('resize', {
+            windowSize: { width: window.innerWidth, height: window.innerHeight },
+            contentSize: { width: this.width, height: this.height },
+            timestamp: Date.now()
+        });
     }
     
     /**
@@ -719,26 +577,6 @@ export default class PixiTable {
             this.renderer.app.stage.removeChild(this.pointerContainer);
             this.pointerContainer.destroy();
             this.pointerContainer = null;
-        }
-        
-        // 清理 Tilemap 资源
-        if (this.tileTextures) {
-            for (const rowTextures of this.tileTextures) {
-                for (const texture of rowTextures) {
-                    texture.destroy(true);
-                }
-            }
-            this.tileTextures = null;
-        }
-        
-        if (this.tilesContainer) {
-            // 清理所有瓦片
-            while (this.tilesContainer.children.length > 0) {
-                const tile = this.tilesContainer.children[0];
-                this.tilesContainer.removeChild(tile);
-                tile.destroy();
-            }
-            this.tilesContainer = null;
         }
         
         // 销毁图层
