@@ -101,6 +101,9 @@ export default class PixiPointer {
         // 创建指针信息对象
         const pointer = createPointerInfo(e);
         
+        // 获取渲染器的分辨率
+        const resolution = this.renderer.app.renderer.resolution || 1;
+        
         // 使用工具函数获取所有坐标信息，传递 renderer 参数
         const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer, this.renderer);
         
@@ -112,9 +115,24 @@ export default class PixiPointer {
         
         // 更新调试信息
         if (this.options.debug && this.debugText) {
+            // 获取 canvas 的 CSS 尺寸和实际尺寸
+            const canvas = this.renderer.app.canvas;
+            const cssWidth = canvas.clientWidth;
+            const cssHeight = canvas.clientHeight;
+            const realWidth = canvas.width;
+            const realHeight = canvas.height;
+            
+            // 计算实际分辨率
+            const calculatedResolution = realWidth / cssWidth;
+            
+            // 扩展调试信息，包含分辨率相关数据
             this.updateDebugInfo({
                 ...coords,
-                pointer
+                pointer,
+                resolution,
+                calculatedResolution,
+                cssSize: { width: cssWidth, height: cssHeight },
+                realSize: { width: realWidth, height: realHeight }
             });
         }
     }
@@ -133,7 +151,12 @@ export default class PixiPointer {
             `Offset: (${info.offsetX.toFixed(1)}, ${info.offsetY.toFixed(1)})`,
             `Scale: ${info.scale.toFixed(2)}`,
             `World: (${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`,
-            `Pointer: (${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`
+            `Pointer: (${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`,
+            `Pixi Resolution: ${info.resolution?.toFixed(2) || 'N/A'}`,
+            `Calculated Resolution: ${info.calculatedResolution?.toFixed(2) || 'N/A'}`,
+            `DevicePixelRatio: ${window.devicePixelRatio.toFixed(2)}`,
+            `CSS Size: ${info.cssSize ? `${info.cssSize.width}x${info.cssSize.height}` : 'N/A'}`,
+            `Real Size: ${info.realSize ? `${info.realSize.width}x${info.realSize.height}` : 'N/A'}`
         ].join('\n');
         
         // 每100帧输出一次日志
@@ -144,7 +167,15 @@ export default class PixiPointer {
                 offset: `(${info.offsetX.toFixed(1)}, ${info.offsetY.toFixed(1)})`,
                 scale: info.scale.toFixed(2),
                 world: `(${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`,
-                pointer: `(${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`
+                pointer: `(${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`,
+                pixiResolution: info.resolution?.toFixed(2) || 'N/A',
+                calculatedResolution: info.calculatedResolution?.toFixed(2) || 'N/A',
+                devicePixelRatio: window.devicePixelRatio.toFixed(2),
+                cssSize: info.cssSize ? `${info.cssSize.width}x${info.cssSize.height}` : 'N/A',
+                realSize: info.realSize ? `${info.realSize.width}x${info.realSize.height}` : 'N/A',
+                resolutionMatch: info.resolution && info.calculatedResolution 
+                    ? Math.abs(info.resolution - info.calculatedResolution) < 0.1 ? 'Yes' : 'No'
+                    : 'Unknown'
             });
         }
     }

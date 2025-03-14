@@ -55,6 +55,9 @@ export function canvasToWorldCoordinates(coords, contentLayer) {
  * @returns {Object} - 包含画布坐标和世界坐标的对象
  */
 export function getCoordinates(pointer, canvas, contentLayer, renderer) {
+    // 获取渲染器的分辨率
+    const resolution = renderer?.app?.renderer?.resolution || 1;
+    
     // 获取画布坐标
     const { canvasX, canvasY } = getCanvasCoordinates(pointer, canvas);
     
@@ -75,9 +78,49 @@ export function getCoordinates(pointer, canvas, contentLayer, renderer) {
         if (renderer.app.renderer.events) {
             // PixiJS v8 方式
             renderer.app.renderer.events.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
+            
+            // 记录原始映射结果，用于调试
+            const originalX = tempPoint.x;
+            const originalY = tempPoint.y;
+            
+            // 在某些情况下，mapPositionToPoint 可能没有正确处理分辨率
+            // 我们可以通过比较 canvas 的 CSS 尺寸和实际尺寸来检测这种情况
+            const cssWidth = canvas.clientWidth;
+            const cssHeight = canvas.clientHeight;
+            const realWidth = canvas.width;
+            const realHeight = canvas.height;
+            
+            // 检查是否需要手动调整分辨率
+            const calculatedResolution = realWidth / cssWidth;
+            if (Math.abs(calculatedResolution - resolution) > 0.1) {
+                // 分辨率不匹配，需要手动调整
+                console.log('Resolution mismatch detected', {
+                    cssSize: `${cssWidth}x${cssHeight}`,
+                    realSize: `${realWidth}x${realHeight}`,
+                    pixiResolution: resolution,
+                    calculatedResolution: calculatedResolution
+                });
+                
+                // 手动调整坐标，确保考虑正确的分辨率
+                tempPoint.x = tempPoint.x / resolution * calculatedResolution;
+                tempPoint.y = tempPoint.y / resolution * calculatedResolution;
+            }
         } else if (renderer.app.renderer.plugins && renderer.app.renderer.plugins.interaction) {
             // PixiJS v7 及以下方式
             renderer.app.renderer.plugins.interaction.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
+            
+            // 检查是否需要手动调整分辨率
+            const cssWidth = canvas.clientWidth;
+            const cssHeight = canvas.clientHeight;
+            const realWidth = canvas.width;
+            const realHeight = canvas.height;
+            const calculatedResolution = realWidth / cssWidth;
+            
+            if (Math.abs(calculatedResolution - resolution) > 0.1) {
+                // 手动调整坐标
+                tempPoint.x = tempPoint.x / resolution * calculatedResolution;
+                tempPoint.y = tempPoint.y / resolution * calculatedResolution;
+            }
         }
         
         // 将舞台坐标转换为内容层的本地坐标
@@ -85,10 +128,32 @@ export function getCoordinates(pointer, canvas, contentLayer, renderer) {
         
         worldX = localPos.x;
         worldY = localPos.y;
+        
+        // 添加调试日志
+        if (Math.random() < 0.01) { // 只记录 1% 的事件，避免日志过多
+            console.log('Coordinate transformation with resolution', {
+                client: `(${pointer.x}, ${pointer.y})`,
+                canvas: `(${canvasX}, ${canvasY})`,
+                stage: `(${tempPoint.x}, ${tempPoint.y})`,
+                world: `(${worldX}, ${worldY})`,
+                resolution: resolution,
+                devicePixelRatio: window.devicePixelRatio,
+                scale: scale,
+                cssSize: `${canvas.clientWidth}x${canvas.clientHeight}`,
+                realSize: `${canvas.width}x${canvas.height}`
+            });
+        }
     } else {
-        // 回退到传统计算方法
-        worldX = (canvasX - offsetX) / scale;
-        worldY = (canvasY - offsetY) / scale;
+        // 回退到传统计算方法，确保考虑分辨率
+        // 注意：这里我们需要考虑分辨率对坐标的影响
+        // 在高分辨率显示器上，canvas 的实际像素数量会比 CSS 像素多
+        const cssWidth = canvas.clientWidth;
+        const realWidth = canvas.width;
+        const calculatedResolution = realWidth / cssWidth;
+        
+        // 使用计算出的分辨率调整坐标
+        worldX = ((canvasX * calculatedResolution) - offsetX) / scale;
+        worldY = ((canvasY * calculatedResolution) - offsetY) / scale;
     }
     
     return {
@@ -98,7 +163,8 @@ export function getCoordinates(pointer, canvas, contentLayer, renderer) {
         worldY,
         scale,
         offsetX,
-        offsetY
+        offsetY,
+        resolution // 添加分辨率到返回值中，方便调试
     };
 }
 

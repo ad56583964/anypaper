@@ -82,6 +82,20 @@ export default class PixiRenderer {
         
         // 添加窗口大小变化监听
         window.addEventListener('resize', this.handleResize.bind(this));
+        
+        // 初始化调试网格（默认禁用）
+        this.drawDebugGrid(false);
+        
+        // 在左上角绘制比较矩形
+        this.drawComparisonRects();
+        
+        // 输出初始化信息
+        console.log('PixiRenderer initialized', {
+            width: this.width,
+            height: this.height,
+            resolution: this.app.renderer.resolution,
+            devicePixelRatio: window.devicePixelRatio
+        });
     }
     
     /**
@@ -114,17 +128,28 @@ export default class PixiRenderer {
         // 创建一个图形对象用于绘制边框
         const border = new PIXI.Graphics();
         
-        // 设置线条样式 - 深红色，宽度为3像素
+        // 获取当前分辨率
+        const resolution = this.app.renderer.resolution;
+        
+        // 设置线条样式 - 深红色，宽度为3像素（考虑分辨率）
+        // 注意：PixiJS 会自动将线宽乘以分辨率，所以这里不需要手动调整
+        const lineWidth = 3;
         border.setStrokeStyle({
-            width: 3,
+            width: lineWidth,
             color: 0x990000, // 深红色
             alpha: 1,
-            alignment: 0 // 设置线条对齐方式为居中，确保线条不会超出舞台边界
+            alignment: 0 // 设置线条对齐方式为居中
         });
         
-        // 绘制矩形边框，稍微缩小一点以确保边框完全可见
-        // 将边框向内缩进1.5像素（线宽的一半），确保边框完全在舞台内部
-        border.rect(1.5, 1.5, this.width - 10, this.height - 10);
+        // 计算边框内边距，确保边框在视口内
+        const padding = Math.max(3, Math.ceil(lineWidth / 2));
+        
+        // 获取舞台的实际尺寸
+        const stageWidth = this.width;
+        const stageHeight = this.height;
+        
+        // 绘制矩形边框，确保边框完全在舞台内部
+        border.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
         border.stroke();
         
         // 将边框添加到最顶层
@@ -133,7 +158,14 @@ export default class PixiRenderer {
         // 保存边框引用，以便后续可能的更新
         this.stageBorder = border;
         
-        console.log('Stage border drawn', { width: this.width, height: this.height });
+        console.log('Stage border drawn', { 
+            width: stageWidth, 
+            height: stageHeight,
+            resolution: resolution,
+            devicePixelRatio: window.devicePixelRatio,
+            lineWidth: lineWidth,
+            effectiveLineWidth: lineWidth * resolution
+        });
     }
     
     /**
@@ -332,7 +364,7 @@ export default class PixiRenderer {
         this.app.resize(width, height);
         
         // 更新舞台的点击区域
-        this.app.stage.hitArea = new PIXI.Rectangle(0, 0, width, height);
+        // this.app.stage.hitArea = new PIXI.Rectangle(0, 0, width, height);
         
         // 更新尺寸记录
         this.width = width;
@@ -346,16 +378,41 @@ export default class PixiRenderer {
         
         // 更新舞台边框
         if (this.stageBorder) {
+            // 获取当前分辨率
+            const resolution = this.app.renderer.resolution;
+            
+            // 清除旧边框
             this.stageBorder.clear();
+            
+            // 设置线条样式 - 深红色，宽度为3像素
+            // 注意：PixiJS 会自动将线宽乘以分辨率，所以这里不需要手动调整
+            const lineWidth = 3;
             this.stageBorder.setStrokeStyle({
-                width: 3,
+                width: lineWidth,
                 color: 0x990000, // 深红色
                 alpha: 1,
                 alignment: 0 // 设置线条对齐方式为居中
             });
-            // 将边框向内缩进1.5像素（线宽的一半），确保边框完全在舞台内部
-            this.stageBorder.rect(1.5, 1.5, width - 3, height - 3);
+            
+            // 计算边框内边距，确保边框在视口内
+            const padding = Math.max(3, Math.ceil(lineWidth / 2));
+            
+            // 获取舞台的实际尺寸
+            const stageWidth = width;
+            const stageHeight = height;
+            
+            // 绘制矩形边框，确保边框完全在舞台内部
+            this.stageBorder.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
             this.stageBorder.stroke();
+            
+            console.log('Border updated', { 
+                width: stageWidth, 
+                height: stageHeight, 
+                resolution: resolution,
+                devicePixelRatio: window.devicePixelRatio,
+                lineWidth: lineWidth,
+                effectiveLineWidth: lineWidth * resolution
+            });
         }
         
         console.log('Renderer resized', { width, height });
@@ -379,5 +436,220 @@ export default class PixiRenderer {
         this.eventListeners = {};
         
         console.log('PixiRenderer destroyed');
+    }
+    
+    /**
+     * 绘制调试网格
+     * 在舞台上绘制坐标网格，帮助理解坐标系统
+     * @param {boolean} enabled - 是否启用网格
+     * @param {number} gridSize - 网格大小（像素）
+     */
+    drawDebugGrid(enabled = true, gridSize = 100) {
+        // 如果已存在网格，先移除
+        if (this.debugGrid) {
+            if (this.debugGrid.parent) {
+                this.debugGrid.parent.removeChild(this.debugGrid);
+            }
+            this.debugGrid.destroy();
+            this.debugGrid = null;
+        }
+        
+        // 如果不启用，直接返回
+        if (!enabled) {
+            return;
+        }
+        
+        // 创建一个图形对象用于绘制网格
+        const grid = new PIXI.Graphics();
+        
+        // 获取当前分辨率
+        const resolution = this.app.renderer.resolution;
+        
+        // 设置线条样式 - 浅灰色，宽度为1像素
+        grid.setStrokeStyle({
+            width: 1,
+            color: 0xCCCCCC, // 浅灰色
+            alpha: 0.5,
+            alignment: 0 // 设置线条对齐方式为居中
+        });
+        
+        // 获取舞台的实际尺寸
+        const stageWidth = this.width;
+        const stageHeight = this.height;
+        
+        // 绘制水平线
+        for (let y = 0; y <= stageHeight; y += gridSize) {
+            grid.moveTo(0, y);
+            grid.lineTo(stageWidth, y);
+        }
+        
+        // 绘制垂直线
+        for (let x = 0; x <= stageWidth; x += gridSize) {
+            grid.moveTo(x, 0);
+            grid.lineTo(x, stageHeight);
+        }
+        
+        // 绘制线条
+        grid.stroke();
+        
+        // 添加坐标标签
+        for (let y = 0; y <= stageHeight; y += gridSize) {
+            for (let x = 0; x <= stageWidth; x += gridSize) {
+                // 只在交叉点添加标签
+                if (x % (gridSize * 2) === 0 && y % (gridSize * 2) === 0) {
+                    const label = new PIXI.Text(`(${x},${y})`, {
+                        fontFamily: 'Arial',
+                        fontSize: 10,
+                        fill: 0x666666,
+                        align: 'center'
+                    });
+                    label.position.set(x + 5, y + 5);
+                    grid.addChild(label);
+                }
+            }
+        }
+        
+        // 将网格添加到背景层
+        this.bgLayer.addChild(grid);
+        
+        // 保存网格引用，以便后续可能的更新
+        this.debugGrid = grid;
+        
+        console.log('Debug grid drawn', { 
+            gridSize: gridSize,
+            resolution: resolution,
+            devicePixelRatio: window.devicePixelRatio
+        });
+    }
+    
+    /**
+     * 使用 DOM 在左上角绘制矩形
+     * @param {string} color - 矩形颜色，默认为红色
+     * @param {number} size - 矩形大小，默认为 100
+     * @returns {HTMLElement} - 创建的 DOM 元素
+     */
+    drawDOMRect(color = 'red', size = 100) {
+        // 创建一个 div 元素
+        const rect = document.createElement('div');
+        
+        // 设置样式
+        Object.assign(rect.style, {
+            position: 'absolute',
+            top: '0px',
+            left: '0px',
+            width: `${size}px`,
+            height: `${size}px`,
+            backgroundColor: color,
+            zIndex: '1000', // 确保在最上层
+            pointerEvents: 'none' // 不拦截鼠标事件
+        });
+        
+        // 添加到容器
+        this.app.canvas.parentElement.appendChild(rect);
+        
+        // 保存引用，以便后续可能的移除
+        this.domRect = rect;
+        
+        console.log('DOM rectangle drawn at top-left corner', {
+            size: size,
+            devicePixelRatio: window.devicePixelRatio
+        });
+        
+        return rect;
+    }
+    
+    /**
+     * 使用 PixiJS 在左上角绘制矩形
+     * @param {number|string} color - 矩形颜色，默认为红色
+     * @param {number} size - 矩形大小，默认为 100
+     * @returns {PIXI.Graphics} - 创建的 PIXI.Graphics 对象
+     */
+    drawPixiRect(color = 0xFF0000, size = 100) {
+        // 如果传入的是字符串（如 '#FF0000'），转换为数字
+        if (typeof color === 'string') {
+            // 移除 # 前缀（如果有）
+            color = color.replace(/^#/, '');
+            // 转换为十六进制数字
+            color = parseInt(color, 16);
+        }
+        
+        // 创建一个图形对象
+        const rect = new PIXI.Graphics();
+        
+        // 获取当前分辨率
+        const resolution = this.app.renderer.resolution;
+        
+        // 填充矩形 - 考虑分辨率因素，使视觉大小与 DOM 矩形一致
+        rect.beginFill(color);
+        rect.drawRect(0, 0, size, size);
+        rect.endFill();
+        
+        // 设置位置为左上角（相对于舞台）
+        rect.position.set(0, 0);
+        
+        // 添加到舞台的最顶层
+        this.app.stage.addChild(rect);
+        
+        // 保存引用，以便后续可能的移除
+        this.pixiRect = rect;
+        
+        console.log('PixiJS rectangle drawn at top-left corner', {
+            size: size,
+            resolution: resolution,
+            devicePixelRatio: window.devicePixelRatio
+        });
+        
+        return rect;
+    }
+    
+    /**
+     * 绘制比较矩形
+     * 在左上角绘制不同大小的矩形，用于比较 DOM 和 PixiJS 在高 DPI 显示器上的表现
+     */
+    drawComparisonRects() {
+        // 移除之前的矩形
+        this.removeRect();
+        
+        // 获取当前分辨率
+        const resolution = this.app.renderer.resolution;
+        
+        // 绘制 DOM 矩形（红色，100px）
+        this.drawDOMRect('red', 100*resolution);
+        
+        // 绘制 PixiJS 矩形（蓝色，考虑分辨率）
+        // 在高 DPI 显示器上，需要将 PixiJS 矩形的大小乘以分辨率
+        this.drawPixiRect('#0000FF', 100);
+        
+        console.log('Comparison rectangles drawn', {
+            domSize: 100,
+            pixiSize: 100 * resolution,
+            resolution: resolution,
+            devicePixelRatio: window.devicePixelRatio
+        });
+    }
+    
+    /**
+     * 移除之前创建的矩形
+     * @param {string} type - 要移除的矩形类型，'dom'、'pixi' 或 'all'
+     */
+    removeRect(type = 'all') {
+        if (type === 'dom' || type === 'all') {
+            if (this.domRect) {
+                this.domRect.parentElement.removeChild(this.domRect);
+                this.domRect = null;
+                console.log('DOM rectangle removed');
+            }
+        }
+        
+        if (type === 'pixi' || type === 'all') {
+            if (this.pixiRect) {
+                if (this.pixiRect.parent) {
+                    this.pixiRect.parent.removeChild(this.pixiRect);
+                }
+                this.pixiRect.destroy();
+                this.pixiRect = null;
+                console.log('PixiJS rectangle removed');
+            }
+        }
     }
 } 
