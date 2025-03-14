@@ -1,5 +1,4 @@
 import * as PIXI from 'pixi.js';
-import PixiRenderer from './PixiRenderer';
 import PixiPointer from './PixiPointer';
 import { updateDebugInfo } from '../debug.jsx';
 import PixiPencilTool from '../tools/PixiPencilTool';
@@ -30,16 +29,19 @@ export default class PixiTable {
         this.width = 80 * this.block.width;
         this.height = 80 * this.block.height;
         
-        // 创建渲染器 - 传递内容大小而不是舞台大小
+        // 获取容器
+        const container = document.getElementById(containerId);
+        if (!container) {
+            throw new Error(`Container with id "${containerId}" not found`);
+        }
+        
         console.log('PixiTable constructor', containerId, this.width, this.height);
-        this.renderer = new PixiRenderer(containerId, this.width, this.height);
-        console.log('PixiTable constructor', this.renderer);
         
         // 使用Promise处理异步初始化
         return new Promise(async (resolve) => {
             try {
-                // 等待渲染器初始化完成
-                await this.renderer.initPromise;
+                // 初始化 PIXI 应用
+                await this.initApp(container);
                 
                 // 初始化表格
                 this.initTable();
@@ -58,12 +60,301 @@ export default class PixiTable {
     }
     
     /**
+     * 初始化 PIXI 应用
+     * @param {HTMLElement} container - 容器元素
+     */
+    async initApp(container) {
+        // 创建 PIXI 应用 - 适配 PixiJS v8
+        this.app = new PIXI.Application();
+        
+        // 使用窗口大小初始化应用 - 在 PixiJS v8 中需要使用 await app.init()
+        await this.app.init({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: 0xdddddd, // 浅灰色背景
+            resolution: window.devicePixelRatio || 1,
+            antialias: true
+        });
+        
+        // 记录舞台尺寸
+        this.stageWidth = window.innerWidth;
+        this.stageHeight = window.innerHeight;
+        
+        // 添加到容器 - 在 PixiJS v8 中使用 app.canvas
+        container.appendChild(this.app.canvas);
+        
+        // 创建主要图层
+        this.bgLayer = new PIXI.Container(); // 背景层 - 静态内容
+        this.contentLayer = new PIXI.Container(); // 内容层 - 动态内容
+        
+        // 添加图层到舞台
+        this.app.stage.addChild(this.bgLayer);
+        this.app.stage.addChild(this.contentLayer);
+        
+        // 初始化内容位置 - 居中显示内容
+        this.centerContent();
+        
+        // 绘制舞台边框
+        this.drawStageBorder();
+        
+        // 初始化交互管理器
+        this.initInteraction();
+        
+        // 初始化视口裁剪
+        this.initViewportClipping();
+        
+        // 添加窗口大小变化监听
+        window.addEventListener('resize', this.handleResize.bind(this));
+        
+        // 跟踪活动的触摸点
+        this.activePointers = new Map();
+        
+        // 事件监听器
+        this.eventListeners = {};
+        
+        console.log('PixiTable app initialized', {
+            width: this.stageWidth,
+            height: this.stageHeight,
+            resolution: this.app.renderer.resolution,
+            devicePixelRatio: window.devicePixelRatio
+        });
+    }
+    
+    /**
+     * 居中显示内容
+     */
+    centerContent() {
+        // 计算内容应该在舞台中的位置
+        const centerX = (this.stageWidth - this.width) / 2;
+        const centerY = (this.stageHeight - this.height) / 2;
+        
+        // 设置内容层的初始位置
+        this.contentLayer.position.set(centerX, centerY);
+        this.bgLayer.position.set(centerX, centerY);
+        
+        console.log('Content centered', { centerX, centerY });
+    }
+    
+    /**
+     * 绘制舞台边框
+     * 使用深红色绘制舞台的边界
+     */
+    drawStageBorder() {
+        // 创建一个图形对象用于绘制边框
+        const border = new PIXI.Graphics();
+        
+        // 获取当前分辨率
+        const resolution = this.app.renderer.resolution;
+        
+        // 设置线条样式 - 深红色，宽度为3像素（考虑分辨率）
+        const lineWidth = 3;
+        border.setStrokeStyle({
+            width: lineWidth,
+            color: 0x990000, // 深红色
+            alpha: 1,
+            alignment: 0 // 设置线条对齐方式为居中
+        });
+        
+        // 计算边框内边距，确保边框在视口内
+        const padding = Math.max(3, Math.ceil(lineWidth / 2));
+        
+        // 获取舞台的实际尺寸
+        const stageWidth = this.stageWidth;
+        const stageHeight = this.stageHeight;
+        
+        // 绘制矩形边框，确保边框完全在舞台内部
+        border.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
+        border.stroke();
+        
+        // 将边框添加到最顶层
+        this.app.stage.addChild(border);
+        
+        // 保存边框引用，以便后续可能的更新
+        this.stageBorder = border;
+        
+        console.log('Stage border drawn', { 
+            width: stageWidth, 
+            height: stageHeight,
+            resolution: resolution,
+            devicePixelRatio: window.devicePixelRatio,
+            lineWidth: lineWidth,
+            effectiveLineWidth: lineWidth * resolution
+        });
+    }
+    
+    /**
+     * 初始化交互系统
+     */
+    initInteraction() {
+        // 设置舞台为交互式
+        this.app.stage.eventMode = 'static';
+        this.app.stage.hitArea = new PIXI.Rectangle(0, 0, this.app.screen.width, this.app.screen.height);
+    }
+    
+    /**
+     * 初始化视口裁剪
+     */
+    initViewportClipping() {
+        // 启用内容层的裁剪 - 在 PixiJS v8 中设置 cullable
+        this.contentLayer.cullable = true;
+        
+        // 初始更新视口
+        this.updateViewport();
+        
+        // 添加到渲染循环 - 使用 PixiJS v8 的 Ticker
+        this.app.ticker.add(() => {
+            this.updateViewport();
+        });
+    }
+    
+    /**
+     * 更新视口裁剪区域
+     */
+    updateViewport() {
+        // 计算当前可见区域（在世界坐标系中）
+        const bounds = new PIXI.Rectangle(
+            -this.contentLayer.x / this.contentLayer.scale.x,
+            -this.contentLayer.y / this.contentLayer.scale.y,
+            this.app.screen.width / this.contentLayer.scale.x,
+            this.app.screen.height / this.contentLayer.scale.y
+        );
+        
+        // 添加边缘填充
+        const padding = 100 / this.contentLayer.scale.x;
+        bounds.x -= padding;
+        bounds.y -= padding;
+        bounds.width += padding * 2;
+        bounds.height += padding * 2;
+        
+        // 设置裁剪区域 - 在 PixiJS v8 中使用 cullArea
+        if (this.contentLayer.cullArea !== undefined) {
+            this.contentLayer.cullArea = bounds;
+        } else {
+            // 如果 cullArea 不可用，尝试其他方法
+            console.warn('cullArea 不可用，视口裁剪可能无法正常工作');
+        }
+    }
+    
+    /**
+     * 触发自定义事件
+     * @param {string} eventName - 事件名称
+     * @param {Object} data - 事件数据
+     */
+    emit(eventName, data) {
+        // 简单的事件系统
+        if (this.eventListeners && this.eventListeners[eventName]) {
+            this.eventListeners[eventName].forEach(callback => callback(data));
+        }
+    }
+    
+    /**
+     * 添加事件监听器
+     * @param {string} eventName - 事件名称
+     * @param {Function} callback - 回调函数
+     */
+    on(eventName, callback) {
+        if (!this.eventListeners) {
+            this.eventListeners = {};
+        }
+        
+        if (!this.eventListeners[eventName]) {
+            this.eventListeners[eventName] = [];
+        }
+        
+        this.eventListeners[eventName].push(callback);
+    }
+    
+    /**
+     * 移除事件监听器
+     * @param {string} eventName - 事件名称
+     * @param {Function} callback - 回调函数
+     */
+    off(eventName, callback) {
+        if (!this.eventListeners || !this.eventListeners[eventName]) {
+            return;
+        }
+        
+        if (callback) {
+            this.eventListeners[eventName] = this.eventListeners[eventName].filter(cb => cb !== callback);
+        } else {
+            delete this.eventListeners[eventName];
+        }
+    }
+    
+    /**
+     * 处理窗口大小变化
+     */
+    handleResize() {
+        this.resize(window.innerWidth, window.innerHeight);
+    }
+    
+    /**
+     * 调整渲染器大小
+     * @param {number} width - 新宽度
+     * @param {number} height - 新高度
+     */
+    resize(width, height) {
+        // 调整渲染器大小 - 在 PixiJS v8 中使用 app.resize
+        this.app.resize(width, height);
+        
+        // 更新尺寸记录
+        this.stageWidth = width;
+        this.stageHeight = height;
+        
+        // 重新居中内容
+        this.centerContent();
+        
+        // 更新视口
+        this.updateViewport();
+        
+        // 更新舞台边框
+        if (this.stageBorder) {
+            // 获取当前分辨率
+            const resolution = this.app.renderer.resolution;
+            
+            // 清除旧边框
+            this.stageBorder.clear();
+            
+            // 设置线条样式 - 深红色，宽度为3像素
+            const lineWidth = 3;
+            this.stageBorder.setStrokeStyle({
+                width: lineWidth,
+                color: 0x990000, // 深红色
+                alpha: 1,
+                alignment: 0 // 设置线条对齐方式为居中
+            });
+            
+            // 计算边框内边距，确保边框在视口内
+            const padding = Math.max(3, Math.ceil(lineWidth / 2));
+            
+            // 获取舞台的实际尺寸
+            const stageWidth = width;
+            const stageHeight = height;
+            
+            // 绘制矩形边框，确保边框完全在舞台内部
+            this.stageBorder.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
+            this.stageBorder.stroke();
+            
+            console.log('Border updated', { 
+                width: stageWidth, 
+                height: stageHeight, 
+                resolution: resolution,
+                devicePixelRatio: window.devicePixelRatio,
+                lineWidth: lineWidth,
+                effectiveLineWidth: lineWidth * resolution
+            });
+        }
+        
+        console.log('Renderer resized', { width, height });
+    }
+    
+    /**
      * 初始化光标指示器
      * @param {Object} options - 光标指示器选项
      */
     initPointer(options = {}) {
         // 创建光标指示器
-        this.pointer = new PixiPointer(this.renderer, {
+        this.pointer = new PixiPointer(this, {
             debug: options?.debug !== undefined ? options.debug : true,
             size: options?.size || 10,
             color: options?.color || 'rgba(255, 0, 0, 0.7)',
@@ -92,29 +383,29 @@ export default class PixiTable {
     
     /**
      * 初始化表格
-     * 在 PixiRenderer 初始化完成后调用
+     * 在 PIXI 应用初始化完成后调用
      */
     initTable() {
         // 创建容器，直接使用 PIXI.Container 替代 PixiLayer
         // 背景层容器
         this.bgContainer = new PIXI.Container();
         this.bgContainer.label = 'background';
-        this.renderer.bgLayer.addChild(this.bgContainer);
+        this.bgLayer.addChild(this.bgContainer);
         
         // 网格层容器
         this.gridContainer = new PIXI.Container();
         this.gridContainer.label = 'grid';
-        this.renderer.bgLayer.addChild(this.gridContainer);
+        this.bgLayer.addChild(this.gridContainer);
         
         // 纸张层容器
         this.paperContainer = new PIXI.Container();
         this.paperContainer.label = 'paper';
-        this.renderer.bgLayer.addChild(this.paperContainer);
+        this.bgLayer.addChild(this.paperContainer);
         
         // 绘图层容器
         this.drawingContainer = new PIXI.Container();
         this.drawingContainer.label = 'drawing';
-        this.renderer.contentLayer.addChild(this.drawingContainer);
+        this.contentLayer.addChild(this.drawingContainer);
         
         // 工具管理
         this.tools = {};
@@ -151,7 +442,7 @@ export default class PixiTable {
      */
     setupViewportCulling() {
         // 启用内容层的裁剪
-        this.renderer.contentLayer.cullable = true;
+        this.contentLayer.cullable = true;
     }
     
     /**
@@ -316,7 +607,6 @@ export default class PixiTable {
         window.addEventListener('pointermove', this.handlePointerMove.bind(this));
         window.addEventListener('pointerup', this.handlePointerUp.bind(this));
         window.addEventListener('wheel', this.handleWheel.bind(this));
-        window.addEventListener('resize', this.handleResize.bind(this));
     }
     
     /**
@@ -324,7 +614,7 @@ export default class PixiTable {
      */
     setupPerformanceMonitoring() {
         // 添加到渲染循环
-        this.renderer.app.ticker.add(() => {
+        this.app.ticker.add(() => {
             // 计算 FPS
             const now = performance.now();
             const elapsed = now - this.performanceStats.lastFrameTime;
@@ -341,11 +631,11 @@ export default class PixiTable {
                 // 获取绘制调用次数 - 安全地获取
                 try {
                     // 尝试不同的方式获取 drawCalls
-                    if (this.renderer.app.renderer.gl && this.renderer.app.renderer.gl.drawCalls) {
-                        this.performanceStats.drawCalls = this.renderer.app.renderer.gl.drawCalls;
-                    } else if (this.renderer.app.renderer.system && this.renderer.app.renderer.system.CONTEXT_UID) {
+                    if (this.app.renderer.gl && this.app.renderer.gl.drawCalls) {
+                        this.performanceStats.drawCalls = this.app.renderer.gl.drawCalls;
+                    } else if (this.app.renderer.system && this.app.renderer.system.CONTEXT_UID) {
                         // 在 PixiJS v8+ 中可能的路径
-                        this.performanceStats.drawCalls = this.renderer.app.renderer.system.CONTEXT_UID;
+                        this.performanceStats.drawCalls = this.app.renderer.system.CONTEXT_UID;
                     } else {
                         this.performanceStats.drawCalls = 0;
                     }
@@ -483,23 +773,6 @@ export default class PixiTable {
     }
     
     /**
-     * 处理窗口大小变化事件
-     */
-    handleResize() {
-        // 不再需要手动调整渲染器大小，PixiRenderer 会自动处理
-        // 只需要重新创建 paper
-        this.paperContainer.removeChildren();
-        this.createPaper();
-        
-        // 更新调试信息
-        updateDebugInfo('resize', {
-            windowSize: { width: window.innerWidth, height: window.innerHeight },
-            contentSize: { width: this.width, height: this.height },
-            timestamp: Date.now()
-        });
-    }
-    
-    /**
      * 注册工具
      * @param {string} name - 工具名称
      * @param {Object} tool - 工具实例
@@ -546,7 +819,7 @@ export default class PixiTable {
         const pointer = createPointerInfo(event);
         
         // 使用工具函数获取世界坐标，传递渲染器参数以使用 PixiJS 的交互系统
-        const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer, this.renderer);
+        const coords = getCoordinates(pointer, this.app.canvas, this.contentLayer, this);
         
         // 返回世界坐标
         return { x: coords.worldX, y: coords.worldY };
@@ -576,7 +849,7 @@ export default class PixiTable {
         
         // 清理指针容器
         if (this.pointerContainer) {
-            this.renderer.app.stage.removeChild(this.pointerContainer);
+            this.app.stage.removeChild(this.pointerContainer);
             this.pointerContainer.destroy();
             this.pointerContainer = null;
         }
@@ -587,8 +860,8 @@ export default class PixiTable {
         this.paperContainer.removeChildren();
         this.drawingContainer.removeChildren();
         
-        // 销毁渲染器
-        this.renderer.destroy();
+        // 销毁应用
+        this.app.destroy();
         
         console.log('PixiTable destroyed');
     }

@@ -51,12 +51,12 @@ export function canvasToWorldCoordinates(coords, contentLayer) {
  * @param {PointerInfo} pointer - 包含x和y的指针信息对象
  * @param {HTMLCanvasElement} canvas - 画布元素
  * @param {PIXI.Container} contentLayer - 内容层容器
- * @param {PIXI.Renderer} [renderer] - PixiJS 渲染器实例（可选）
+ * @param {PixiTable} [table] - PixiTable 实例（可选）
  * @returns {Object} - 包含画布坐标和世界坐标的对象
  */
-export function getCoordinates(pointer, canvas, contentLayer, renderer) {
+export function getCoordinates(pointer, canvas, contentLayer, table) {
     // 获取渲染器的分辨率
-    const resolution = renderer?.app?.renderer?.resolution || 1;
+    const resolution = table?.app?.renderer?.resolution || 1;
     
     // 获取画布坐标
     const { canvasX, canvasY } = getCanvasCoordinates(pointer, canvas);
@@ -69,15 +69,15 @@ export function getCoordinates(pointer, canvas, contentLayer, renderer) {
     // 计算世界坐标
     let worldX, worldY;
     
-    // 如果提供了渲染器，使用 PixiJS 的交互系统获取更准确的坐标
-    if (renderer && renderer.app && renderer.app.renderer) {
+    // 如果提供了表格实例，使用 PixiJS 的交互系统获取更准确的坐标
+    if (table && table.app && table.app.renderer) {
         // 创建一个临时点来存储结果
         const tempPoint = new PIXI.Point();
         
         // 使用 PixiJS 的交互系统将客户端坐标映射到舞台坐标
-        if (renderer.app.renderer.events) {
+        if (table.app.renderer.events) {
             // PixiJS v8 方式
-            renderer.app.renderer.events.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
+            table.app.renderer.events.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
             
             // 记录原始映射结果，用于调试
             const originalX = tempPoint.x;
@@ -105,9 +105,9 @@ export function getCoordinates(pointer, canvas, contentLayer, renderer) {
                 tempPoint.x = tempPoint.x / resolution * calculatedResolution;
                 tempPoint.y = tempPoint.y / resolution * calculatedResolution;
             }
-        } else if (renderer.app.renderer.plugins && renderer.app.renderer.plugins.interaction) {
+        } else if (table.app.renderer.plugins && table.app.renderer.plugins.interaction) {
             // PixiJS v7 及以下方式
-            renderer.app.renderer.plugins.interaction.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
+            table.app.renderer.plugins.interaction.mapPositionToPoint(tempPoint, pointer.x, pointer.y);
             
             // 检查是否需要手动调整分辨率
             const cssWidth = canvas.clientWidth;

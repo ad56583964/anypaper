@@ -55,8 +55,8 @@ export default class PixiZoomTool {
             isDragging: this.isDragging,
             isZooming: this.touch.isZooming,
             position: {
-                x: Math.round(this.table.renderer.contentLayer.x),
-                y: Math.round(this.table.renderer.contentLayer.y)
+                x: Math.round(this.table.contentLayer.x),
+                y: Math.round(this.table.contentLayer.y)
             }
         });
     }
@@ -105,15 +105,15 @@ export default class PixiZoomTool {
         
         // 获取当前缩放和图层引用
         const oldScale = this.config.current;
-        const contentLayer = this.table.renderer.contentLayer;
-        const bgLayer = this.table.renderer.bgLayer;
-        const canvas = this.table.renderer.app.canvas;
+        const contentLayer = this.table.contentLayer;
+        const bgLayer = this.table.bgLayer;
+        const canvas = this.table.app.canvas;
         
         // 创建指针信息对象
         const pointer = createPointerInfo(e);
         
         // 使用坐标工具获取鼠标在画布上和世界中的位置
-        const coords = getCoordinates(pointer, canvas, contentLayer);
+        const coords = getCoordinates(pointer, canvas, contentLayer, this.table);
         
         // 根据滚轮方向调整缩放
         const direction = e.deltaY > 0 ? -1 : 1;
@@ -153,7 +153,6 @@ export default class PixiZoomTool {
         }
     }
     
-
     /**
      * 计算两个触摸点之间的距离
      * @param {Object} point1 - 第一个触摸点
@@ -200,7 +199,7 @@ export default class PixiZoomTool {
         this.touch.initialDistance = initialDistance;
         this.touch.initialCenter = initialCenter;
         
-        const contentLayer = this.table.renderer.contentLayer;
+        const contentLayer = this.table.contentLayer;
         this.touch.initialPosition = {
             x: contentLayer.x,
             y: contentLayer.y
@@ -228,8 +227,8 @@ export default class PixiZoomTool {
         if (!this.touch.isZooming || pointers.length !== 2) return false;
         
         const [point1, point2] = pointers;
-        const contentLayer = this.table.renderer.contentLayer;
-        const bgLayer = this.table.renderer.bgLayer;
+        const contentLayer = this.table.contentLayer;
+        const bgLayer = this.table.bgLayer;
         
         // 计算当前状态
         const currentDistance = this.getDistance(point1, point2);
@@ -301,14 +300,14 @@ export default class PixiZoomTool {
     handleMultiTouchEnd(event) {
         if (!this.touch.isZooming) return false;
         
-        const activePointers = this.table.renderer.activePointers;
+        const activePointers = this.table.activePointers;
         
         // 如果还有一个触摸点，转为拖动模式
         if (activePointers.size === 1) {
             this.touch.isZooming = false;
             this.isDragging = true;
             
-            const contentLayer = this.table.renderer.contentLayer;
+            const contentLayer = this.table.contentLayer;
             this.dragStartPosition = {
                 x: contentLayer.x,
                 y: contentLayer.y
@@ -405,7 +404,7 @@ export default class PixiZoomTool {
         if (this.isZoomMode) {
             this.isDragging = true;
             
-            const contentLayer = this.table.renderer.contentLayer;
+            const contentLayer = this.table.contentLayer;
             this.dragStartPosition = {
                 x: contentLayer.x,
                 y: contentLayer.y
@@ -451,8 +450,8 @@ export default class PixiZoomTool {
             const deltaY = currentPointerPos.y - this.touch.lastPosition.y;
             
             // 获取图层
-            const contentLayer = this.table.renderer.contentLayer;
-            const bgLayer = this.table.renderer.bgLayer;
+            const contentLayer = this.table.contentLayer;
+            const bgLayer = this.table.bgLayer;
             
             // 更新图层位置
             const newX = contentLayer.x + deltaX;
@@ -495,8 +494,8 @@ export default class PixiZoomTool {
                 isDragging: false,
                 scale: this.config.current.toFixed(2),
                 position: {
-                    x: Math.round(this.table.renderer.contentLayer.x),
-                    y: Math.round(this.table.renderer.contentLayer.y)
+                    x: Math.round(this.table.contentLayer.x),
+                    y: Math.round(this.table.contentLayer.y)
                 }
             });
             

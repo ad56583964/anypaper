@@ -8,11 +8,11 @@ import { getCoordinates, createPointerInfo } from './utils';
 export default class PixiPointer {
     /**
      * 创建一个新的光标指示器
-     * @param {PixiRenderer} renderer - PixiJS 渲染器实例
+     * @param {PixiTable} table - PixiTable 实例
      * @param {Object} options - 配置选项
      */
-    constructor(renderer, options = {}) {
-        this.renderer = renderer;
+    constructor(table, options = {}) {
+        this.table = table;
         
         // 配置选项
         this.options = {
@@ -45,7 +45,7 @@ export default class PixiPointer {
         this.drawPointer(pointer);
         
         // 将光标直接添加到内容层
-        this.renderer.contentLayer.addChild(pointer);
+        this.table.contentLayer.addChild(pointer);
         
         // 保存引用
         this.pointer = pointer;
@@ -64,7 +64,7 @@ export default class PixiPointer {
             this.debugText.position.set(10, 10);
             
             // 添加到舞台
-            this.renderer.app.stage.addChild(this.debugText);
+            this.table.app.stage.addChild(this.debugText);
             
             console.log('Pointer debug mode enabled');
         }
@@ -102,10 +102,10 @@ export default class PixiPointer {
         const pointer = createPointerInfo(e);
         
         // 获取渲染器的分辨率
-        const resolution = this.renderer.app.renderer.resolution || 1;
+        const resolution = this.table.app.renderer.resolution || 1;
         
-        // 使用工具函数获取所有坐标信息，传递 renderer 参数
-        const coords = getCoordinates(pointer, this.renderer.app.canvas, this.renderer.contentLayer, this.renderer);
+        // 使用工具函数获取所有坐标信息，传递 table 参数
+        const coords = getCoordinates(pointer, this.table.app.canvas, this.table.contentLayer, this.table);
         
         // 直接使用世界坐标设置光标位置
         this.pointer.position.set(coords.worldX, coords.worldY);
@@ -116,7 +116,7 @@ export default class PixiPointer {
         // 更新调试信息
         if (this.options.debug && this.debugText) {
             // 获取 canvas 的 CSS 尺寸和实际尺寸
-            const canvas = this.renderer.app.canvas;
+            const canvas = this.table.app.canvas;
             const cssWidth = canvas.clientWidth;
             const cssHeight = canvas.clientHeight;
             const realWidth = canvas.width;
@@ -231,7 +231,7 @@ export default class PixiPointer {
             this.debugText.position.set(10, 10);
             
             // 添加到舞台
-            this.renderer.app.stage.addChild(this.debugText);
+            this.table.app.stage.addChild(this.debugText);
             
             console.log('Pointer debug mode enabled');
         } else if (!enabled && this.debugText) {
