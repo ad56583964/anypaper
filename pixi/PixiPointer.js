@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { getCoordinates, createPointerInfo } from './utils';
+import { updateDebugInfo } from '../debug.jsx';
 
 /**
  * PixiPointer 类 - 光标指示器
@@ -125,8 +126,8 @@ export default class PixiPointer {
             // 计算实际分辨率
             const calculatedResolution = realWidth / cssWidth;
             
-            // 扩展调试信息，包含分辨率相关数据
-            this.updateDebugInfo({
+            // 更新调试文本
+            this.updatePointerDebugText({
                 ...coords,
                 pointer,
                 resolution,
@@ -134,14 +135,27 @@ export default class PixiPointer {
                 cssSize: { width: cssWidth, height: cssHeight },
                 realSize: { width: realWidth, height: realHeight }
             });
+            
+            // 更新全局调试信息
+            if (Math.floor(performance.now() / 100) % 10 === 0) {
+                updateDebugInfo('pointerPosition', {
+                    client: pointer ? `(${pointer.x.toFixed(1)}, ${pointer.y.toFixed(1)})` : 'N/A',
+                    canvas: `(${coords.canvasX.toFixed(1)}, ${coords.canvasY.toFixed(1)})`,
+                    world: `(${coords.worldX.toFixed(1)}, ${coords.worldY.toFixed(1)})`,
+                    pointer: `(${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`,
+                    resolution: resolution.toFixed(2),
+                    calculatedResolution: calculatedResolution.toFixed(2),
+                    devicePixelRatio: window.devicePixelRatio.toFixed(2)
+                });
+            }
         }
     }
     
     /**
-     * 更新调试信息
+     * 更新指针调试文本
      * @param {Object} info - 调试信息
      */
-    updateDebugInfo(info) {
+    updatePointerDebugText(info) {
         if (!this.debugText) return;
         
         // 更新调试文本
@@ -158,26 +172,6 @@ export default class PixiPointer {
             `CSS Size: ${info.cssSize ? `${info.cssSize.width}x${info.cssSize.height}` : 'N/A'}`,
             `Real Size: ${info.realSize ? `${info.realSize.width}x${info.realSize.height}` : 'N/A'}`
         ].join('\n');
-        
-        // 每100帧输出一次日志
-        if (Math.floor(performance.now() / 100) % 10 === 0) {
-            console.log('Pointer Debug:', {
-                client: info.pointer ? `(${info.pointer.x.toFixed(1)}, ${info.pointer.y.toFixed(1)})` : 'N/A',
-                canvas: `(${info.canvasX.toFixed(1)}, ${info.canvasY.toFixed(1)})`,
-                offset: `(${info.offsetX.toFixed(1)}, ${info.offsetY.toFixed(1)})`,
-                scale: info.scale.toFixed(2),
-                world: `(${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`,
-                pointer: `(${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`,
-                pixiResolution: info.resolution?.toFixed(2) || 'N/A',
-                calculatedResolution: info.calculatedResolution?.toFixed(2) || 'N/A',
-                devicePixelRatio: window.devicePixelRatio.toFixed(2),
-                cssSize: info.cssSize ? `${info.cssSize.width}x${info.cssSize.height}` : 'N/A',
-                realSize: info.realSize ? `${info.realSize.width}x${info.realSize.height}` : 'N/A',
-                resolutionMatch: info.resolution && info.calculatedResolution 
-                    ? Math.abs(info.resolution - info.calculatedResolution) < 0.1 ? 'Yes' : 'No'
-                    : 'Unknown'
-            });
-        }
     }
     
     /**

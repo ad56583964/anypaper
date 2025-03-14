@@ -607,8 +607,11 @@ export default class PixiTable {
         let deviceType = event.pointerType || 'unknown';
         let additionalInfo = {};
         
+        console.log('updateDeviceTrackerInfo', eventType, event);
+
         // 为滚轮事件特殊处理设备类型和信息
         if (eventType === 'wheel') {
+            console.log('#### Enter wheel', event);
             deviceType = 'wheel';
             additionalInfo = {
                 deltaMode: event.deltaMode === 0 ? 'PIXEL' : event.deltaMode === 1 ? 'LINE' : 'PAGE',
@@ -623,6 +626,7 @@ export default class PixiTable {
             };
         }
         
+        console.log('#### deviceType is ', deviceType);
         updateDebugInfo('deviceTracker', {
             lastEvent: eventType,
             deviceType: deviceType,
@@ -660,11 +664,9 @@ export default class PixiTable {
      * @param {PointerEvent} e - 指针事件
      */
     handlePointerMove(e) {
-        // 更新设备追踪信息 - 使用节流减少更新频率
-        if (performance.now() % 5 === 0) {
-            this.updateDeviceTrackerInfo('pointermove', e);
-        }
-        
+        // 更新设备追踪信息
+        this.updateDeviceTrackerInfo('pointermove', e);
+
         // 更新光标指示器位置 - 这里不需要节流，因为updateHitPointer内部已有节流
         this.updateHitPointer(e);
         
@@ -697,13 +699,13 @@ export default class PixiTable {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('wheel', e);
         
-        // 确保当前工具存在且有 wheel 方法
-        if (this.currentTool && typeof this.currentTool.wheel === 'function') {
-            this.currentTool.wheel(e);
-        } else if (this.tools.zoom && typeof this.tools.zoom.wheel === 'function') {
-            // 如果当前工具没有 wheel 方法，但存在缩放工具，则使用缩放工具处理滚轮事件
-            this.tools.zoom.wheel(e);
-        }
+        // // 确保当前工具存在且有 wheel 方法
+        // if (this.currentTool && typeof this.currentTool.wheel === 'function') {
+        //     this.currentTool.wheel(e);
+        // } else if (this.tools.zoom && typeof this.tools.zoom.wheel === 'function') {
+        //     // 如果当前工具没有 wheel 方法，但存在缩放工具，则使用缩放工具处理滚轮事件
+        //     this.tools.zoom.wheel(e);
+        // }
         
         // 在缩放后更新光标位置
         this.updateHitPointer(e);
