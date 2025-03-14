@@ -411,15 +411,6 @@ export default class PixiTable {
         this.tools = {};
         this.currentTool = null;
         
-        // 性能监控
-        this.performanceStats = {
-            fps: 0,
-            drawCalls: 0,
-            lastFrameTime: 0,
-            frameCount: 0,
-            frameTimeSum: 0
-        };
-        
         // 初始化表格
         this.drawBackground();
         this.drawGrid();
@@ -427,9 +418,6 @@ export default class PixiTable {
         
         // 设置事件监听器
         this.setupEventListeners();
-        
-        // 设置性能监控
-        this.setupPerformanceMonitoring();
         
         // 设置视口裁剪
         this.setupViewportCulling();
@@ -607,55 +595,6 @@ export default class PixiTable {
         window.addEventListener('pointermove', this.handlePointerMove.bind(this));
         window.addEventListener('pointerup', this.handlePointerUp.bind(this));
         window.addEventListener('wheel', this.handleWheel.bind(this));
-    }
-    
-    /**
-     * 设置性能监控
-     */
-    setupPerformanceMonitoring() {
-        // 添加到渲染循环
-        this.app.ticker.add(() => {
-            // 计算 FPS
-            const now = performance.now();
-            const elapsed = now - this.performanceStats.lastFrameTime;
-            this.performanceStats.lastFrameTime = now;
-            
-            this.performanceStats.frameCount++;
-            this.performanceStats.frameTimeSum += elapsed;
-            
-            // 每秒更新一次 FPS
-            if (this.performanceStats.frameCount >= 30) {
-                const avgFrameTime = this.performanceStats.frameTimeSum / this.performanceStats.frameCount;
-                this.performanceStats.fps = Math.round(1000 / avgFrameTime);
-                
-                // 获取绘制调用次数 - 安全地获取
-                try {
-                    // 尝试不同的方式获取 drawCalls
-                    if (this.app.renderer.gl && this.app.renderer.gl.drawCalls) {
-                        this.performanceStats.drawCalls = this.app.renderer.gl.drawCalls;
-                    } else if (this.app.renderer.system && this.app.renderer.system.CONTEXT_UID) {
-                        // 在 PixiJS v8+ 中可能的路径
-                        this.performanceStats.drawCalls = this.app.renderer.system.CONTEXT_UID;
-                    } else {
-                        this.performanceStats.drawCalls = 0;
-                    }
-                } catch (e) {
-                    console.warn('无法获取 drawCalls:', e);
-                    this.performanceStats.drawCalls = 0;
-                }
-                
-                // 更新调试信息
-                updateDebugInfo('performance', {
-                    fps: this.performanceStats.fps,
-                    drawCalls: this.performanceStats.drawCalls,
-                    avgFrameTime: avgFrameTime.toFixed(2)
-                });
-                
-                // 重置计数器
-                this.performanceStats.frameCount = 0;
-                this.performanceStats.frameTimeSum = 0;
-            }
-        });
     }
     
     /**
