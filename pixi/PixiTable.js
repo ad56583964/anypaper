@@ -637,8 +637,6 @@ export default class PixiTable {
             buttons: event.buttons,
             ...additionalInfo
         });
-
-        // console.log('updateDeviceTrackerInfo', eventType, event);
     }
     
     /**
