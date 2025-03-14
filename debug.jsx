@@ -124,8 +124,8 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
     };
 
     // 获取设备类型的中文名称和颜色
-    const getDeviceTypeInfo = (pointerType) => {
-        switch(pointerType) {
+    const getDeviceTypeInfo = (deviceType) => {
+        switch(deviceType) {
             case 'mouse':
                 return { name: '鼠标', color: '#4CAF50' };
             case 'touch':
@@ -153,7 +153,7 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
         }
     };
 
-    const deviceInfo = getDeviceTypeInfo(debugInfo.deviceTracker.pointerType);
+    const deviceInfo = getDeviceTypeInfo(debugInfo.deviceTracker.deviceType);
 
     return (
         <div style={{ 
