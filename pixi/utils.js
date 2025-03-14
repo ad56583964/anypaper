@@ -1,3 +1,5 @@
+import * as PIXI from 'pixi.js';
+
 /**
  * 坐标和变换工具函数
  */
