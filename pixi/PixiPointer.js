@@ -27,9 +27,6 @@ export default class PixiPointer {
         // PixiJS 图形对象
         this.pointer = null;
         
-        // 调试文本
-        this.debugText = null;
-        
         // 节流控制
         this.lastUpdateTime = 0;
         
@@ -53,22 +50,6 @@ export default class PixiPointer {
         
         // 初始位置在画布外
         this.pointer.position.set(-100, -100);
-        
-        // 如果启用调试模式，创建调试文本
-        if (this.options.debug) {
-            this.debugText = new PIXI.Text('', {
-                fontFamily: 'Arial',
-                fontSize: 12,
-                fill: 0x000000,
-                align: 'left'
-            });
-            this.debugText.position.set(10, 10);
-            
-            // 添加到舞台
-            this.table.app.stage.addChild(this.debugText);
-            
-            console.log('Pointer debug mode enabled');
-        }
         
         console.log('Pointer indicator created');
     }
@@ -114,8 +95,8 @@ export default class PixiPointer {
         // 更新上次更新时间
         this.lastUpdateTime = now;
         
-        // 更新调试信息
-        if (this.options.debug && this.debugText) {
+        // 更新全局调试信息
+        if (this.options.debug && Math.floor(performance.now() / 100) % 10 === 0) {
             // 获取 canvas 的 CSS 尺寸和实际尺寸
             const canvas = this.table.app.canvas;
             const cssWidth = canvas.clientWidth;
@@ -126,52 +107,18 @@ export default class PixiPointer {
             // 计算实际分辨率
             const calculatedResolution = realWidth / cssWidth;
             
-            // 更新调试文本
-            this.updatePointerDebugText({
-                ...coords,
-                pointer,
-                resolution,
-                calculatedResolution,
-                cssSize: { width: cssWidth, height: cssHeight },
-                realSize: { width: realWidth, height: realHeight }
+            updateDebugInfo('pointerPosition', {
+                client: pointer ? `(${pointer.x.toFixed(1)}, ${pointer.y.toFixed(1)})` : 'N/A',
+                canvas: `(${coords.canvasX.toFixed(1)}, ${coords.canvasY.toFixed(1)})`,
+                world: `(${coords.worldX.toFixed(1)}, ${coords.worldY.toFixed(1)})`,
+                pointer: `(${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`,
+                resolution: resolution.toFixed(2),
+                calculatedResolution: calculatedResolution.toFixed(2),
+                devicePixelRatio: window.devicePixelRatio.toFixed(2),
+                cssSize: `${cssWidth}x${cssHeight}`,
+                realSize: `${realWidth}x${realHeight}`
             });
-            
-            // 更新全局调试信息
-            if (Math.floor(performance.now() / 100) % 10 === 0) {
-                updateDebugInfo('pointerPosition', {
-                    client: pointer ? `(${pointer.x.toFixed(1)}, ${pointer.y.toFixed(1)})` : 'N/A',
-                    canvas: `(${coords.canvasX.toFixed(1)}, ${coords.canvasY.toFixed(1)})`,
-                    world: `(${coords.worldX.toFixed(1)}, ${coords.worldY.toFixed(1)})`,
-                    pointer: `(${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`,
-                    resolution: resolution.toFixed(2),
-                    calculatedResolution: calculatedResolution.toFixed(2),
-                    devicePixelRatio: window.devicePixelRatio.toFixed(2)
-                });
-            }
         }
-    }
-    
-    /**
-     * 更新指针调试文本
-     * @param {Object} info - 调试信息
-     */
-    updatePointerDebugText(info) {
-        if (!this.debugText) return;
-        
-        // 更新调试文本
-        this.debugText.text = [
-            `Client: (${info.pointer?.x.toFixed(1)}, ${info.pointer?.y.toFixed(1)})`,
-            `Canvas: (${info.canvasX.toFixed(1)}, ${info.canvasY.toFixed(1)})`,
-            `Offset: (${info.offsetX.toFixed(1)}, ${info.offsetY.toFixed(1)})`,
-            `Scale: ${info.scale.toFixed(2)}`,
-            `World: (${info.worldX.toFixed(1)}, ${info.worldY.toFixed(1)})`,
-            `Pointer: (${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`,
-            `Pixi Resolution: ${info.resolution?.toFixed(2) || 'N/A'}`,
-            `Calculated Resolution: ${info.calculatedResolution?.toFixed(2) || 'N/A'}`,
-            `DevicePixelRatio: ${window.devicePixelRatio.toFixed(2)}`,
-            `CSS Size: ${info.cssSize ? `${info.cssSize.width}x${info.cssSize.height}` : 'N/A'}`,
-            `Real Size: ${info.realSize ? `${info.realSize.width}x${info.realSize.height}` : 'N/A'}`
-        ].join('\n');
     }
     
     /**
@@ -213,30 +160,7 @@ export default class PixiPointer {
      */
     setDebugMode(enabled) {
         this.options.debug = enabled;
-        
-        if (enabled && !this.debugText) {
-            // 创建调试文本
-            this.debugText = new PIXI.Text('', {
-                fontFamily: 'Arial',
-                fontSize: 12,
-                fill: 0x000000,
-                align: 'left'
-            });
-            this.debugText.position.set(10, 10);
-            
-            // 添加到舞台
-            this.table.app.stage.addChild(this.debugText);
-            
-            console.log('Pointer debug mode enabled');
-        } else if (!enabled && this.debugText) {
-            // 移除调试文本
-            if (this.debugText.parent) {
-                this.debugText.parent.removeChild(this.debugText);
-            }
-            this.debugText.destroy();
-            this.debugText = null;
-            console.log('Pointer debug mode disabled');
-        }
+        console.log(`Pointer debug mode ${enabled ? 'enabled' : 'disabled'}`);
     }
     
     /**
@@ -250,15 +174,6 @@ export default class PixiPointer {
             }
             this.pointer.destroy();
             this.pointer = null;
-        }
-        
-        // 移除调试文本
-        if (this.debugText) {
-            if (this.debugText.parent) {
-                this.debugText.parent.removeChild(this.debugText);
-            }
-            this.debugText.destroy();
-            this.debugText = null;
         }
         
         console.log('Pointer indicator destroyed');
