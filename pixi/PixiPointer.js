@@ -20,9 +20,11 @@ export default class PixiPointer {
             size: options.size || 10,
             color: options.color || 0xFF0000, // 红色
             alpha: options.alpha !== undefined ? options.alpha : 0.7,
-            debug: options.debug !== undefined ? options.debug : false,
             updateInterval: options.updateInterval || 5 // 约200fps
         };
+        
+        // 是否启用调试
+        this.debug = options.debug !== undefined ? options.debug : false;
         
         // PixiJS 图形对象
         this.pointer = null;
@@ -96,7 +98,7 @@ export default class PixiPointer {
         this.lastUpdateTime = now;
         
         // 更新全局调试信息
-        if (this.options.debug && Math.floor(performance.now() / 100) % 10 === 0) {
+        if (this.debug && Math.floor(performance.now() / 100) % 10 === 0) {
             // 获取 canvas 的 CSS 尺寸和实际尺寸
             const canvas = this.table.app.canvas;
             const cssWidth = canvas.clientWidth;
@@ -152,15 +154,6 @@ export default class PixiPointer {
         if (this.pointer) {
             this.drawPointer(this.pointer);
         }
-    }
-    
-    /**
-     * 设置调试模式
-     * @param {boolean} enabled - 是否启用调试
-     */
-    setDebugMode(enabled) {
-        this.options.debug = enabled;
-        console.log(`Pointer debug mode ${enabled ? 'enabled' : 'disabled'}`);
     }
     
     /**
