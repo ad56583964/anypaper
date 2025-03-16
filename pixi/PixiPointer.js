@@ -20,7 +20,6 @@ export default class PixiPointer {
             size: options.size || 10,
             color: options.color || 0xFF0000, // 红色
             alpha: options.alpha !== undefined ? options.alpha : 0.7,
-            updateInterval: options.updateInterval || 5 // 约200fps
         };
         
         // 是否启用调试
@@ -28,9 +27,6 @@ export default class PixiPointer {
         
         // PixiJS 图形对象
         this.pointer = null;
-        
-        // 节流控制
-        this.lastUpdateTime = 0;
         
         // 初始化
         this.init();
@@ -74,28 +70,18 @@ export default class PixiPointer {
     update(e) {
         if (!this.pointer) return;
         
-        // 获取当前时间
-        const now = performance.now();
-        
-        // 如果时间间隔太短，则跳过更新
-        if (now - this.lastUpdateTime < this.options.updateInterval) {
-            return;
-        }
-        
         // 创建指针信息对象
         const pointer = createPointerInfo(e);
         
         // 获取渲染器的分辨率
         const resolution = this.table.app.renderer.resolution || 1;
         
+        console.log('contentLayer', this.table.contentLayer);
         // 使用工具函数获取所有坐标信息，传递 table 参数
         const coords = getCoordinates(pointer, this.table.app.canvas, this.table.contentLayer, this.table);
         
         // 直接使用世界坐标设置光标位置
         this.pointer.position.set(coords.worldX, coords.worldY);
-        
-        // 更新上次更新时间
-        this.lastUpdateTime = now;
         
         // 更新全局调试信息
         if (this.debug && Math.floor(performance.now() / 100) % 10 === 0) {
