@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import PixiPointer from './PixiPointer';
+import HitPointer from './HitPointer';
 import { updateDebugInfo } from '../debug.jsx';
 import PixiPencilTool from '../tools/PixiPencilTool';
 import PixiZoomTool from '../tools/PixiZoomTool';
@@ -360,16 +361,31 @@ export default class PixiTable {
             color: options?.color || 'rgba(255, 0, 0, 0.7)',
             updateInterval: options?.updateInterval || 5
         });
+        
+        // 创建命中指示器
+        this.hitPointer = new HitPointer(this.contentLayer, {
+            size: options?.hitSize || 8,
+            color: options?.hitColor || 0x00FF00, // 绿色
+            alpha: options?.hitAlpha || 0.7
+        });
     }
     
     /**
-     * 更新光标指示器位置
+     * 更新命中指示器位置
      * @param {PointerEvent} e - 指针事件
      */
     updateHitPointer(e) {
-        if (this.pointer) {
-            this.pointer.update(e);
-        }
+        if (!this.hitPointer) return;
+        
+        // 获取指针在画布中的位置
+        const point = new PIXI.Point();
+        this.app.renderer.events.mapPositionToPoint(point, e.clientX, e.clientY);
+        
+        // 转换为内容层的本地坐标
+        const localPoint = this.contentLayer.toLocal(point);
+        
+        // 更新命中指示器位置
+        this.hitPointer.update(localPoint.x, localPoint.y);
     }
     
     /**
@@ -667,13 +683,19 @@ export default class PixiTable {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('pointermove', e);
 
-        // 使用 mapPositionToPoint 方法获取指针位置
-        const PointData = new PIXI.Point();
-        this.app.renderer.events.mapPositionToPoint(PointData, e.clientX, e.clientY)
-        const localpoint = this.contentLayer.toLocal(PointData);
- 
-        this.pointer.update(PointData.x, PointData.y);
-        // 更新光标指示器位置 - 这里不需要节流，因为updateHitPointer内部已有节流
+        // 获取指针在画布中的位置
+        const point = new PIXI.Point();
+        this.app.renderer.events.mapPositionToPoint(point, e.clientX, e.clientY);
+        
+        // 转换为内容层的本地坐标
+        const localPoint = this.contentLayer.toLocal(point);
+        
+        // 更新普通指针位置
+        if (this.pointer) {
+            this.pointer.update(localPoint.x, localPoint.y);
+        }
+        
+        // 更新命中指示器位置
         this.updateHitPointer(e);
         
         if (this.currentTool) {
@@ -790,6 +812,12 @@ export default class PixiTable {
         if (this.pointer) {
             this.pointer.destroy();
             this.pointer = null;
+        }
+        
+        // 销毁命中指示器
+        if (this.hitPointer) {
+            this.hitPointer.destroy();
+            this.hitPointer = null;
         }
         
         // 清理指针容器
