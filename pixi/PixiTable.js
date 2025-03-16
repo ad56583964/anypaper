@@ -613,11 +613,8 @@ export default class PixiTable {
         let deviceType = event.pointerType || 'unknown';
         let additionalInfo = {};
         
-        console.log('updateDeviceTrackerInfo', eventType, event);
-
         // 为滚轮事件特殊处理设备类型和信息
         if (eventType === 'wheel') {
-            console.log('#### Enter wheel', event);
             deviceType = 'wheel';
             additionalInfo = {
                 deltaMode: event.deltaMode === 0 ? 'PIXEL' : event.deltaMode === 1 ? 'LINE' : 'PAGE',
@@ -632,7 +629,6 @@ export default class PixiTable {
             };
         }
         
-        console.log('#### deviceType is ', deviceType);
         updateDebugInfo('deviceTracker', {
             lastEvent: eventType,
             deviceType: deviceType,
