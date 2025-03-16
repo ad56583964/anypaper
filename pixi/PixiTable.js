@@ -667,17 +667,18 @@ export default class PixiTable {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('pointermove', e);
 
-        const globalpos = {x: e.clientX, y: e.clientY};
-        console.log('globalpos', globalpos);
-        const pointerPosTable = this.contentLayer.toLocal(globalpos);
-        console.log('pointerPosTable', pointerPosTable);
-        this.pointer.position.set(pointerPosTable.x, pointerPosTable.y);
-        // // 更新光标指示器位置 - 这里不需要节流，因为updateHitPointer内部已有节流
-        // this.updateHitPointer(e);
+        // 使用 mapPositionToPoint 方法获取指针位置
+        const PointData = new PIXI.Point();
+        this.app.renderer.events.mapPositionToPoint(PointData, e.clientX, e.clientY)
+        const localpoint = this.contentLayer.toLocal(PointData);
+ 
+        this.pointer.update(PointData.x, PointData.y);
+        // 更新光标指示器位置 - 这里不需要节流，因为updateHitPointer内部已有节流
+        this.updateHitPointer(e);
         
-        // if (this.currentTool) {
-        //     this.currentTool.pointermove(e);
-        // }
+        if (this.currentTool) {
+            this.currentTool.pointermove(e);
+        }
     }
     
     /**
