@@ -96,12 +96,6 @@ export function getCoordinates(pointer, canvas, contentLayer, table) {
             const calculatedResolution = realWidth / cssWidth;
             if (Math.abs(calculatedResolution - resolution) > 0.1) {
                 // 分辨率不匹配，需要手动调整
-                // console.log('Resolution mismatch detected', {
-                //     cssSize: `${cssWidth}x${cssHeight}`,
-                //     realSize: `${realWidth}x${realHeight}`,
-                //     pixiResolution: resolution,
-                //     calculatedResolution: calculatedResolution
-                // });
                 
                 // 手动调整坐标，确保考虑正确的分辨率
                 tempPoint.x = tempPoint.x / resolution * calculatedResolution;
@@ -130,21 +124,6 @@ export function getCoordinates(pointer, canvas, contentLayer, table) {
         
         worldX = localPos.x;
         worldY = localPos.y;
-        
-        // 添加调试日志
-        if (Math.random() < 0.01) { // 只记录 1% 的事件，避免日志过多
-            console.log('Coordinate transformation with resolution', {
-                client: `(${pointer.x}, ${pointer.y})`,
-                canvas: `(${canvasX}, ${canvasY})`,
-                stage: `(${tempPoint.x}, ${tempPoint.y})`,
-                world: `(${worldX}, ${worldY})`,
-                resolution: resolution,
-                devicePixelRatio: window.devicePixelRatio,
-                scale: scale,
-                cssSize: `${canvas.clientWidth}x${canvas.clientHeight}`,
-                realSize: `${canvas.width}x${canvas.height}`
-            });
-        }
     } else {
         // 回退到传统计算方法，确保考虑分辨率
         // 注意：这里我们需要考虑分辨率对坐标的影响
