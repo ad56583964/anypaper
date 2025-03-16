@@ -5,3 +5,4 @@
 - 在执行路径操作时请以 /home/emasi/Documents/WORKSPACE/anya4_knova 绝对路径指定
 - lib/pixijs lib/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改
 - commit 时请使用英文进行描述
+- 关于 pixijs 相关的细节请到 lib/pixijs 目录下查看
