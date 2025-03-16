@@ -667,12 +667,17 @@ export default class PixiTable {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('pointermove', e);
 
-        // 更新光标指示器位置 - 这里不需要节流，因为updateHitPointer内部已有节流
-        this.updateHitPointer(e);
+        const globalpos = {x: e.clientX, y: e.clientY};
+        console.log('globalpos', globalpos);
+        const pointerPosTable = this.contentLayer.toLocal(globalpos);
+        console.log('pointerPosTable', pointerPosTable);
+        this.pointer.position.set(pointerPosTable.x, pointerPosTable.y);
+        // // 更新光标指示器位置 - 这里不需要节流，因为updateHitPointer内部已有节流
+        // this.updateHitPointer(e);
         
-        if (this.currentTool) {
-            this.currentTool.pointermove(e);
-        }
+        // if (this.currentTool) {
+        //     this.currentTool.pointermove(e);
+        // }
     }
     
     /**

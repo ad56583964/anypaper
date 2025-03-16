@@ -65,48 +65,14 @@ export default class PixiPointer {
     
     /**
      * 更新光标指示器位置
-     * @param {PointerEvent} e - 指针事件
+     * @param {number} x - 在 table 中的 x 坐标
+     * @param {number} y - 在 table 中的 y 坐标
      */
-    update(e) {
+    update(x, y) {
         if (!this.pointer) return;
         
-        // 创建指针信息对象
-        const pointer = createPointerInfo(e);
-        
-        // 获取渲染器的分辨率
-        const resolution = this.table.app.renderer.resolution || 1;
-        
-        console.log('contentLayer', this.table.contentLayer);
-        // 使用工具函数获取所有坐标信息，传递 table 参数
-        const coords = getCoordinates(pointer, this.table.app.canvas, this.table.contentLayer, this.table);
-        
-        // 直接使用世界坐标设置光标位置
-        this.pointer.position.set(coords.worldX, coords.worldY);
-        
-        // 更新全局调试信息
-        if (this.debug && Math.floor(performance.now() / 100) % 10 === 0) {
-            // 获取 canvas 的 CSS 尺寸和实际尺寸
-            const canvas = this.table.app.canvas;
-            const cssWidth = canvas.clientWidth;
-            const cssHeight = canvas.clientHeight;
-            const realWidth = canvas.width;
-            const realHeight = canvas.height;
-            
-            // 计算实际分辨率
-            const calculatedResolution = realWidth / cssWidth;
-            
-            updateDebugInfo('pointerPosition', {
-                client: pointer ? `(${pointer.x.toFixed(1)}, ${pointer.y.toFixed(1)})` : 'N/A',
-                canvas: `(${coords.canvasX.toFixed(1)}, ${coords.canvasY.toFixed(1)})`,
-                world: `(${coords.worldX.toFixed(1)}, ${coords.worldY.toFixed(1)})`,
-                pointer: `(${this.pointer.position.x.toFixed(1)}, ${this.pointer.position.y.toFixed(1)})`,
-                resolution: resolution.toFixed(2),
-                calculatedResolution: calculatedResolution.toFixed(2),
-                devicePixelRatio: window.devicePixelRatio.toFixed(2),
-                cssSize: `${cssWidth}x${cssHeight}`,
-                realSize: `${realWidth}x${realHeight}`
-            });
-        }
+        // 直接设置光标位置
+        this.pointer.position.set(x, y);
     }
     
     /**
