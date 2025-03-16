@@ -1,5 +1,4 @@
 import * as PIXI from 'pixi.js';
-import PixiPointer from './PixiPointer';
 import HitPointer from './HitPointer';
 import { updateDebugInfo } from '../debug.jsx';
 import PixiPencilTool from '../tools/PixiPencilTool';
@@ -354,20 +353,15 @@ export default class PixiTable {
      * @param {Object} options - 光标指示器选项
      */
     initPointer(options = {}) {
-        // 创建光标指示器
-        this.pointer = new PixiPointer(this, {
-            debug: options?.debug !== undefined ? options.debug : true,
-            size: options?.size || 10,
-            color: options?.color || 'rgba(255, 0, 0, 0.7)',
-            updateInterval: options?.updateInterval || 5
-        });
-        
         // 创建命中指示器
         this.hitPointer = new HitPointer(this.contentLayer, {
-            size: options?.hitSize || 8,
-            color: options?.hitColor || 0x00FF00, // 绿色
-            alpha: options?.hitAlpha || 0.7
+            size: options?.size || 10,
+            color: options?.color || 0x00FF00, // 绿色
+            alpha: options?.alpha || 0.7
         });
+        
+        // 为了向后兼容，将 hitPointer 也赋值给 pointer
+        this.pointer = this.hitPointer;
     }
     
     /**
@@ -683,18 +677,6 @@ export default class PixiTable {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('pointermove', e);
 
-        // 获取指针在画布中的位置
-        const point = new PIXI.Point();
-        this.app.renderer.events.mapPositionToPoint(point, e.clientX, e.clientY);
-        
-        // 转换为内容层的本地坐标
-        const localPoint = this.contentLayer.toLocal(point);
-        
-        // 更新普通指针位置
-        if (this.pointer) {
-            this.pointer.update(localPoint.x, localPoint.y);
-        }
-        
         // 更新命中指示器位置
         this.updateHitPointer(e);
         
@@ -808,16 +790,11 @@ export default class PixiTable {
             document.removeEventListener('keydown', this._handleKeyDown);
         }
         
-        // 销毁光标指示器
-        if (this.pointer) {
-            this.pointer.destroy();
-            this.pointer = null;
-        }
-        
         // 销毁命中指示器
         if (this.hitPointer) {
             this.hitPointer.destroy();
             this.hitPointer = null;
+            this.pointer = null; // 清除指针引用
         }
         
         // 清理指针容器
