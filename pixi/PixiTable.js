@@ -356,7 +356,7 @@ export default class PixiTable {
         // 创建命中指示器
         this.hitPointer = new HitPointer(this.contentLayer, {
             size: options?.size || 10,
-            color: options?.color || 0x00FF00, // 绿色
+            color: options?.color || 0xFF0000, // 红色
             alpha: options?.alpha || 0.7
         });
         
