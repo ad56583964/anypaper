@@ -21,7 +21,7 @@ export default class HitPointer {
         };
         
         // PixiJS 图形对象
-        this.graphics = null;
+        this._hitpointer = null;
         
         // 初始化
         this.init();
@@ -32,17 +32,17 @@ export default class HitPointer {
      */
     init() {
         // 创建一个 PIXI.Graphics 对象作为光标指示器
-        const graphics = new PIXI.Graphics();
-        this.draw(graphics);
+        const _hitpointer = new PIXI.Graphics();
+        this.draw(_hitpointer);
         
         // 将光标添加到容器
-        this.container.addChild(graphics);
+        this.container.addChild(_hitpointer);
         
         // 保存引用
-        this.graphics = graphics;
+        this._hitpointer = _hitpointer;
         
         // 初始位置在画布外
-        this.graphics.position.set(-100, -100);
+        this._hitpointer.position.set(-100, -100);
         
         console.log('HitPointer created');
     }
@@ -64,10 +64,10 @@ export default class HitPointer {
      * @param {number} y - y 坐标
      */
     update(x, y) {
-        if (!this.graphics) return;
+        if (!this._hitpointer) return;
         
         // 直接设置光标位置
-        this.graphics.position.set(x, y);
+        this._hitpointer.position.set(x, y);
     }
     
     /**
@@ -76,8 +76,8 @@ export default class HitPointer {
      */
     setSize(size) {
         this.options.size = size;
-        if (this.graphics) {
-            this.draw(this.graphics);
+        if (this._hitpointer) {
+            this.draw(this._hitpointer);
         }
     }
     
@@ -98,8 +98,8 @@ export default class HitPointer {
         this.options.color = color;
         this.options.alpha = alpha;
         
-        if (this.graphics) {
-            this.draw(this.graphics);
+        if (this._hitpointer) {
+            this.draw(this._hitpointer);
         }
     }
     
@@ -108,12 +108,12 @@ export default class HitPointer {
      */
     destroy() {
         // 移除光标
-        if (this.graphics) {
-            if (this.graphics.parent) {
-                this.graphics.parent.removeChild(this.graphics);
+        if (this._hitpointer) {
+            if (this._hitpointer.parent) {
+                this._hitpointer.parent.removeChild(this._hitpointer);
             }
-            this.graphics.destroy();
-            this.graphics = null;
+            this._hitpointer.destroy();
+            this._hitpointer = null;
         }
         
         console.log('HitPointer destroyed');

@@ -26,8 +26,8 @@ export default class PixiTable {
         };
         
         // 计算内容大小
-        this.width = 80 * this.block.width;
-        this.height = 80 * this.block.height;
+        this.width = 120 * this.block.width;
+        this.height = 120 * this.block.height;
         
         // 获取容器
         const container = document.getElementById(containerId);
@@ -73,7 +73,7 @@ export default class PixiTable {
             height: window.innerHeight,
             backgroundColor: 0xdddddd, // 浅灰色背景
             resolution: window.devicePixelRatio || 1,
-            antialias: true
+            // antialias: true
         });
         
         // 记录舞台尺寸
