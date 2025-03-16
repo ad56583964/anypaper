@@ -3,7 +3,7 @@ import HitPointer from './HitPointer';
 import { updateDebugInfo } from '../debug.jsx';
 import PixiPencilTool from '../tools/PixiPencilTool';
 import PixiZoomTool from '../tools/PixiZoomTool';
-import { getCoordinates, createPointerInfo } from './utils';
+import { getCoordinates, createPointerInfo, convertPointToLocalCoordinates } from './utils';
 
 /**
  * PixiTable 类 - 主要的表格组件
@@ -371,12 +371,8 @@ export default class PixiTable {
     updateHitPointer(e) {
         if (!this.hitPointer) return;
         
-        // 获取指针在画布中的位置
-        const point = new PIXI.Point();
-        this.app.renderer.events.mapPositionToPoint(point, e.clientX, e.clientY);
-        
-        // 转换为内容层的本地坐标
-        const localPoint = this.contentLayer.toLocal(point);
+        // 使用工具函数将客户端坐标转换为内容层的本地坐标
+        const localPoint = convertPointToLocalCoordinates(this.app, e.clientX, e.clientY, this.contentLayer);
         
         // 更新命中指示器位置
         this.hitPointer.update(localPoint.x, localPoint.y);
