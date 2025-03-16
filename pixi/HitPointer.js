@@ -18,7 +18,6 @@ export default class HitPointer {
         this.options = {
             size: options.size || 10,
             color: options.color || 0xFF0000, // 红色
-            alpha: options.alpha !== undefined ? options.alpha : 0.7,
         };
         
         // PixiJS 图形对象
