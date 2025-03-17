@@ -16,6 +16,20 @@ class DebugManager {
                 speed: 1,
                 active: '未启动'
             },
+            renderer: {
+                type: '未知',
+                backend: '未知',
+                contextId: '未知',
+                gpu: '未知',
+                isWebGL: false,
+                isWebGPU: false,
+                width: 0,
+                height: 0,
+                resolution: 0,
+                autoDensity: false,
+                backgroundAlpha: 0,
+                pixiVersion: '未知'
+            },
             mousePosition: { x: 0, y: 0 },
             pixelRatio: {
                 devicePixelRatio: window.devicePixelRatio,
@@ -109,6 +123,7 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
     const debugInfo = useDebugInfo();
     const [expanded, setExpanded] = React.useState({
         ticker: true,
+        renderer: true,
         mousePosition: true,
         pixelRatio: true,
         deviceTracker: true
@@ -278,6 +293,93 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
                         </p>
                         <p style={{ margin: '5px 0' }}>
                             <span style={{ fontWeight: 'bold' }}>速度:</span> {debugInfo.ticker.speed}
+                        </p>
+                    </div>
+                )}
+            </div>
+            
+            {/* 渲染器信息 */}
+            <div style={{ marginBottom: '15px' }}>
+                <div 
+                    onClick={() => toggleSection('renderer')}
+                    style={{ 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        color: '#555'
+                    }}
+                >
+                    <span style={{ 
+                        transform: expanded.renderer ? 'rotate(90deg)' : 'rotate(0deg)',
+                        display: 'inline-block',
+                        marginRight: '5px',
+                        transition: 'transform 0.2s'
+                    }}>▶</span>
+                    <h3 style={{ margin: '5px 0' }}>渲染器</h3>
+                </div>
+                
+                {expanded.renderer && (
+                    <div style={{ 
+                        padding: '8px', 
+                        backgroundColor: '#fff',
+                        borderRadius: '4px',
+                        border: '1px solid #eee',
+                        marginLeft: '15px'
+                    }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            marginBottom: '8px',
+                            backgroundColor: debugInfo.renderer.isWebGPU ? '#9C27B022' : '#2196F322',
+                            padding: '5px',
+                            borderRadius: '4px'
+                        }}>
+                            <div style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                borderRadius: '50%', 
+                                backgroundColor: debugInfo.renderer.isWebGPU ? '#9C27B0' : '#2196F3',
+                                marginRight: '8px'
+                            }}></div>
+                            <span style={{ 
+                                fontWeight: 'bold', 
+                                color: debugInfo.renderer.isWebGPU ? '#9C27B0' : '#2196F3' 
+                            }}>
+                                {debugInfo.renderer.isWebGPU ? 'WebGPU' : debugInfo.renderer.isWebGL ? 'WebGL' : debugInfo.renderer.backend}
+                            </span>
+                            <span style={{
+                                marginLeft: 'auto',
+                                fontSize: '12px',
+                                color: '#666'
+                            }}>
+                                PixiJS {debugInfo.renderer.pixiVersion}
+                            </span>
+                        </div>
+                        
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>类型:</span> {debugInfo.renderer.type}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>后端:</span> {debugInfo.renderer.backend}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>上下文 ID:</span> {debugInfo.renderer.contextId}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>GPU:</span> {debugInfo.renderer.gpu}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>分辨率:</span> {debugInfo.renderer.resolution}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>尺寸:</span> {debugInfo.renderer.width} x {debugInfo.renderer.height}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>自动密度:</span> {debugInfo.renderer.autoDensity ? '是' : '否'}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>背景透明度:</span> {debugInfo.renderer.backgroundAlpha}
                         </p>
                     </div>
                 )}
