@@ -57,15 +57,13 @@ export default class HitPointer {
         // 绘制填充圆
         graphics.circle(0, 0, this.options.size / 2)
             .fill({
-                color: this.options.color,
-                alpha: this.options.alpha || 0.7
+                color: this.options.color
             });
         
         // 添加圆边框
         graphics.setStrokeStyle({
             width: 1,
-            color: 0x000000, // 黑色边框
-            alpha: 0.8
+            color: 0x000000 // 黑色边框
         })
         .circle(0, 0, this.options.size / 2 + 0.5) // 稍微大一点以便边框可见
         .stroke();
@@ -103,9 +101,8 @@ export default class HitPointer {
     /**
      * 设置光标颜色
      * @param {number|string} color - 颜色值（十六进制数字或字符串）
-     * @param {number} alpha - 透明度 (0-1)
      */
-    setColor(color, alpha = this.options.alpha) {
+    setColor(color) {
         // 如果传入的是字符串（如 '#FF0000'），转换为数字
         if (typeof color === 'string') {
             // 移除 # 前缀（如果有）
@@ -115,7 +112,6 @@ export default class HitPointer {
         }
         
         this.options.color = color;
-        this.options.alpha = alpha;
         
         if (this._hitpointer) {
             this.draw(this._hitpointer);
