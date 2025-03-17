@@ -26,8 +26,8 @@ export default class PixiTable {
         };
         
         // 计算内容大小
-        this.width = 120 * this.block.width;
-        this.height = 120 * this.block.height;
+        this.width = 240 * this.block.width;
+        this.height = 240 * this.block.height;
         
         // 获取容器
         const container = document.getElementById(containerId);
@@ -125,8 +125,8 @@ export default class PixiTable {
      */
     centerContent() {
         // 计算内容应该在舞台中的位置
-        const centerX = (this.stageWidth - this.width) / 2;
-        const centerY = (this.stageHeight - this.height) / 2;
+        const centerX = (this.stageWidth/this.app.renderer.resolution - this.width) / 2;
+        const centerY = (this.stageHeight/this.app.renderer.resolution - this.height) / 2;
         
         // 设置内容层的初始位置
         this.contentLayer.position.set(centerX, centerY);
