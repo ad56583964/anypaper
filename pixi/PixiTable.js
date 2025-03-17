@@ -151,7 +151,6 @@ export default class PixiTable {
         border.setStrokeStyle({
             width: lineWidth,
             color: 0x990000, // 深红色
-            alpha: 1,
             alignment: 0 // 设置线条对齐方式为居中
         });
         
