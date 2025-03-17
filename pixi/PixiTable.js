@@ -75,11 +75,8 @@ export default class PixiTable {
             width: window.innerWidth,
             height: window.innerHeight,
             backgroundColor: 0xdddddd, // 浅灰色背景
-            resolution: window.devicePixelRatio || 1,
-            // antialias: true,
-            // 启用 WebGL 调试信息
-            debug: true,
-            preference: 'webgl' // 强制使用 WebGL
+            resolution: 1,
+            antialias: true
         });
         
         // 记录舞台尺寸
@@ -310,7 +307,7 @@ export default class PixiTable {
     initPointer(options = {}) {
         // 创建命中指示器
         this.hitPointer = new HitPointer(this.contentLayer, {
-            size: options?.size || 5,
+            size: options?.size || 10,
             color: options?.color || 0xFF0000, // 红色
         });
         
@@ -761,111 +758,14 @@ export default class PixiTable {
         
         // 获取渲染器信息
         const renderer = this.app.renderer;
-        
-        // 输出渲染器对象以便调试
-        console.log('渲染器对象:', renderer);
-        console.log('渲染器类型:', renderer.type);
-        console.log('渲染器上下文:', renderer.context);
-        
-        // 尝试获取更多渲染器信息
-        let backendType = '未知';
-        let gpuInfo = '未知';
-        let isWebGL = false;
-        let isWebGPU = false;
-        let contextId = '未知';
-        
-        // 检查渲染器类型
-        if (renderer.type === 1) {
-            backendType = 'WebGL';
-            isWebGL = true;
-        } else if (renderer.type === 2) {
-            backendType = 'WebGPU';
-            isWebGPU = true;
-        } else if (renderer.type === 0) {
-            backendType = 'Canvas';
-        }
-        
-        // 尝试获取 GPU 信息
-        if (renderer.gl) {
-            const debugInfo = renderer.gl.getExtension('WEBGL_debug_renderer_info');
-            if (debugInfo) {
-                gpuInfo = renderer.gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-                contextId = 'WebGL';
-            }
-        } else if (renderer.context) {
-            if (renderer.context.gl) {
-                const debugInfo = renderer.context.gl.getExtension('WEBGL_debug_renderer_info');
-                if (debugInfo) {
-                    gpuInfo = renderer.context.gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-                    contextId = 'WebGL';
-                }
-            }
-            
-            // 尝试从 context 获取类型信息
-            if (renderer.context.type) {
-                backendType = renderer.context.type;
-            }
-            
-            // 尝试从 context 获取 GPU 信息
-            if (renderer.context.gpu && renderer.context.gpu.info && renderer.context.gpu.info.renderer) {
-                gpuInfo = renderer.context.gpu.info.renderer;
-                contextId = 'WebGPU';
-            }
-        }
-        
-        // 尝试直接从 canvas 获取 WebGL 上下文
-        try {
-            const canvas = this.app.canvas;
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            
-            if (gl) {
-                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-                if (debugInfo) {
-                    gpuInfo = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-                    const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
-                    contextId = 'WebGL';
-                    console.log('WebGL 供应商:', vendor);
-                    console.log('WebGL 渲染器:', gpuInfo);
-                }
-                
-                // 获取 WebGL 版本信息
-                const version = gl.getParameter(gl.VERSION);
-                const shadingLanguageVersion = gl.getParameter(gl.SHADING_LANGUAGE_VERSION);
-                console.log('WebGL 版本:', version);
-                console.log('GLSL 版本:', shadingLanguageVersion);
-                
-                // 更新后端类型
-                backendType = 'WebGL';
-                isWebGL = true;
-            }
-        } catch (e) {
-            console.error('获取 WebGL 上下文失败:', e);
-        }
-        
-        // 获取 PixiJS 版本信息
-        let pixiVersion = '未知';
-        if (PIXI.VERSION) {
-            pixiVersion = PIXI.VERSION;
-            console.log('PixiJS 版本:', pixiVersion);
-        }
-        
         const rendererInfo = {
             type: renderer.type,
-            backend: backendType,
-            contextId: contextId,
-            gpu: gpuInfo,
-            isWebGL: isWebGL,
-            isWebGPU: isWebGPU,
-            // 添加更多可能有用的信息
-            width: renderer.width,
-            height: renderer.height,
-            resolution: renderer.resolution,
-            autoDensity: renderer.autoDensity || false,
-            backgroundAlpha: renderer.backgroundAlpha,
-            pixiVersion: pixiVersion
+            backend: renderer.context?.type || '未知',
+            contextId: renderer.context?.contextId || '未知',
+            gpu: renderer.context?.gpu?.info?.renderer || '未知',
+            isWebGL: renderer.context?.isWebGL || false,
+            isWebGPU: renderer.context?.isWebGPU || false
         };
-        
-        console.log('渲染器信息:', rendererInfo);
         
         // 更新渲染器信息
         updateDebugInfo('renderer', rendererInfo);

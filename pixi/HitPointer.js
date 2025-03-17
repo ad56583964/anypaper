@@ -16,7 +16,7 @@ export default class HitPointer {
         
         // 配置选项
         this.options = {
-            size: options.size || 2,
+            size: options.size || 3,
             color: options.color || 0xFF0000, // 红色
         };
         
@@ -62,10 +62,10 @@ export default class HitPointer {
         
         // 添加圆边框
         graphics.setStrokeStyle({
-            width: 1,
+            width: 2,
             color: 0x000000 // 黑色边框
         })
-        .circle(0, 0, this.options.size / 2 + 0.5) // 稍微大一点以便边框可见
+        .circle(0, 0, this.options.size / 2 + 1) // 稍微大一点以便边框可见
         .stroke();
     }
     
