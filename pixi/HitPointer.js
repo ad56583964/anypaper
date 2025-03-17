@@ -16,7 +16,7 @@ export default class HitPointer {
         
         // 配置选项
         this.options = {
-            size: options.size || 10,
+            size: options.size || 2,
             color: options.color || 0xFF0000, // 红色
         };
         
@@ -53,21 +53,31 @@ export default class HitPointer {
      */
     draw(graphics) {
         graphics.clear();
-        graphics.beginFill(this.options.color, this.options.alpha);
-        graphics.drawCircle(0, 0, this.options.size / 2);
-        graphics.endFill();
+        
+        // PixiJS v8 风格：使用 fill 方法代替 beginFill/endFill
+        graphics.circle(0, 0, this.options.size / 2)
+            .fill({
+                color: this.options.color,
+                alpha: this.options.alpha || 0.7
+            });
     }
     
     /**
      * 更新光标指示器位置
      * @param {number} x - x 坐标
      * @param {number} y - y 坐标
+     * @param {PIXI.Application} app - PIXI 应用实例，用于强制渲染
      */
-    update(x, y) {
+    update(x, y, app) {
         if (!this._hitpointer) return;
         
         // 直接设置光标位置
         this._hitpointer.position.set(x, y);
+        
+        // 强制渲染
+        if (app) {
+            app.render();
+        }
     }
     
     /**

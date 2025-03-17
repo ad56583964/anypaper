@@ -305,9 +305,8 @@ export default class PixiTable {
     initPointer(options = {}) {
         // 创建命中指示器
         this.hitPointer = new HitPointer(this.contentLayer, {
-            size: options?.size || 10,
+            size: options?.size || 4,
             color: options?.color || 0xFF0000, // 红色
-            alpha: options?.alpha || 0.7
         });
         
         // 为了向后兼容，将 hitPointer 也赋值给 pointer
@@ -324,8 +323,8 @@ export default class PixiTable {
         // 使用工具函数将客户端坐标转换为内容层的本地坐标
         const localPoint = convertPointToLocalCoordinates(this.app, e.clientX, e.clientY, this.contentLayer);
         
-        // 更新命中指示器位置
-        this.hitPointer.update(localPoint.x, localPoint.y);
+        // 更新命中指示器位置，传递 app 实例进行强制渲染
+        this.hitPointer.update(localPoint.x, localPoint.y, this.app);
     }
     
     /**
