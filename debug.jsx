@@ -125,6 +125,31 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
         }));
     };
 
+    // 阻止默认的触摸事件，防止长按选择文本
+    const preventTouchSelection = (e) => {
+        e.preventDefault();
+        return false;
+    };
+    
+    // 组件挂载时添加触摸事件监听器
+    React.useEffect(() => {
+        const debugbarElement = document.getElementById('debugbar');
+        if (debugbarElement) {
+            debugbarElement.addEventListener('touchstart', preventTouchSelection, { passive: false });
+            debugbarElement.addEventListener('touchmove', preventTouchSelection, { passive: false });
+            debugbarElement.addEventListener('touchend', preventTouchSelection, { passive: false });
+        }
+        
+        // 组件卸载时移除事件监听器
+        return () => {
+            if (debugbarElement) {
+                debugbarElement.removeEventListener('touchstart', preventTouchSelection);
+                debugbarElement.removeEventListener('touchmove', preventTouchSelection);
+                debugbarElement.removeEventListener('touchend', preventTouchSelection);
+            }
+        };
+    }, []);
+
     // 格式化时间戳为可读格式
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return 'N/A';
@@ -174,7 +199,13 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
             fontFamily: 'Arial, sans-serif',
             fontSize: '14px',
             maxWidth: '400px',
-            margin: '10px'
+            margin: '10px',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            MozUserSelect: 'none',
+            msUserSelect: 'none',
+            WebkitTouchCallout: 'none',
+            touchAction: 'none'
         }}>
             <h2 style={{ 
                 margin: '0 0 15px 0', 
@@ -450,6 +481,19 @@ export default function initDebugbar() {
         // console.error('Debug bar element not found!');
         return;
     }
+    
+    // 添加全局样式，防止文本选择
+    const style = document.createElement('style');
+    style.textContent = `
+        #debugbar, #debugbar * {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            -webkit-touch-callout: none !important;
+        }
+    `;
+    document.head.appendChild(style);
     
     const debugbar = ReactDOM.createRoot(debugbarElement);
     const debugBarComponentRef = React.createRef();
