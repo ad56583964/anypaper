@@ -156,8 +156,8 @@ export default class PixiTable {
         const padding = Math.max(3, Math.ceil(lineWidth / 2));
         
         // 获取舞台的实际尺寸
-        const stageWidth = this.stageWidth;
-        const stageHeight = this.stageHeight;
+        const stageWidth = this.stageWidth/this.app.renderer.resolution;
+        const stageHeight = this.stageHeight/this.app.renderer.resolution;
         
         // 绘制矩形边框，确保边框完全在舞台内部
         border.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
