@@ -52,6 +52,9 @@ export default class PixiTable {
                 // 创建光标指示器
                 this.initPointer(options.pointerOptions);
                 
+                // 开始监控 Ticker
+                this.monitorTicker();
+                
                 resolve(this);
             } catch (error) {
                 console.error('PixiTable initialization error:', error);
@@ -305,7 +308,7 @@ export default class PixiTable {
     initPointer(options = {}) {
         // 创建命中指示器
         this.hitPointer = new HitPointer(this.contentLayer, {
-            size: options?.size || 4,
+            size: options?.size || 5,
             color: options?.color || 0xFF0000, // 红色
         });
         
@@ -744,5 +747,55 @@ export default class PixiTable {
         this.app.destroy();
         
         console.log('PixiTable destroyed');
+    }
+    
+    /**
+     * 监控 Ticker 并更新调试信息
+     */
+    monitorTicker() {
+        if (!this.app || !this.app.ticker) return;
+        
+        const ticker = this.app.ticker;
+        
+        // 创建一个计数器和时间记录
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        // 每帧更新调试信息
+        ticker.add(() => {
+            frameCount++;
+            
+            // 每秒更新一次 FPS 信息
+            const now = performance.now();
+            if (now - lastTime >= 500) { // 每 0.5 秒更新一次
+                const fps = Math.round(frameCount * 1000 / (now - lastTime));
+                
+                // 更新调试信息
+                updateDebugInfo('ticker', {
+                    fps: fps,
+                    targetFPS: ticker.maxFPS || '不限制',
+                    deltaTime: ticker.deltaTime.toFixed(2),
+                    deltaMS: ticker.deltaMS.toFixed(2),
+                    speed: ticker.speed,
+                    active: ticker.started ? '运行中' : '已停止'
+                });
+                
+                // 重置计数器
+                frameCount = 0;
+                lastTime = now;
+            }
+        });
+        
+        // 初始化调试信息
+        updateDebugInfo('ticker', {
+            fps: 0,
+            targetFPS: ticker.maxFPS || '不限制',
+            deltaTime: 0,
+            deltaMS: 0,
+            speed: ticker.speed,
+            active: ticker.started ? '运行中' : '已停止'
+        });
+        
+        console.log('Ticker 监控已启动');
     }
 }

@@ -8,6 +8,14 @@ class DebugManager {
     constructor() {
         this.subscribers = new Set();
         this.debugInfo = {
+            ticker: {
+                fps: 0,
+                targetFPS: '不限制',
+                deltaTime: 0,
+                deltaMS: 0,
+                speed: 1,
+                active: '未启动'
+            },
             mousePosition: { x: 0, y: 0 },
             pixelRatio: {
                 devicePixelRatio: window.devicePixelRatio,
@@ -100,6 +108,7 @@ function useDebugInfo() {
 export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
     const debugInfo = useDebugInfo();
     const [expanded, setExpanded] = React.useState({
+        ticker: true,
         mousePosition: true,
         pixelRatio: true,
         deviceTracker: true
@@ -174,6 +183,74 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
                 paddingBottom: '8px',
                 fontSize: '18px'
             }}>调试信息面板</h2>
+            
+            {/* Ticker 信息 */}
+            <div style={{ marginBottom: '15px' }}>
+                <div 
+                    onClick={() => toggleSection('ticker')}
+                    style={{ 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        color: '#555'
+                    }}
+                >
+                    <span style={{ 
+                        transform: expanded.ticker ? 'rotate(90deg)' : 'rotate(0deg)',
+                        display: 'inline-block',
+                        marginRight: '5px',
+                        transition: 'transform 0.2s'
+                    }}>▶</span>
+                    <h3 style={{ margin: '5px 0' }}>渲染信息</h3>
+                </div>
+                
+                {expanded.ticker && (
+                    <div style={{ 
+                        padding: '8px', 
+                        backgroundColor: '#fff',
+                        borderRadius: '4px',
+                        border: '1px solid #eee',
+                        marginLeft: '15px'
+                    }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            marginBottom: '8px',
+                            backgroundColor: '#4CAF5022',
+                            padding: '5px',
+                            borderRadius: '4px'
+                        }}>
+                            <div style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                borderRadius: '50%', 
+                                backgroundColor: '#4CAF50',
+                                marginRight: '8px'
+                            }}></div>
+                            <span style={{ fontWeight: 'bold', color: '#4CAF50' }}>
+                                {debugInfo.ticker.active}
+                            </span>
+                        </div>
+                        
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>FPS:</span> {debugInfo.ticker.fps}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>目标 FPS:</span> {debugInfo.ticker.targetFPS}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>Delta Time:</span> {debugInfo.ticker.deltaTime}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>Delta MS:</span> {debugInfo.ticker.deltaMS}
+                        </p>
+                        <p style={{ margin: '5px 0' }}>
+                            <span style={{ fontWeight: 'bold' }}>速度:</span> {debugInfo.ticker.speed}
+                        </p>
+                    </div>
+                )}
+            </div>
             
             {/* 鼠标位置信息 */}
             <div style={{ marginBottom: '15px' }}>
