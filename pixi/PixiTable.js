@@ -186,8 +186,8 @@ export default class PixiTable {
      * 初始化交互系统
      */
     initInteraction() {
-        // 设置舞台为交互式
-        this.app.stage.eventMode = 'static';
+        // 设置舞台为不接收交互事件
+        this.app.stage.eventMode = 'none';
         this.app.stage.hitArea = new PIXI.Rectangle(0, 0, this.app.screen.width, this.app.screen.height);
     }
     
