@@ -100,9 +100,6 @@ export default class PixiTable {
         // 初始化交互管理器
         this.initInteraction();
         
-        // 初始化视口裁剪
-        this.initViewportClipping();
-        
         // 添加窗口大小变化监听
         window.addEventListener('resize', this.handleResize.bind(this));
         
@@ -192,50 +189,6 @@ export default class PixiTable {
     }
     
     /**
-     * 初始化视口裁剪
-     */
-    initViewportClipping() {
-        // 启用内容层的裁剪 - 在 PixiJS v8 中设置 cullable
-        this.contentLayer.cullable = true;
-        
-        // 初始更新视口
-        this.updateViewport();
-        
-        // 添加到渲染循环 - 使用 PixiJS v8 的 Ticker
-        this.app.ticker.add(() => {
-            this.updateViewport();
-        });
-    }
-    
-    /**
-     * 更新视口裁剪区域
-     */
-    updateViewport() {
-        // 计算当前可见区域（在世界坐标系中）
-        const bounds = new PIXI.Rectangle(
-            -this.contentLayer.x / this.contentLayer.scale.x,
-            -this.contentLayer.y / this.contentLayer.scale.y,
-            this.app.screen.width / this.contentLayer.scale.x,
-            this.app.screen.height / this.contentLayer.scale.y
-        );
-        
-        // 添加边缘填充
-        const padding = 100 / this.contentLayer.scale.x;
-        bounds.x -= padding;
-        bounds.y -= padding;
-        bounds.width += padding * 2;
-        bounds.height += padding * 2;
-        
-        // 设置裁剪区域 - 在 PixiJS v8 中使用 cullArea
-        if (this.contentLayer.cullArea !== undefined) {
-            this.contentLayer.cullArea = bounds;
-        } else {
-            // 如果 cullArea 不可用，尝试其他方法
-            console.warn('cullArea 不可用，视口裁剪可能无法正常工作');
-        }
-    }
-    
-    /**
      * 触发自定义事件
      * @param {string} eventName - 事件名称
      * @param {Object} data - 事件数据
@@ -303,9 +256,6 @@ export default class PixiTable {
         
         // 重新居中内容
         this.centerContent();
-        
-        // 更新视口
-        this.updateViewport();
         
         // 更新舞台边框
         if (this.stageBorder) {
@@ -425,18 +375,7 @@ export default class PixiTable {
         // 设置事件监听器
         this.setupEventListeners();
         
-        // 设置视口裁剪
-        this.setupViewportCulling();
-        
         console.log('PixiTable initialized');
-    }
-    
-    /**
-     * 设置视口裁剪，只渲染可见区域
-     */
-    setupViewportCulling() {
-        // 启用内容层的裁剪
-        this.contentLayer.cullable = true;
     }
     
     /**
