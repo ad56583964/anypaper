@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { getStroke } from '../lib/perfect-freehand/packages/perfect-freehand/src';
 import { updateDebugInfo } from '../debug.jsx';
+import { convertPointToLocalCoordinates } from '../pixi/utils';
 
 /**
  * PixiPencilTool 类 - 处理绘图功能
@@ -93,11 +94,11 @@ export default class PixiPencilTool {
             this.finishStroke();
         }
         
-        // 获取世界坐标
-        const worldPoint = this.table.getWorldPoint(e);
+        // 获取本地坐标
+        const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
         
         // 开始新的笔画
-        this.startStroke(worldPoint.x, worldPoint.y, e.pressure || 0.5);
+        this.startStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
     }
     
     /**
@@ -107,11 +108,11 @@ export default class PixiPencilTool {
     pointermove(e) {
         if (!this.isDrawing) return;
         
-        // 获取世界坐标
-        const worldPoint = this.table.getWorldPoint(e);
+        // 获取本地坐标
+        const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
         
         // 更新笔画
-        this.updateStroke(worldPoint.x, worldPoint.y, e.pressure || 0.5);
+        this.updateStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
     }
     
     /**
