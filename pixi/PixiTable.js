@@ -89,10 +89,12 @@ export default class PixiTable {
         // 创建主要图层
         this.bgLayer = new PIXI.Container(); // 背景层 - 静态内容
         this.contentLayer = new PIXI.Container(); // 内容层 - 动态内容
+        this.drawingContainer = new PIXI.Container(); // 绘图层 - 用于绘制笔迹
         
         // 添加图层到舞台
         this.app.stage.addChild(this.bgLayer);
         this.app.stage.addChild(this.contentLayer);
+        this.contentLayer.addChild(this.drawingContainer); // 将绘图层添加到内容层中
         
         // 初始化内容位置 - 居中显示内容
         this.centerContent();
@@ -692,19 +694,6 @@ export default class PixiTable {
         } else {
             console.warn(`Tool not found: ${name}`);
         }
-    }
-    
-    /**
-     * 获取世界坐标
-     * @param {Object} event - 指针事件对象
-     * @returns {Object} - 世界坐标（本地坐标）
-     */
-    getWorldPoint(event) {
-        // 使用 convertPointToLocalCoordinates 获取本地坐标
-        const localPoint = convertPointToLocalCoordinates(this.app, event.clientX, event.clientY, this.contentLayer);
-        
-        // 返回坐标
-        return { x: localPoint.x, y: localPoint.y };
     }
     
     /**
