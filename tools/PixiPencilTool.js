@@ -237,34 +237,68 @@ export default class PixiPencilTool {
         // 设置绘制选项
         const options = {
             ...this.options,
-            last: isLast
+            last: isLast,
+            size: this.options.size * 2  // 增大尺寸以补偿不使用填充
         };
         
         // 使用 perfect-freehand 生成笔画
         const stroke = getStroke(this.currentPoints, options);
         
-        // 清除当前图形 - PixiJS 8.0 风格
+        // 清除当前图形
         this.currentGraphics.clear();
         
-        // 设置填充样式 - PixiJS 8.0 风格
-        this.currentGraphics.fill(0x000000);
+        // 设置线条样式
+        this.currentGraphics.setStrokeStyle({
+            width: 2,
+            color: 0x000000,
+            alpha: 1,
+            alignment: 0.5,
+            cap: 'round',
+            join: 'round'
+        });
         
-        // 绘制路径 - PixiJS 8.0 风格
-        if (stroke.length >= 3) {
-            // 开始一个新路径
-            this.currentGraphics.beginPath();
+        // 绘制路径
+        if (stroke.length >= 2) {
+            // 将 perfect-freehand 生成的点转换为平滑的路径
+            const path = [];
             
             // 移动到第一个点
-            this.currentGraphics.moveTo(stroke[0][0], stroke[0][1]);
+            path.push(stroke[0]);
             
-            // 绘制线段
-            for (let i = 1; i < stroke.length; i++) {
-                this.currentGraphics.lineTo(stroke[i][0], stroke[i][1]);
+            // 使用三次样条插值创建平滑的路径
+            for (let i = 1; i < stroke.length - 1; i++) {
+                const p0 = stroke[i - 1];
+                const p1 = stroke[i];
+                const p2 = stroke[i + 1];
+                
+                // 计算控制点
+                const cp1x = p0[0] + (p1[0] - p0[0]) * 0.5;
+                const cp1y = p0[1] + (p1[1] - p0[1]) * 0.5;
+                const cp2x = p1[0] + (p2[0] - p1[0]) * 0.5;
+                const cp2y = p1[1] + (p2[1] - p1[1]) * 0.5;
+                
+                path.push([cp1x, cp1y, p1[0], p1[1], cp2x, cp2y]);
             }
             
-            // 闭合路径并填充
-            this.currentGraphics.closePath();
-            this.currentGraphics.fill();
+            // 添加最后一个点
+            path.push(stroke[stroke.length - 1]);
+            
+            // 绘制路径
+            this.currentGraphics.beginPath();
+            this.currentGraphics.moveTo(path[0][0], path[0][1]);
+            
+            // 绘制平滑的曲线
+            for (let i = 1; i < path.length - 1; i++) {
+                const p = path[i];
+                this.currentGraphics.bezierCurveTo(p[0], p[1], p[2], p[3], p[4], p[5]);
+            }
+            
+            // 连接到最后一个点
+            const lastPoint = path[path.length - 1];
+            this.currentGraphics.lineTo(lastPoint[0], lastPoint[1]);
+            
+            // 应用描边
+            this.currentGraphics.stroke();
         }
     }
     
