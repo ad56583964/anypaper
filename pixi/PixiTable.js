@@ -495,31 +495,19 @@ export default class PixiTable {
      * 创建 paper
      */
     createPaper() {
-        // 使用内容区域的尺寸，不是舞台尺寸
-        const contentWidth = this.width;
-        const contentHeight = this.height;
-        
-        // 确定 paper 的宽度和高度，取较小的一边作为限制
-        let paperWidth, paperHeight;
-        if (contentWidth / 16 < contentHeight / 9) {
-            // 如果内容区域更宽，则以宽度为基准
-            paperWidth = contentWidth * 0.8; // 留出一些边距
-            paperHeight = paperWidth * 9 / 16;
-        } else {
-            // 如果内容区域更高，则以高度为基准
-            paperHeight = contentHeight * 0.8; // 留出一些边距
-            paperWidth = paperHeight * 16 / 9;
-        }
+        // 固定 paper 的尺寸，以 16:9 比例
+        const paperWidth = 640;
+        const paperHeight = 360;
         
         // 计算居中位置
-        const x = (contentWidth - paperWidth) / 2;
-        const y = (contentHeight - paperHeight) / 2;
+        const x = (this.width - paperWidth) / 2;
+        const y = (this.height - paperHeight) / 2;
         
         // 创建 paper 对象
         const paper = new PIXI.Graphics()
             .setStrokeStyle(1, 0x333333)
             .roundRect(x, y, paperWidth, paperHeight, 5)
-            .fill(0xffffff)
+            .fill(0xffffff);
 
         // 添加阴影效果
         const paperContainer = new PIXI.Container();
@@ -531,7 +519,7 @@ export default class PixiTable {
             .fill({
                 color: 0x000000,
                 alpha: 0.2
-            })
+            });
         
         // 添加模糊滤镜
         const blurFilter = new PIXI.BlurFilter();
