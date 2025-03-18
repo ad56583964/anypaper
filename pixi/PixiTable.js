@@ -3,7 +3,7 @@ import HitPointer from './HitPointer';
 import { updateDebugInfo } from '../debug.jsx';
 import PixiPencilTool from '../tools/PixiPencilTool';
 import PixiZoomTool from '../tools/PixiZoomTool';
-import { getCoordinates, createPointerInfo, convertPointToLocalCoordinates } from './utils';
+import { convertPointToLocalCoordinates } from './utils';
 
 /**
  * PixiTable 类 - 主要的表格组件
@@ -697,17 +697,14 @@ export default class PixiTable {
     /**
      * 获取世界坐标
      * @param {Object} event - 指针事件对象
-     * @returns {Object} - 世界坐标
+     * @returns {Object} - 世界坐标（本地坐标）
      */
     getWorldPoint(event) {
-        // 创建指针信息对象
-        const pointer = createPointerInfo(event);
+        // 使用 convertPointToLocalCoordinates 获取本地坐标
+        const localPoint = convertPointToLocalCoordinates(this.app, event.clientX, event.clientY, this.contentLayer);
         
-        // 使用工具函数获取世界坐标，传递渲染器参数以使用 PixiJS 的交互系统
-        const coords = getCoordinates(pointer, this.app.canvas, this.contentLayer, this);
-        
-        // 返回世界坐标
-        return { x: coords.worldX, y: coords.worldY };
+        // 返回坐标
+        return { x: localPoint.x, y: localPoint.y };
     }
     
     /**

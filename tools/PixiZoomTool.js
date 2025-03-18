@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { updateDebugInfo } from '../debug.jsx';
 import { getCoordinates, createPointerInfo } from '../pixi/utils';
+import { convertPointToLocalCoordinates } from '../pixi/utils';
 
 /**
  * PixiZoomTool 类 - 处理缩放和平移功能
@@ -97,60 +98,61 @@ export default class PixiZoomTool {
     }
     
     /**
-     * 处理滚轮缩放
+     * 处理滚轮事件 - 缩放
      * @param {WheelEvent} e - 滚轮事件
      */
     wheel(e) {
+        // 阻止默认滚动行为
         e.preventDefault();
         
-        // 获取当前缩放和图层引用
-        const oldScale = this.config.current;
-        const contentLayer = this.table.contentLayer;
-        const bgLayer = this.table.bgLayer;
-        const canvas = this.table.app.canvas;
+        // 如果未按下 Ctrl 键，忽略事件
+        if (!e.ctrlKey && !this.isZoomMode) {
+            return;
+        }
         
-        // 创建指针信息对象
-        const pointer = createPointerInfo(e);
+        // 获取滚轮方向和步长
+        const delta = Math.sign(-e.deltaY);
+        const step = 0.1;
         
-        // 使用坐标工具获取鼠标在画布上和世界中的位置
-        const coords = getCoordinates(pointer, canvas, contentLayer, this.table);
+        // 获取当前缩放
+        let scale = this.table.contentLayer.scale.x;
         
-        // 根据滚轮方向调整缩放
-        const direction = e.deltaY > 0 ? -1 : 1;
-        const factor = 0.1;
-        const newScale = direction > 0 ? oldScale * (1 + factor) : oldScale / (1 + factor);
+        // 计算新的缩放
+        const newScale = Math.max(this.config.min, Math.min(this.config.max, scale + delta * step));
         
-        // 限制缩放范围
-        const constrainedScale = Math.max(this.config.min, Math.min(this.config.max, newScale));
-        this.config.current = constrainedScale;
+        // 如果缩放未发生变化，退出
+        if (newScale === scale) {
+            return;
+        }
         
-        // 计算新位置，以保持鼠标指针处的内容在缩放前后保持一致
-        // 公式：newPos = pointer - (pointer - oldPos) * (newScale / oldScale)
-        // 这里pointer是鼠标在客户端坐标系的位置，oldPos是图层当前位置
-        const newX = pointer.x - (coords.worldX * constrainedScale);
-        const newY = pointer.y - (coords.worldY * constrainedScale);
+        // 记录缩放变化
+        const scaleFactor = newScale / scale;
         
-        // 应用新的缩放和位置到两个图层
-        contentLayer.scale.set(constrainedScale);
-        bgLayer.scale.set(constrainedScale);
+        // 获取缩放前的本地坐标
+        const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
         
-        contentLayer.position.set(newX, newY);
-        bgLayer.position.set(newX, newY);
+        // 更新缩放
+        this.table.contentLayer.scale.set(newScale, newScale);
+        
+        // 调整位置，使缩放以光标位置为中心
+        const currentX = this.table.contentLayer.position.x;
+        const currentY = this.table.contentLayer.position.y;
+        
+        // 更新位置 - 使缩放以光标位置为中心
+        this.table.contentLayer.position.set(
+            currentX + (localPoint.x - localPoint.x * scaleFactor) * newScale,
+            currentY + (localPoint.y - localPoint.y * scaleFactor) * newScale
+        );
         
         // 更新调试信息
-        this.updateDebugInfo();
-        
-        // 额外调试信息
-        if (Math.random() < 0.05) { // 只显示5%的调试信息，避免日志过多
-            console.log('Zoom Debug:', {
-                oldScale,
-                newScale: constrainedScale,
-                worldPos: { x: coords.worldX, y: coords.worldY },
-                oldPos: { x: contentLayer.position.x, y: contentLayer.position.y },
-                newPos: { x: newX, y: newY },
-                clientPos: { x: pointer.x, y: pointer.y }
-            });
-        }
+        updateDebugInfo('zoomTool', {
+            action: 'wheel',
+            scale: newScale.toFixed(2),
+            deltaY: e.deltaY,
+            direction: delta > 0 ? 'zoom in' : 'zoom out',
+            position: { x: e.clientX, y: e.clientY },
+            localPosition: { x: localPoint.x, y: localPoint.y }
+        });
     }
     
     /**
@@ -401,34 +403,55 @@ export default class PixiZoomTool {
      * @returns {boolean} - 是否处理了事件
      */
     pointerdown(e) {
-        if (this.isZoomMode) {
-            this.isDragging = true;
-            
-            const contentLayer = this.table.contentLayer;
-            this.dragStartPosition = {
-                x: contentLayer.x,
-                y: contentLayer.y
-            };
-            
-            // 创建指针信息对象
-            const pointer = createPointerInfo(e);
-            this.touch.lastPosition = {
-                x: pointer.x,
-                y: pointer.y
-            };
-            
-            // 更新调试信息
-            updateDebugInfo('zoomTool', {
-                status: 'drag_start',
-                isZoomMode: true,
-                isDragging: true,
-                dragStartPosition: this.dragStartPosition,
-                pointerPosition: { x: pointer.x, y: pointer.y }
+        // 如果有多个触点，处理多点触控
+        if (this.table.activePointers.size > 0) {
+            this.table.activePointers.set(e.pointerId, {
+                id: e.pointerId,
+                x: e.clientX,
+                y: e.clientY,
+                type: e.pointerType
             });
             
+            // 处理多点触控开始
+            if (this.table.activePointers.size === 2) {
+                this.handleMultiTouchStart(Array.from(this.table.activePointers.values()));
+            }
             return true;
         }
-        return false;
+        
+        // 记录指针位置
+        const pointerPosition = {
+            x: e.clientX,
+            y: e.clientY
+        };
+        
+        // 保存指针信息
+        this.table.activePointers.set(e.pointerId, {
+            id: e.pointerId,
+            x: e.clientX,
+            y: e.clientY,
+            type: e.pointerType
+        });
+        
+        // 如果是在缩放模式下或者按住了 Space 键，启用平移
+        if (this.isZoomMode || this.spaceKeyDown) {
+            this.isPanning = true;
+            this.lastPanPoint = pointerPosition;
+            
+            // 记录当前内容层位置
+            this.startContentPosition = {
+                x: this.table.contentLayer.position.x,
+                y: this.table.contentLayer.position.y
+            };
+            
+            // 更新工具状态
+            this.updateDebugInfo({
+                action: 'pan_start',
+                position: pointerPosition
+            });
+        }
+        
+        return true;
     }
     
     /**
@@ -437,45 +460,47 @@ export default class PixiZoomTool {
      * @returns {boolean} - 是否处理了事件
      */
     pointermove(e) {
-        if (this.isZoomMode && this.isDragging) {
-            // 创建指针信息对象
-            const pointer = createPointerInfo(e);
-            const currentPointerPos = {
-                x: pointer.x,
-                y: pointer.y
-            };
-            
-            // 计算移动距离
-            const deltaX = currentPointerPos.x - this.touch.lastPosition.x;
-            const deltaY = currentPointerPos.y - this.touch.lastPosition.y;
-            
-            // 获取图层
-            const contentLayer = this.table.contentLayer;
-            const bgLayer = this.table.bgLayer;
-            
-            // 更新图层位置
-            const newX = contentLayer.x + deltaX;
-            const newY = contentLayer.y + deltaY;
-            
-            // 同时更新两个图层的位置
-            contentLayer.position.set(newX, newY);
-            bgLayer.position.set(newX, newY);
-            
-            // 更新最后的指针位置
-            this.touch.lastPosition = currentPointerPos;
-            
-            // 更新调试信息
-            updateDebugInfo('zoomTool', {
-                status: 'dragging',
-                isZoomMode: true,
-                isDragging: true,
-                delta: { x: deltaX, y: deltaY },
-                newPosition: { x: newX, y: newY }
-            });
-            
+        // 更新当前指针位置
+        if (this.table.activePointers.has(e.pointerId)) {
+            const pointer = this.table.activePointers.get(e.pointerId);
+            pointer.x = e.clientX;
+            pointer.y = e.clientY;
+        }
+        
+        // 处理多点触控移动
+        if (this.table.activePointers.size === 2) {
+            this.handleMultiTouchMove(Array.from(this.table.activePointers.values()));
             return true;
         }
-        return false;
+        
+        // 如果不是平移模式，退出
+        if (!this.isPanning) return false;
+        
+        // 获取当前位置
+        const currentPosition = {
+            x: e.clientX,
+            y: e.clientY
+        };
+        
+        // 计算位移
+        const dx = currentPosition.x - this.lastPanPoint.x;
+        const dy = currentPosition.y - this.lastPanPoint.y;
+        
+        // 更新内容层位置
+        this.table.contentLayer.position.x += dx;
+        this.table.contentLayer.position.y += dy;
+        
+        // 更新最后的平移点
+        this.lastPanPoint = currentPosition;
+        
+        // 更新工具状态
+        this.updateDebugInfo({
+            action: 'panning',
+            position: currentPosition,
+            delta: { x: dx, y: dy }
+        });
+        
+        return true;
     }
     
     /**
