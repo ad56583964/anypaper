@@ -1,6 +1,5 @@
 import * as PIXI from 'pixi.js';
 import { updateDebugInfo } from '../debug.jsx';
-import { getCoordinates, createPointerInfo } from '../pixi/utils';
 import { convertPointToLocalCoordinates } from '../pixi/utils';
 
 /**
