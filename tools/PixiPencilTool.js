@@ -262,8 +262,9 @@ export default class PixiPencilTool {
                 this.currentGraphics.lineTo(stroke[i][0], stroke[i][1]);
             }
             
-            // 闭合路径
+            // 闭合路径并填充
             this.currentGraphics.closePath();
+            this.currentGraphics.fill();
         }
     }
     
