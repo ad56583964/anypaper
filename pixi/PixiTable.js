@@ -125,14 +125,30 @@ export default class PixiTable {
      */
     centerContent() {
         // 计算内容应该在舞台中的位置
-        const centerX = (this.stageWidth/this.app.renderer.resolution - this.width) / 2;
-        const centerY = (this.stageHeight/this.app.renderer.resolution - this.height) / 2;
+        const centerX = (this.getScaledStageWidth() - this.width) / 2;
+        const centerY = (this.getScaledStageHeight() - this.height) / 2;
         
         // 设置内容层的初始位置
         this.contentLayer.position.set(centerX, centerY);
         this.bgLayer.position.set(centerX, centerY);
         
         console.log('Content centered', { centerX, centerY });
+    }
+    
+    /**
+     * 获取考虑分辨率的舞台宽度
+     * @returns {number} 考虑分辨率的舞台宽度
+     */
+    getScaledStageWidth() {
+        return this.stageWidth / this.app.renderer.resolution;
+    }
+    
+    /**
+     * 获取考虑分辨率的舞台高度
+     * @returns {number} 考虑分辨率的舞台高度
+     */
+    getScaledStageHeight() {
+        return this.stageHeight / this.app.renderer.resolution;
     }
     
     /**
@@ -158,8 +174,8 @@ export default class PixiTable {
         const padding = Math.max(3, Math.ceil(lineWidth / 2));
         
         // 获取舞台的实际尺寸
-        const stageWidth = this.stageWidth/this.app.renderer.resolution;
-        const stageHeight = this.stageHeight/this.app.renderer.resolution;
+        const stageWidth = this.getScaledStageWidth();
+        const stageHeight = this.getScaledStageHeight();
         
         // 绘制矩形边框，确保边框完全在舞台内部
         border.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
@@ -280,8 +296,8 @@ export default class PixiTable {
             const padding = Math.max(3, Math.ceil(lineWidth / 2));
             
             // 获取舞台的实际尺寸
-            const stageWidth = width;
-            const stageHeight = height;
+            const stageWidth = this.getScaledStageWidth();
+            const stageHeight = this.getScaledStageHeight();
             
             // 绘制矩形边框，确保边框完全在舞台内部
             this.stageBorder.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
@@ -479,25 +495,25 @@ export default class PixiTable {
      * 创建 paper
      */
     createPaper() {
-        // 计算 paper 的尺寸，使其保持 16:9 比例
-        const stageWidth = this.width;
-        const stageHeight = this.height;
+        // 使用内容区域的尺寸，不是舞台尺寸
+        const contentWidth = this.width;
+        const contentHeight = this.height;
         
         // 确定 paper 的宽度和高度，取较小的一边作为限制
         let paperWidth, paperHeight;
-        if (stageWidth / 16 < stageHeight / 9) {
-            // 如果舞台更宽，则以宽度为基准
-            paperWidth = stageWidth * 0.8; // 留出一些边距
+        if (contentWidth / 16 < contentHeight / 9) {
+            // 如果内容区域更宽，则以宽度为基准
+            paperWidth = contentWidth * 0.8; // 留出一些边距
             paperHeight = paperWidth * 9 / 16;
         } else {
-            // 如果舞台更高，则以高度为基准
-            paperHeight = stageHeight * 0.8; // 留出一些边距
+            // 如果内容区域更高，则以高度为基准
+            paperHeight = contentHeight * 0.8; // 留出一些边距
             paperWidth = paperHeight * 16 / 9;
         }
         
         // 计算居中位置
-        const x = (stageWidth - paperWidth) / 2;
-        const y = (stageHeight - paperHeight) / 2;
+        const x = (contentWidth - paperWidth) / 2;
+        const y = (contentHeight - paperHeight) / 2;
         
         // 创建 paper 对象
         const paper = new PIXI.Graphics()
