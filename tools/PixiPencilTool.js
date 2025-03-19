@@ -1,6 +1,5 @@
 import * as PIXI from 'pixi.js';
 import { getStroke } from '../lib/perfect-freehand/packages/perfect-freehand/src';
-import { updateDebugInfo } from '../debug.jsx';
 import { convertPointToLocalCoordinates } from '../pixi/utils';
 
 /**
@@ -31,7 +30,7 @@ export default class PixiPencilTool {
         
         // 绘制选项
         this.options = {
-            size: this.table.pixel,
+            size: 5,
             thinning: 0.6,
             smoothing: 0.5,
             streamline: 0.5,
@@ -56,13 +55,6 @@ export default class PixiPencilTool {
      */
     activate() {
         console.log('PixiPencilTool activated');
-        
-        // 更新调试信息
-        updateDebugInfo('pencilTool', {
-            status: 'activated',
-            strokeCount: this.stats.strokeCount,
-            totalPoints: this.stats.totalPoints
-        });
     }
     
     /**
@@ -75,13 +67,6 @@ export default class PixiPencilTool {
         if (this.isDrawing) {
             this.finishStroke();
         }
-        
-        // 更新调试信息
-        updateDebugInfo('pencilTool', {
-            status: 'deactivated',
-            strokeCount: this.stats.strokeCount,
-            totalPoints: this.stats.totalPoints
-        });
     }
     
     /**
@@ -151,14 +136,6 @@ export default class PixiPencilTool {
         
         // 记录开始时间
         this.stats.strokeStartTime = performance.now();
-        
-        // 更新调试信息
-        updateDebugInfo('pencilTool', {
-            status: 'drawing',
-            currentPoints: 1,
-            position: { x, y },
-            pressure
-        });
     }
     
     /**
@@ -176,14 +153,6 @@ export default class PixiPencilTool {
         
         // 重新绘制
         this.drawCurrentStroke(false);
-        
-        // 更新调试信息
-        updateDebugInfo('pencilTool', {
-            status: 'drawing',
-            currentPoints: this.currentPoints.length,
-            position: { x, y },
-            pressure
-        });
     }
     
     /**
@@ -204,16 +173,6 @@ export default class PixiPencilTool {
         const strokeEndTime = performance.now();
         this.stats.lastStrokeTime = strokeEndTime - this.stats.strokeStartTime;
         this.stats.totalDrawingTime += this.stats.lastStrokeTime;
-        
-        // 更新调试信息
-        updateDebugInfo('pencilTool', {
-            status: 'stroke_completed',
-            strokeCount: this.stats.strokeCount,
-            lastStrokePoints: this.stats.lastStrokePoints,
-            totalPoints: this.stats.totalPoints,
-            lastStrokeTime: this.stats.lastStrokeTime.toFixed(2),
-            totalDrawingTime: this.stats.totalDrawingTime.toFixed(2)
-        });
         
         // 将当前图形添加到绘图列表
         if (this.currentGraphics) {
@@ -237,8 +196,7 @@ export default class PixiPencilTool {
         // 设置绘制选项
         const options = {
             ...this.options,
-            last: isLast,
-            size: this.options.size * 2  // 增大尺寸以补偿不使用填充
+            last: isLast
         };
         
         // 使用 perfect-freehand 生成笔画
@@ -247,57 +205,45 @@ export default class PixiPencilTool {
         // 清除当前图形
         this.currentGraphics.clear();
         
-        // 设置线条样式
+        // 只设置线条样式，不使用填充
         this.currentGraphics.setStrokeStyle({
-            width: 2,
+            width: 1,
             color: 0x000000,
-            alpha: 1,
-            alignment: 0.5,
             cap: 'round',
             join: 'round'
         });
         
         // 绘制路径
         if (stroke.length >= 2) {
-            // 将 perfect-freehand 生成的点转换为平滑的路径
-            const path = [];
+            // 开始绘制路径
+            this.currentGraphics.beginPath();
             
             // 移动到第一个点
-            path.push(stroke[0]);
+            this.currentGraphics.moveTo(stroke[0][0], stroke[0][1]);
             
-            // 使用三次样条插值创建平滑的路径
-            for (let i = 1; i < stroke.length - 1; i++) {
-                const p0 = stroke[i - 1];
-                const p1 = stroke[i];
-                const p2 = stroke[i + 1];
-                
-                // 计算控制点
-                const cp1x = p0[0] + (p1[0] - p0[0]) * 0.5;
-                const cp1y = p0[1] + (p1[1] - p0[1]) * 0.5;
-                const cp2x = p1[0] + (p2[0] - p1[0]) * 0.5;
-                const cp2y = p1[1] + (p2[1] - p1[1]) * 0.5;
-                
-                path.push([cp1x, cp1y, p1[0], p1[1], cp2x, cp2y]);
+            // 绘制轮廓的所有点
+            for (let i = 1; i < stroke.length; i++) {
+                this.currentGraphics.lineTo(stroke[i][0], stroke[i][1]);
             }
             
-            // 添加最后一个点
-            path.push(stroke[stroke.length - 1]);
+            // 描边轮廓
+            this.currentGraphics.stroke();
             
-            // 绘制路径
+            // 再次描边轮廓，使线条更粗
+            this.currentGraphics.setStrokeStyle({
+                width: this.options.size,
+                color: 0x000000,
+                cap: 'round',
+                join: 'round'
+            });
+            
             this.currentGraphics.beginPath();
-            this.currentGraphics.moveTo(path[0][0], path[0][1]);
+            this.currentGraphics.moveTo(this.currentPoints[0][0], this.currentPoints[0][1]);
             
-            // 绘制平滑的曲线
-            for (let i = 1; i < path.length - 1; i++) {
-                const p = path[i];
-                this.currentGraphics.bezierCurveTo(p[0], p[1], p[2], p[3], p[4], p[5]);
+            for (let i = 1; i < this.currentPoints.length; i++) {
+                this.currentGraphics.lineTo(this.currentPoints[i][0], this.currentPoints[i][1]);
             }
             
-            // 连接到最后一个点
-            const lastPoint = path[path.length - 1];
-            this.currentGraphics.lineTo(lastPoint[0], lastPoint[1]);
-            
-            // 应用描边
             this.currentGraphics.stroke();
         }
     }
@@ -355,13 +301,6 @@ export default class PixiPencilTool {
         this.stats.lastStrokePoints = 0;
         this.stats.lastStrokeTime = 0;
         this.stats.totalDrawingTime = 0;
-        
-        // 更新调试信息
-        updateDebugInfo('pencilTool', {
-            status: 'cleared',
-            strokeCount: 0,
-            totalPoints: 0
-        });
     }
     
     // /**
