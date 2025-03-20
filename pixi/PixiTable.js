@@ -664,6 +664,18 @@ export default class PixiTable {
         // 更新红色指针位置
         this.updateHitPointer(e);
         
+        // 特殊处理：检查是否有两个手指，如果是则优先使用缩放工具
+        // 无论当前是什么工具模式，都允许双指缩放
+        if (this.activePointers.size === 2 && e.pointerType === 'touch') {
+            // 获取缩放工具实例
+            const zoomTool = this.tools['zoom'];
+            if (zoomTool) {
+                console.log('检测到双指触摸，切换到缩放模式');
+                // 直接调用缩放工具的事件处理
+                return zoomTool.pointerdown(e);
+            }
+        }
+        
         // 如果有活动工具，将事件传递给工具
         if (this.currentTool) {
             this.currentTool.pointerdown(e);
@@ -688,6 +700,14 @@ export default class PixiTable {
         // 更新红色指针位置（仅追踪移动中的指针）
         this.updateHitPointer(e);
         
+        // 特殊处理：如果有两个或更多的手指，优先把事件传递给缩放工具
+        if (this.activePointers.size >= 2 && e.pointerType === 'touch') {
+            const zoomTool = this.tools['zoom'];
+            if (zoomTool && zoomTool.touch.isZooming) {
+                return zoomTool.pointermove(e);
+            }
+        }
+        
         // 如果有活动工具，将事件传递给工具
         if (this.currentTool) {
             this.currentTool.pointermove(e);
@@ -699,11 +719,23 @@ export default class PixiTable {
      * @param {PointerEvent} e - 指针事件
      */
     handlePointerUp(e) {
-        // 从活动指针集合中移除该指针
-        this.activePointers.delete(e.pointerId);
-        
         // 更新调试信息
         this.updateDeviceTrackerInfo('pointerup', e);
+        
+        // 特殊处理：如果正在进行缩放操作，优先将事件传递给缩放工具
+        if (e.pointerType === 'touch') {
+            const zoomTool = this.tools['zoom'];
+            if (zoomTool && zoomTool.touch.isZooming) {
+                // 先处理缩放工具的事件
+                const result = zoomTool.pointerup(e);
+                // 从活动指针集合中移除该指针
+                this.activePointers.delete(e.pointerId);
+                return result;
+            }
+        }
+        
+        // 从活动指针集合中移除该指针
+        this.activePointers.delete(e.pointerId);
         
         // 如果有活动工具，将事件传递给工具
         if (this.currentTool) {
