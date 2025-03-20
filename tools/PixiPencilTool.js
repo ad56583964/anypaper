@@ -30,12 +30,12 @@ export default class PixiPencilTool {
         
         // 绘制选项
         this.options = {
-            size: 5,
-            thinning: 0.6,
-            smoothing: 0.5,
-            streamline: 0.5,
-            easing: (t) => Math.sin((t * Math.PI) / 2),
-            simulatePressure: true
+            size: this.table.pixel * 2, // 增大基础尺寸
+            thinning: 0.6,             // 压力对笔画宽度的影响程度
+            smoothing: 0.5,            // 平滑程度
+            streamline: 0.5,           // 流线化程度
+            easing: (t) => Math.sin((t * Math.PI) / 2), // 缓动函数
+            simulatePressure: true     // 是否模拟压力
         };
         
         // 笔迹统计
@@ -48,6 +48,48 @@ export default class PixiPencilTool {
         };
         
         console.log('PixiPencilTool initialized');
+    }
+    
+    /**
+     * 获取可变宽度笔画
+     * 基于 perfect-freehand 的原理，但返回中心线点和半径
+     * @param {Array} points - 输入点数组
+     * @param {Object} options - 选项
+     * @returns {Array} 中心线点及其对应的半径
+     */
+    getVariableWidthStroke(points, options = {}) {
+        // 使用 perfect-freehand 的 getStroke 函数获取轮廓点
+        const outlinePoints = getStroke(points, options);
+        
+        if (!outlinePoints || outlinePoints.length < 2) return [];
+        
+        // 原始输入点（用作中心线）
+        const centerPoints = [];
+        
+        // 计算每个输入点的平均半径
+        for (let i = 0; i < points.length; i++) {
+            const point = points[i];
+            const x = Array.isArray(point) ? point[0] : point.x;
+            const y = Array.isArray(point) ? point[1] : point.y;
+            const pressure = Array.isArray(point) ? (point[2] || 0.5) : (point.pressure || 0.5);
+            
+            // 基于压力计算半径
+            let radius = options.size / 2;
+            if (options.thinning > 0) {
+                // 模拟 perfect-freehand 中的半径计算
+                const thinning = Math.max(0, Math.min(1, options.thinning));
+                const scale = 1 - thinning * (1 - pressure);
+                radius = options.size * scale / 2;
+            }
+            
+            centerPoints.push({
+                x,
+                y,
+                radius
+            });
+        }
+        
+        return centerPoints;
     }
     
     /**
@@ -121,7 +163,7 @@ export default class PixiPencilTool {
         this.isDrawing = true;
         
         // 重置点集合
-        this.currentPoints = [[x, y]];
+        this.currentPoints = [[x, y, pressure]];
         this.currentPressures = [pressure];
         
         // 创建新的图形对象 - PixiJS 8.0 风格
@@ -148,7 +190,7 @@ export default class PixiPencilTool {
         if (!this.isDrawing) return;
         
         // 添加新点
-        this.currentPoints.push([x, y]);
+        this.currentPoints.push([x, y, pressure]);
         this.currentPressures.push(pressure);
         
         // 重新绘制
@@ -199,52 +241,62 @@ export default class PixiPencilTool {
             last: isLast
         };
         
-        // 使用 perfect-freehand 生成笔画
-        const stroke = getStroke(this.currentPoints, options);
-        
         // 清除当前图形
         this.currentGraphics.clear();
         
-        // 只设置线条样式，不使用填充
-        this.currentGraphics.setStrokeStyle({
-            width: 1,
-            color: 0x000000,
-            cap: 'round',
-            join: 'round'
-        });
+        // 获取可变宽度笔画（中心线点和半径）
+        const centerPoints = this.getVariableWidthStroke(this.currentPoints, options);
         
-        // 绘制路径
-        if (stroke.length >= 2) {
-            // 开始绘制路径
+        if (centerPoints.length < 2) return;
+        
+        // 先绘制连接线
+        for (let i = 0; i < centerPoints.length - 1; i++) {
+            const current = centerPoints[i];
+            const next = centerPoints[i + 1];
+            
+            // 计算连接线
+            const dx = next.x - current.x;
+            const dy = next.y - current.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 0.1) continue; // 避免点太近时出现问题
+            
+            // 计算线段的法向量（垂直于线段的单位向量）
+            const nx = -dy / distance;
+            const ny = dx / distance;
+            
+            // 计算连接两点的多边形顶点
+            const radius1 = current.radius;
+            const radius2 = next.radius;
+            
+            // 创建连接多边形的四个顶点
+            const x1 = current.x + nx * radius1;
+            const y1 = current.y + ny * radius1;
+            const x2 = current.x - nx * radius1;
+            const y2 = current.y - ny * radius1;
+            const x3 = next.x - nx * radius2;
+            const y3 = next.y - ny * radius2;
+            const x4 = next.x + nx * radius2;
+            const y4 = next.y + ny * radius2;
+            
+            // 绘制连接多边形
             this.currentGraphics.beginPath();
+            this.currentGraphics.moveTo(x1, y1);
+            this.currentGraphics.lineTo(x2, y2);
+            this.currentGraphics.lineTo(x3, y3);
+            this.currentGraphics.lineTo(x4, y4);
+            this.currentGraphics.closePath();
+            this.currentGraphics.fill(0x000000);
+        }
+        
+        // 然后绘制圆形端点（确保圆形绘制在连接线上方）
+        for (let i = 0; i < centerPoints.length; i++) {
+            const point = centerPoints[i];
             
-            // 移动到第一个点
-            this.currentGraphics.moveTo(stroke[0][0], stroke[0][1]);
-            
-            // 绘制轮廓的所有点
-            for (let i = 1; i < stroke.length; i++) {
-                this.currentGraphics.lineTo(stroke[i][0], stroke[i][1]);
-            }
-            
-            // 描边轮廓
-            this.currentGraphics.stroke();
-            
-            // 再次描边轮廓，使线条更粗
-            this.currentGraphics.setStrokeStyle({
-                width: this.options.size,
-                color: 0x000000,
-                cap: 'round',
-                join: 'round'
-            });
-            
+            // 绘制圆形端点
             this.currentGraphics.beginPath();
-            this.currentGraphics.moveTo(this.currentPoints[0][0], this.currentPoints[0][1]);
-            
-            for (let i = 1; i < this.currentPoints.length; i++) {
-                this.currentGraphics.lineTo(this.currentPoints[i][0], this.currentPoints[i][1]);
-            }
-            
-            this.currentGraphics.stroke();
+            this.currentGraphics.circle(point.x, point.y, point.radius);
+            this.currentGraphics.fill(0x000000);
         }
     }
     

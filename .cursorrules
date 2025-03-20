@@ -1,8 +1,9 @@
 - 请使用中文进行回答
 - 该工程(anya4) 现在使用 pixijs 实现笔记白板功能。
+- 现在使用的 pixijs 版本为 v8.x 只支持 webgl 后端
 - pixijs 目前只用于渲染，事件处理由 vanilla-js 实现
 - react 在该工程中仅起到调试信息和外围挂件的作用，不参与任何绘制逻辑
 - 在执行路径操作时请以 /home/emasi/Documents/WORKSPACE/anya4_knova 绝对路径指定
-- lib/pixijs lib/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改
-- commit 时请使用英文进行描述
+- lib/pixijs lib/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改(除非我明确输出(允许修改pixijs))
 - 关于 pixijs 相关的细节请到 lib/pixijs 目录下查看
+- git commit 提交请使用 Conventional Commits 1.0.0 格式, 描述需要简短，请使用英文进行描述
