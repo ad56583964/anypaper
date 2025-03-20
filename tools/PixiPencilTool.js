@@ -30,7 +30,7 @@ export default class PixiPencilTool {
         
         // 绘制选项
         this.options = {
-            size: this.table.pixel * 2, // 增大基础尺寸
+            size: 6, // 固定尺寸，不再依赖 pixel
             thinning: 0.6,             // 压力对笔画宽度的影响程度
             smoothing: 0.5,            // 平滑程度
             streamline: 0.5,           // 流线化程度
