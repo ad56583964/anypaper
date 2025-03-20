@@ -16,7 +16,6 @@ class DebugManager {
                 speed: 1,
                 active: '未启动'
             },
-            mousePosition: { x: 0, y: 0 },
             deviceTracker: {
                 lastEvent: 'none',
                 deviceType: 'none',
@@ -105,7 +104,6 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
     const debugInfo = useDebugInfo();
     const [expanded, setExpanded] = React.useState({
         ticker: true,
-        mousePosition: true,
         deviceTracker: true
     });
     
@@ -274,41 +272,6 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
                         <p style={{ margin: '5px 0' }}>
                             <span style={{ fontWeight: 'bold' }}>速度:</span> {debugInfo.ticker.speed}
                         </p>
-                    </div>
-                )}
-            </div>
-            
-            {/* 鼠标位置信息 */}
-            <div style={{ marginBottom: '15px' }}>
-                <div 
-                    onClick={() => toggleSection('mousePosition')}
-                    style={{ 
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        fontWeight: 'bold',
-                        color: '#555'
-                    }}
-                >
-                    <span style={{ 
-                        transform: expanded.mousePosition ? 'rotate(90deg)' : 'rotate(0deg)',
-                        display: 'inline-block',
-                        marginRight: '5px',
-                        transition: 'transform 0.2s'
-                    }}>▶</span>
-                    <h3 style={{ margin: '5px 0' }}>鼠标位置</h3>
-                </div>
-                
-                {expanded.mousePosition && (
-                    <div style={{ 
-                        padding: '8px', 
-                        backgroundColor: '#fff',
-                        borderRadius: '4px',
-                        border: '1px solid #eee',
-                        marginLeft: '15px'
-                    }}>
-                        <p style={{ margin: '5px 0' }}>X: {debugInfo.mousePosition.x.toFixed(2)}</p>
-                        <p style={{ margin: '5px 0' }}>Y: {debugInfo.mousePosition.y.toFixed(2)}</p>
                     </div>
                 )}
             </div>
