@@ -80,11 +80,6 @@ export default class HitPointer {
         
         // 直接设置光标位置
         this._hitpointer.position.set(x, y);
-        
-        // 强制渲染
-        // if (app) {
-        //     app.render();
-        // }
     }
     
     /**
