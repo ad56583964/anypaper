@@ -264,13 +264,7 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
                             <span style={{ fontWeight: 'bold' }}>目标 FPS:</span> {debugInfo.ticker.targetFPS}
                         </p>
                         <p style={{ margin: '5px 0' }}>
-                            <span style={{ fontWeight: 'bold' }}>Delta Time:</span> {debugInfo.ticker.deltaTime}
-                        </p>
-                        <p style={{ margin: '5px 0' }}>
                             <span style={{ fontWeight: 'bold' }}>Delta MS:</span> {debugInfo.ticker.deltaMS}
-                        </p>
-                        <p style={{ margin: '5px 0' }}>
-                            <span style={{ fontWeight: 'bold' }}>速度:</span> {debugInfo.ticker.speed}
                         </p>
                     </div>
                 )}
