@@ -579,14 +579,28 @@ export default class PixiTable {
     }
     
     /**
-     * 设置事件监听
+     * 设置事件监听器
      */
     setupEventListeners() {
-        // 将所有事件监听器绑定到 window 对象上
-        window.addEventListener('pointerdown', this.handlePointerDown.bind(this));
-        window.addEventListener('pointermove', this.handlePointerMove.bind(this));
-        window.addEventListener('pointerup', this.handlePointerUp.bind(this));
-        window.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+        // 获取容器元素
+        const container = document.getElementById('a4-table');
+        
+        // 添加指针事件监听
+        container.addEventListener('pointerdown', this.handlePointerDown.bind(this));
+        container.addEventListener('pointermove', this.handlePointerMove.bind(this));
+        container.addEventListener('pointerup', this.handlePointerUp.bind(this));
+        container.addEventListener('pointercancel', this.handlePointerUp.bind(this));
+        container.addEventListener('pointerleave', this.handlePointerUp.bind(this));
+        
+        // 添加触摸事件，防止浏览器默认行为（如缩放）
+        container.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+        container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        
+        // 添加滚轮事件监听
+        container.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
+        
+        // 设置键盘事件监听
+        this.setupKeyboardEvents();
     }
     
     /**
@@ -636,12 +650,21 @@ export default class PixiTable {
      * @param {PointerEvent} e - 指针事件
      */
     handlePointerDown(e) {
-        // 更新设备追踪信息
+        // 将指针事件添加到活动指针集合中
+        this.activePointers.set(e.pointerId, {
+            id: e.pointerId,
+            x: e.clientX,
+            y: e.clientY,
+            type: e.pointerType
+        });
+        
+        // 更新调试信息
         this.updateDeviceTrackerInfo('pointerdown', e);
         
-        // 更新光标指示器位置
+        // 更新红色指针位置
         this.updateHitPointer(e);
         
+        // 如果有活动工具，将事件传递给工具
         if (this.currentTool) {
             this.currentTool.pointerdown(e);
         }
@@ -652,12 +675,20 @@ export default class PixiTable {
      * @param {PointerEvent} e - 指针事件
      */
     handlePointerMove(e) {
-        // 更新设备追踪信息
+        // 更新活动指针位置
+        if (this.activePointers.has(e.pointerId)) {
+            const pointer = this.activePointers.get(e.pointerId);
+            pointer.x = e.clientX;
+            pointer.y = e.clientY;
+        }
+        
+        // 更新调试信息
         this.updateDeviceTrackerInfo('pointermove', e);
-
-        // 更新命中指示器位置
+        
+        // 更新红色指针位置（仅追踪移动中的指针）
         this.updateHitPointer(e);
         
+        // 如果有活动工具，将事件传递给工具
         if (this.currentTool) {
             this.currentTool.pointermove(e);
         }
@@ -668,12 +699,13 @@ export default class PixiTable {
      * @param {PointerEvent} e - 指针事件
      */
     handlePointerUp(e) {
-        // 更新设备追踪信息
+        // 从活动指针集合中移除该指针
+        this.activePointers.delete(e.pointerId);
+        
+        // 更新调试信息
         this.updateDeviceTrackerInfo('pointerup', e);
         
-        // 更新光标指示器位置
-        this.updateHitPointer(e);
-        
+        // 如果有活动工具，将事件传递给工具
         if (this.currentTool) {
             this.currentTool.pointerup(e);
         }
