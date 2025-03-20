@@ -17,12 +17,10 @@ export default class PixiTable {
      * @returns {Promise} - 初始化完成的Promise
      */
     constructor(containerId = 'a4-table', options = {}) {
-        this.pixel = 2;
-        
-        // 设置 block 大小
+        // 设置 block 大小 - 使用固定值代替 this.pixel
         this.block = {
-            width: 10 * this.pixel,
-            height: 10 * this.pixel,
+            width: 20,  // 固定值 20 (替代 10 * this.pixel)
+            height: 20, // 固定值 20 (替代 10 * this.pixel)
         };
         
         // 计算内容大小
@@ -90,10 +88,12 @@ export default class PixiTable {
         this.bgLayer = new PIXI.Container(); // 背景层 - 静态内容
         this.contentLayer = new PIXI.Container(); // 内容层 - 动态内容
         this.drawingContainer = new PIXI.Container(); // 绘图层 - 用于绘制笔迹
+        this.pointerLayer = new PIXI.Container(); // 指针层 - 专门用于光标指示器
         
         // 添加图层到舞台
         this.app.stage.addChild(this.bgLayer);
         this.app.stage.addChild(this.contentLayer);
+        this.app.stage.addChild(this.pointerLayer); // 将指针层添加到最上层
         this.contentLayer.addChild(this.drawingContainer); // 将绘图层添加到内容层中
         
         // 初始化内容位置 - 居中显示内容
@@ -133,6 +133,7 @@ export default class PixiTable {
         // 设置内容层的初始位置
         this.contentLayer.position.set(centerX, centerY);
         this.bgLayer.position.set(centerX, centerY);
+        // 指针层不需要居中，它跟随鼠标位置
         
         console.log('Content centered', { centerX, centerY });
     }
@@ -323,8 +324,8 @@ export default class PixiTable {
      * @param {Object} options - 光标指示器选项
      */
     initPointer(options = {}) {
-        // 创建命中指示器
-        this.hitPointer = new HitPointer(this.contentLayer, {
+        // 创建命中指示器，使用专门的指针层
+        this.hitPointer = new HitPointer(this.pointerLayer, {
             size: options?.size || 10,
             color: options?.color || 0xFF0000, // 红色
         });
@@ -340,10 +341,21 @@ export default class PixiTable {
     updateHitPointer(e) {
         if (!this.hitPointer) return;
         
-        // 使用工具函数将客户端坐标转换为内容层的本地坐标
-        const localPoint = convertPointToLocalCoordinates(this.app, e.clientX, e.clientY, this.contentLayer);
+        // 获取屏幕坐标（相对于浏览器窗口）
+        const screenX = e.clientX;
+        const screenY = e.clientY;
         
-        // 更新命中指示器位置，传递 app 实例进行强制渲染
+        // 创建屏幕坐标点对象
+        const screenPoint = new PIXI.Point(screenX, screenY);
+        
+        // 创建用于存储结果的本地坐标点对象
+        const localPoint = new PIXI.Point();
+        
+        // 将点从屏幕坐标系转换为舞台的本地坐标系
+        // 这是必要的，因为舞台可能已经进行了缩放、平移等变换
+        this.app.stage.worldTransform.applyInverse(screenPoint, localPoint);
+        
+        // 更新命中指示器位置（使用转换后的本地坐标）
         this.hitPointer.update(localPoint.x, localPoint.y, this.app);
     }
     
@@ -546,7 +558,7 @@ export default class PixiTable {
         window.addEventListener('pointerdown', this.handlePointerDown.bind(this));
         window.addEventListener('pointermove', this.handlePointerMove.bind(this));
         window.addEventListener('pointerup', this.handlePointerUp.bind(this));
-        window.addEventListener('wheel', this.handleWheel.bind(this));
+        window.addEventListener('wheel', this.handleWheel.bind(this), { passive: false });
     }
     
     /**
@@ -647,13 +659,20 @@ export default class PixiTable {
         // 更新设备追踪信息
         this.updateDeviceTrackerInfo('wheel', e);
         
-        // // 确保当前工具存在且有 wheel 方法
-        // if (this.currentTool && typeof this.currentTool.wheel === 'function') {
-        //     this.currentTool.wheel(e);
-        // } else if (this.tools.zoom && typeof this.tools.zoom.wheel === 'function') {
-        //     // 如果当前工具没有 wheel 方法，但存在缩放工具，则使用缩放工具处理滚轮事件
-        //     this.tools.zoom.wheel(e);
-        // }
+        // 处理滚轮缩放
+        // 如果按下 Ctrl 键，或者当前工具是缩放工具且处于缩放模式，则进行缩放
+        if (e.ctrlKey || (this.tools.zoom && this.tools.zoom.isZoomMode)) {
+            // 阻止默认滚动行为
+            e.preventDefault();
+            
+            // 使用缩放工具处理滚轮事件
+            if (this.tools.zoom && typeof this.tools.zoom.wheel === 'function') {
+                this.tools.zoom.wheel(e);
+            }
+        } else if (this.currentTool && typeof this.currentTool.wheel === 'function') {
+            // 如果当前工具支持滚轮事件，则传递给当前工具处理
+            this.currentTool.wheel(e);
+        }
         
         // 在缩放后更新光标位置
         this.updateHitPointer(e);
@@ -720,10 +739,10 @@ export default class PixiTable {
         }
         
         // 清理指针容器
-        if (this.pointerContainer) {
-            this.app.stage.removeChild(this.pointerContainer);
-            this.pointerContainer.destroy();
-            this.pointerContainer = null;
+        if (this.pointerLayer) {
+            this.app.stage.removeChild(this.pointerLayer);
+            this.pointerLayer.destroy();
+            this.pointerLayer = null;
         }
         
         // 销毁图层
