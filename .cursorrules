@@ -6,4 +6,4 @@
 - 在执行路径操作时请以 /home/emasi/Documents/WORKSPACE/anya4_knova 绝对路径指定
 - lib/pixijs lib/perfect-freehand 仅仅只是我在工程中托管的第三方库，只能进行分析, 不允许进行修改(除非我明确输出(允许修改pixijs))
 - 关于 pixijs 相关的细节请到 lib/pixijs 目录下查看
-- git commit 提交请使用 Conventional Commits 1.0.0 格式, 描述需要简短，请使用英文进行描述
+- git commit 提交请使用 <type>[optional scope]: <description> Conventional Commits 1.0.0 格式, 描述需要简短，请使用英文进行描述
