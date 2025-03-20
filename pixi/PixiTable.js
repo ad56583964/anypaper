@@ -831,20 +831,6 @@ export default class PixiTable {
         
         const ticker = this.app.ticker;
         
-        // 获取渲染器信息
-        const renderer = this.app.renderer;
-        const rendererInfo = {
-            type: renderer.type,
-            backend: renderer.context?.type || '未知',
-            contextId: renderer.context?.contextId || '未知',
-            gpu: renderer.context?.gpu?.info?.renderer || '未知',
-            isWebGL: renderer.context?.isWebGL || false,
-            isWebGPU: renderer.context?.isWebGPU || false
-        };
-        
-        // 更新渲染器信息
-        updateDebugInfo('renderer', rendererInfo);
-        
         // 创建一个计数器和时间记录
         let frameCount = 0;
         let lastTime = performance.now();
