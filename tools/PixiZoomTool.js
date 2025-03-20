@@ -28,7 +28,8 @@ export default class PixiZoomTool {
             initialPosition: { x: 0, y: 0 },
             initialDistance: 0,
             initialCenter: { x: 0, y: 0 },
-            lastPosition: { x: 0, y: 0 }
+            lastPosition: { x: 0, y: 0 },
+            initialBgPosition: { x: 0, y: 0 }
         };
         
         // 缩放模式
@@ -127,21 +128,86 @@ export default class PixiZoomTool {
         // 记录缩放变化
         const scaleFactor = newScale / scale;
         
-        // 获取缩放前的本地坐标
-        const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
+        // 获取屏幕坐标
+        const screenPoint = new PIXI.Point(e.clientX, e.clientY);
         
-        // 更新缩放
+        // 转换为舞台坐标
+        const stagePoint = new PIXI.Point();
+        this.table.app.stage.worldTransform.applyInverse(screenPoint, stagePoint);
+        
+        // 转换为内容层本地坐标
+        const localPoint = this.table.contentLayer.toLocal(stagePoint);
+        
+        // 转换为背景层本地坐标
+        const bgLocalPoint = this.table.bgLayer.toLocal(stagePoint);
+        
+        // 记录鼠标在页面上的绝对坐标 - 这是缩放的中心点
+        const absolutePoint = { x: e.clientX, y: e.clientY };
+        
+        // 记录缩放中心在世界坐标系(stage)中的位置 - 这个位置相对于舞台是固定的
+        const worldZoomCenter = { x: stagePoint.x, y: stagePoint.y };
+        
+        // 更新调试指针位置到缩放中心点（显示在背景层）
+        if (this.table.zoomDebugPointer) {
+            // 记录缩放前的背景图层上的位置
+            const preBgPoint = { x: bgLocalPoint.x, y: bgLocalPoint.y };
+            
+            // 记录缩放点和世界坐标的关系 - 这个是保持不变的
+            this.zoomCenterWorldPoint = worldZoomCenter;
+            
+            // 将蓝色指针放在缩放中心点位置
+            this.table.zoomDebugPointer.update(bgLocalPoint.x, bgLocalPoint.y, this.table.app);
+            
+            console.log('Zoom center point (before scaling):', {
+                screen: absolutePoint,
+                stage: worldZoomCenter,
+                bgLocal: preBgPoint
+            });
+        }
+        
+        // 更新内容层缩放
         this.table.contentLayer.scale.set(newScale, newScale);
         
-        // 调整位置，使缩放以光标位置为中心
-        const currentX = this.table.contentLayer.position.x;
-        const currentY = this.table.contentLayer.position.y;
+        // 同步更新背景层缩放
+        this.table.bgLayer.scale.set(newScale, newScale);
         
-        // 更新位置 - 使缩放以光标位置为中心
+        // 调整位置，使缩放以光标位置为中心
+        const currentContentX = this.table.contentLayer.position.x;
+        const currentContentY = this.table.contentLayer.position.y;
+        const currentBgX = this.table.bgLayer.position.x;
+        const currentBgY = this.table.bgLayer.position.y;
+        
+        // 计算新的位置偏移量
+        const offsetX = (localPoint.x * scale) * (1 - scaleFactor);
+        const offsetY = (localPoint.y * scale) * (1 - scaleFactor);
+        
+        // 更新内容层位置 - 使缩放以光标位置为中心
         this.table.contentLayer.position.set(
-            currentX + (localPoint.x - localPoint.x * scaleFactor) * newScale,
-            currentY + (localPoint.y - localPoint.y * scaleFactor) * newScale
+            currentContentX + offsetX,
+            currentContentY + offsetY
         );
+        
+        // 同步更新背景层位置
+        this.table.bgLayer.position.set(
+            currentBgX + offsetX,
+            currentBgY + offsetY
+        );
+        
+        // 缩放后，更新蓝色指针位置
+        if (this.table.zoomDebugPointer && this.zoomCenterWorldPoint) {
+            // 将世界坐标转换为新的背景层坐标系
+            const postBgPoint = this.table.bgLayer.toLocal(
+                new PIXI.Point(this.zoomCenterWorldPoint.x, this.zoomCenterWorldPoint.y)
+            );
+            
+            // 更新蓝色指针到新的位置
+            this.table.zoomDebugPointer.update(postBgPoint.x, postBgPoint.y, this.table.app);
+            
+            console.log('Zoom center point (after scaling):', {
+                worldPoint: this.zoomCenterWorldPoint,
+                newBgLocal: { x: postBgPoint.x, y: postBgPoint.y }
+            });
+        }
         
         // 更新调试信息
         updateDebugInfo('zoomTool', {
@@ -149,7 +215,7 @@ export default class PixiZoomTool {
             scale: newScale.toFixed(2),
             deltaY: e.deltaY,
             direction: delta > 0 ? 'zoom in' : 'zoom out',
-            position: { x: e.clientX, y: e.clientY },
+            position: absolutePoint,
             localPosition: { x: localPoint.x, y: localPoint.y }
         });
     }
@@ -204,6 +270,13 @@ export default class PixiZoomTool {
         this.touch.initialPosition = {
             x: contentLayer.x,
             y: contentLayer.y
+        };
+        
+        // 记录背景层初始位置
+        const bgLayer = this.table.bgLayer;
+        this.touch.initialBgPosition = {
+            x: bgLayer.x,
+            y: bgLayer.y
         };
         
         // 更新调试信息
@@ -309,9 +382,16 @@ export default class PixiZoomTool {
             this.isDragging = true;
             
             const contentLayer = this.table.contentLayer;
+            const bgLayer = this.table.bgLayer;
+            
             this.dragStartPosition = {
                 x: contentLayer.x,
                 y: contentLayer.y
+            };
+            
+            this.dragStartBgPosition = {
+                x: bgLayer.x,
+                y: bgLayer.y
             };
             
             // 获取剩余的触摸点
@@ -437,10 +517,14 @@ export default class PixiZoomTool {
             this.isPanning = true;
             this.lastPanPoint = pointerPosition;
             
-            // 记录当前内容层位置
+            // 记录当前内容层和背景层位置
             this.startContentPosition = {
                 x: this.table.contentLayer.position.x,
                 y: this.table.contentLayer.position.y
+            };
+            this.startBgPosition = {
+                x: this.table.bgLayer.position.x,
+                y: this.table.bgLayer.position.y
             };
             
             // 更新工具状态
@@ -485,9 +569,11 @@ export default class PixiZoomTool {
         const dx = currentPosition.x - this.lastPanPoint.x;
         const dy = currentPosition.y - this.lastPanPoint.y;
         
-        // 更新内容层位置
+        // 更新内容层和背景层位置
         this.table.contentLayer.position.x += dx;
         this.table.contentLayer.position.y += dy;
+        this.table.bgLayer.position.x += dx;
+        this.table.bgLayer.position.y += dy;
         
         // 更新最后的平移点
         this.lastPanPoint = currentPosition;

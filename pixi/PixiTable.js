@@ -328,10 +328,32 @@ export default class PixiTable {
         this.hitPointer = new HitPointer(this.pointerLayer, {
             size: options?.size || 10,
             color: options?.color || 0xFF0000, // 红色
+            alpha: 1,
+            id: "normal-pointer" // 正常指针的ID
         });
+        
+        // 创建背景层缩放调试指针，使用更大尺寸和鲜明的蓝色
+        this.zoomDebugPointer = new HitPointer(this.bgLayer, {
+            size: 20, // 更大的尺寸，使其更加明显
+            color: 0x00BFFF, // 亮蓝色 (DeepSkyBlue)
+            alpha: 0.8,
+            borderColor: 0xFFFFFF, // 白色边框
+            borderWidth: 3,
+            isDebug: true,
+            id: "zoom-debug-pointer" // 缩放调试指针的ID
+        });
+        
+        // 立即显示调试指针在画布中央
+        if (this.zoomDebugPointer) {
+            this.zoomDebugPointer.update(this.width / 2, this.height / 2, this.app);
+        }
         
         // 为了向后兼容，将 hitPointer 也赋值给 pointer
         this.pointer = this.hitPointer;
+        
+        console.log('Pointers initialized:');
+        console.log('- Red pointer: Normal cursor position (follows mouse)');
+        console.log('- Blue pointer: Zoom debug point (shows point in background layer)');
     }
     
     /**
@@ -357,6 +379,12 @@ export default class PixiTable {
         
         // 更新命中指示器位置（使用转换后的本地坐标）
         this.hitPointer.update(localPoint.x, localPoint.y, this.app);
+        
+        // 如果存在缩放调试指针，则更新它
+        if (this.zoomDebugPointer) {
+            // 不在这里更新蓝色指针位置，它应该由 PixiZoomTool.wheel 独立控制
+            // 这样可以保证它始终显示在鼠标下方对应的背景层位置
+        }
     }
     
     /**
@@ -736,6 +764,12 @@ export default class PixiTable {
             this.hitPointer.destroy();
             this.hitPointer = null;
             this.pointer = null; // 清除指针引用
+        }
+        
+        // 销毁缩放调试指针
+        if (this.zoomDebugPointer) {
+            this.zoomDebugPointer.destroy();
+            this.zoomDebugPointer = null;
         }
         
         // 清理指针容器
