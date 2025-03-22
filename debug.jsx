@@ -21,6 +21,7 @@ class DebugManager {
                 deviceType: 'none',
                 position: { x: 0, y: 0 },
                 stagePosition: { x: 0, y: 0 },
+                tablePosition: { x: 0, y: 0 },
                 pressure: 0,
                 tiltX: 0,
                 tiltY: 0,
@@ -327,7 +328,7 @@ export const DebugBar = React.forwardRef(function DebugBar(props, ref) {
                             <span style={{ fontWeight: 'bold' }}>位置:</span> X: {debugInfo.deviceTracker.position.x.toFixed(2)}, Y: {debugInfo.deviceTracker.position.y.toFixed(2)}
                         </p>
                         <p style={{ margin: '5px 0' }}>
-                            <span style={{ fontWeight: 'bold' }}>Stage 位置:</span> X: {debugInfo.deviceTracker.stagePosition.x.toFixed(2)}, Y: {debugInfo.deviceTracker.stagePosition.y.toFixed(2)}
+                            <span style={{ fontWeight: 'bold' }}>Table 位置:</span> X: {debugInfo.deviceTracker.tablePosition.x.toFixed(2)}, Y: {debugInfo.deviceTracker.tablePosition.y.toFixed(2)}
                         </p>
                         <p style={{ margin: '5px 0' }}>
                             <span style={{ fontWeight: 'bold' }}>Pointer ID:</span> {debugInfo.deviceTracker.pointerId}
