@@ -343,9 +343,9 @@ export default class PixiTable {
             id: "zoom-debug-pointer" // 缩放调试指针的ID
         });
         
-        // 立即显示调试指针在画布中央
+        // 初始化时隐藏调试指针
         if (this.zoomDebugPointer) {
-            this.zoomDebugPointer.update(this.width / 2, this.height / 2, this.app);
+            this.zoomDebugPointer._hitpointer.visible = false;
         }
         
         // 为了向后兼容，将 hitPointer 也赋值给 pointer
