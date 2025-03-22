@@ -158,10 +158,10 @@ export default class PixiPencilTool {
      * @returns {Array} 中心线点及其对应的半径
      */
     getVariableWidthStroke(points, options = {}) {
-        // 使用 perfect-freehand 的 getStroke 函数获取轮廓点
-        const outlinePoints = getStroke(points, options);
+        // // 使用 perfect-freehand 的 getStroke 函数获取轮廓点
+        // const outlinePoints = getStroke(points, options);
         
-        if (!outlinePoints || outlinePoints.length < 2) return [];
+        // if (!outlinePoints || outlinePoints.length < 2) return [];
         
         // 原始输入点（用作中心线）
         const centerPoints = [];
