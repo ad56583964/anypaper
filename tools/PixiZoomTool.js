@@ -41,6 +41,11 @@ export default class PixiZoomTool {
         this.lastPanPoint = null;
         this.spaceKeyDown = false;
         
+        // 初始化时隐藏调试指针
+        if (this.table.zoomDebugPointer) {
+            this.table.zoomDebugPointer._hitpointer.visible = false;
+        }
+        
         // 更新调试信息
         this.updateDebugInfo();
         
@@ -114,6 +119,9 @@ export default class PixiZoomTool {
         if (!e.ctrlKey && !this.isZoomMode) {
             return;
         }
+        
+        // 显示调试指针
+        this.showDebugPointer();
         
         // 获取滚轮方向和步长
         const delta = Math.sign(-e.deltaY);
@@ -223,6 +231,14 @@ export default class PixiZoomTool {
             position: absolutePoint,
             localPosition: { x: localPoint.x, y: localPoint.y }
         });
+
+        // 设置一个定时器，在缩放操作结束后隐藏指针
+        if (this._hidePointerTimeout) {
+            clearTimeout(this._hidePointerTimeout);
+        }
+        this._hidePointerTimeout = setTimeout(() => {
+            this.hideDebugPointer();
+        }, 1000); // 1秒后隐藏指针
     }
     
     /**
@@ -362,6 +378,9 @@ export default class PixiZoomTool {
      */
     startPinchZoom(pointers) {
         if (pointers.length !== 2) return;
+        
+        // 显示调试指针
+        this.showDebugPointer();
         
         const [pointer1, pointer2] = pointers;
         
@@ -554,6 +573,9 @@ export default class PixiZoomTool {
                 this.touch.isZooming = false;
                 this.isPanning = true;
                 
+                // 隐藏调试指针
+                this.hideDebugPointer();
+                
                 // 获取剩余的触摸点作为平移起始点
                 const remainingPointer = Array.from(this.table.activePointers.values())[0];
                 this.lastPanPoint = { x: remainingPointer.x, y: remainingPointer.y };
@@ -610,5 +632,23 @@ export default class PixiZoomTool {
         }
         
         return false;
+    }
+
+    /**
+     * 显示缩放调试指针
+     */
+    showDebugPointer() {
+        if (this.table.zoomDebugPointer && !this.table.zoomDebugPointer._hitpointer.visible) {
+            this.table.zoomDebugPointer._hitpointer.visible = true;
+        }
+    }
+
+    /**
+     * 隐藏缩放调试指针
+     */
+    hideDebugPointer() {
+        if (this.table.zoomDebugPointer && this.table.zoomDebugPointer._hitpointer.visible) {
+            this.table.zoomDebugPointer._hitpointer.visible = false;
+        }
     }
 }
