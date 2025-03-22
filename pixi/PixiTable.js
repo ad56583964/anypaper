@@ -628,11 +628,17 @@ export default class PixiTable {
                 metaKey: event.metaKey
             };
         }
+
+        // 获取 stage 坐标
+        const screenPoint = new PIXI.Point(event.clientX, event.clientY);
+        const stagePoint = new PIXI.Point();
+        this.app.stage.worldTransform.applyInverse(screenPoint, stagePoint);
         
         updateDebugInfo('deviceTracker', {
             lastEvent: eventType,
             deviceType: deviceType,
             position: { x: event.clientX, y: event.clientY },
+            stagePosition: { x: stagePoint.x, y: stagePoint.y },
             pressure: event.pressure || 0,
             tiltX: event.tiltX || 0,
             tiltY: event.tiltY || 0,

@@ -50,7 +50,47 @@ export default class PixiPencilTool {
         // 允许的输入设备类型
         this.allowedInputTypes = ['mouse', 'pen'];
         
+        // 获取 paper 的边界
+        this.paperBounds = this.getPaperBounds();
+        
         console.log('PixiPencilTool initialized');
+    }
+    
+    /**
+     * 获取 paper 的边界
+     * @returns {Object} - paper 的边界信息
+     */
+    getPaperBounds() {
+        if (!this.table.paper) return null;
+        
+        const paper = this.table.paper;
+        const bounds = paper.getBounds();
+        console.log('paper bounds', bounds);
+        
+        // 获取 paper 的全局位置
+        const globalPosition = paper.getGlobalPosition();
+        
+        return {
+            x: globalPosition.x,
+            y: globalPosition.y,
+            width: bounds.width,
+            height: bounds.height
+        };
+    }
+
+    /**
+     * 检查点是否在 paper 范围内
+     * @param {number} x - X 坐标
+     * @param {number} y - Y 坐标
+     * @returns {boolean} - 是否在 paper 范围内
+     */
+    isPointInPaper(x, y) {
+        if (!this.paperBounds) return false;
+        
+        return x >= this.paperBounds.x && 
+               x <= this.paperBounds.x + this.paperBounds.width &&
+               y >= this.paperBounds.y && 
+               y <= this.paperBounds.y + this.paperBounds.height;
     }
     
     /**
@@ -134,13 +174,19 @@ export default class PixiPencilTool {
             return;
         }
 
+        // 获取本地坐标
+        const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
+        
+        // 检查是否在 paper 范围内
+        if (!this.isPointInPaper(localPoint.x, localPoint.y)) {
+            console.log('Pencil mode: 只能在 paper 范围内绘制');
+            return;
+        }
+
         // 如果已经在绘制中，先结束当前笔画
         if (this.isDrawing) {
             this.finishStroke();
         }
-        
-        // 获取本地坐标
-        const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
         
         // 开始新的笔画
         this.startStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
@@ -160,6 +206,13 @@ export default class PixiPencilTool {
         
         // 获取本地坐标
         const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
+        
+        // 检查是否在 paper 范围内
+        if (!this.isPointInPaper(localPoint.x, localPoint.y)) {
+            // 如果超出 paper 范围，结束当前笔画
+            this.finishStroke();
+            return;
+        }
         
         // 更新笔画
         this.updateStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
