@@ -46,8 +46,20 @@ export default class PixiPencilTool {
             lastStrokeTime: 0,
             totalDrawingTime: 0
         };
+
+        // 允许的输入设备类型
+        this.allowedInputTypes = ['mouse', 'pen'];
         
         console.log('PixiPencilTool initialized');
+    }
+    
+    /**
+     * 检查输入设备是否被允许
+     * @param {PointerEvent} e - 指针事件
+     * @returns {boolean} - 是否允许该输入设备
+     */
+    isInputAllowed(e) {
+        return this.allowedInputTypes.includes(e.pointerType);
     }
     
     /**
@@ -116,6 +128,12 @@ export default class PixiPencilTool {
      * @param {PointerEvent} e - 指针事件
      */
     pointerdown(e) {
+        // 检查输入设备是否被允许
+        if (!this.isInputAllowed(e)) {
+            console.log('Pencil mode: 不允许使用手指触摸进行绘制');
+            return;
+        }
+
         // 如果已经在绘制中，先结束当前笔画
         if (this.isDrawing) {
             this.finishStroke();
@@ -133,6 +151,11 @@ export default class PixiPencilTool {
      * @param {PointerEvent} e - 指针事件
      */
     pointermove(e) {
+        // 检查输入设备是否被允许
+        if (!this.isInputAllowed(e)) {
+            return;
+        }
+
         if (!this.isDrawing) return;
         
         // 获取本地坐标
