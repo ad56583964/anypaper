@@ -53,7 +53,46 @@ export default class PixiPencilTool {
         // 获取 paper 的边界
         this.paperBounds = this.getPaperBounds();
         
+        // 创建 paper 遮罩
+        this.createPaperMask();
+        
         console.log('PixiPencilTool initialized');
+    }
+    
+    /**
+     * 创建 paper 遮罩
+     */
+    createPaperMask() {
+        if (!this.table.paper || !this.paperBounds) return;
+        
+        // 创建一个用于遮罩的 Graphics 对象
+        const paperMask = new PIXI.Graphics();
+        
+        // 绘制与 paper 相同大小和位置的矩形作为遮罩
+        paperMask.beginFill(0xFFFFFF);
+        paperMask.drawRect(
+            this.paperBounds.x, 
+            this.paperBounds.y, 
+            this.paperBounds.width, 
+            this.paperBounds.height
+        );
+        paperMask.endFill();
+        
+        // 将遮罩应用到绘图容器
+        this.table.drawingContainer.mask = paperMask;
+        
+        // 将遮罩添加到绘图容器中，这样遮罩会跟随容器一起移动和缩放
+        this.table.drawingContainer.addChild(paperMask);
+        
+        // 保存遮罩引用
+        this.paperMask = paperMask;
+        
+        console.log('Paper mask created at:', {
+            x: this.paperBounds.x,
+            y: this.paperBounds.y,
+            width: this.paperBounds.width,
+            height: this.paperBounds.height
+        });
     }
     
     /**
@@ -158,6 +197,11 @@ export default class PixiPencilTool {
      * 激活工具
      */
     activate() {
+        // 确保 drawingContainer 使用了 paper 遮罩
+        if (this.paperMask && !this.table.drawingContainer.mask) {
+            this.table.drawingContainer.mask = this.paperMask;
+        }
+        
         console.log('PixiPencilTool activated');
     }
     
@@ -187,9 +231,9 @@ export default class PixiPencilTool {
         // 获取本地坐标
         const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
         
-        // 检查是否在 paper 范围内
+        // 检查是否在 paper 范围内 - 只在开始绘制时检查
         if (!this.isPointInPaper(localPoint.x, localPoint.y)) {
-            console.log('Pencil mode: 只能在 paper 范围内绘制');
+            console.log('Pencil mode: 只能在 paper 范围内开始绘制');
             return;
         }
 
@@ -217,12 +261,8 @@ export default class PixiPencilTool {
         // 获取本地坐标
         const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
         
-        // 检查是否在 paper 范围内
-        if (!this.isPointInPaper(localPoint.x, localPoint.y)) {
-            // 如果超出 paper 范围，结束当前笔画
-            this.finishStroke();
-            return;
-        }
+        // 不再进行边界检查，允许绘制超出边界
+        // 超出部分会被遮罩掉
         
         // 更新笔画
         this.updateStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
@@ -439,6 +479,10 @@ export default class PixiPencilTool {
         this.stats.lastStrokePoints = 0;
         this.stats.lastStrokeTime = 0;
         this.stats.totalDrawingTime = 0;
+        
+        // 重新添加遮罩
+        if (this.paperMask) {
+            this.table.drawingContainer.mask = this.paperMask;
+        }
     }
-    
 } 
