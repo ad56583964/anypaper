@@ -537,9 +537,9 @@ export default class PixiTable {
      * 创建 paper
      */
     createPaper() {
-        // 固定 paper 的尺寸，以 16:9 比例
-        const paperWidth = 640;
-        const paperHeight = 360;
+        // 固定 paper 的尺寸，以 4:3 比例
+        const paperWidth = 1920;
+        const paperHeight = 1440;
         
         // 计算居中位置
         const x = (this.width - paperWidth) / 2;
