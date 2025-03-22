@@ -430,6 +430,7 @@ export default class PixiTable {
         this.drawBackground();
         this.drawGrid();
         this.createPaper();
+        this.drawBgLayerBorder();
         
         // 设置事件监听器
         this.setupEventListeners();
@@ -913,5 +914,28 @@ export default class PixiTable {
         });
         
         console.log('Ticker 监控已启动');
+    }
+    
+    /**
+     * 绘制 bgLayer 的边框
+     */
+    drawBgLayerBorder() {
+        const border = new PIXI.Graphics();
+        
+        // 设置线条样式 - 深灰色，宽度为2像素
+        border.setStrokeStyle({
+            width: 5,
+            color: 0x444444, // 深灰色
+            alignment: 0 // 设置线条对齐方式为居中
+        });
+        
+        // 绘制矩形边框，紧贴 bgLayer 的边界
+        border.rect(0, 0, this.width, this.height);
+        border.stroke();
+        
+        // 将边框添加到 bgLayer
+        this.bgLayer.addChild(border);
+        
+        console.log('bgLayer border drawn');
     }
 }
