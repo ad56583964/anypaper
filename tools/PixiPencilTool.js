@@ -69,15 +69,14 @@ export default class PixiPencilTool {
         const paperMask = new PIXI.Graphics();
         
         // 绘制与 paper 相同大小和位置的矩形作为遮罩
-        paperMask.beginFill(0xFFFFFF);
-        paperMask.drawRect(
+        paperMask.rect(
             this.paperBounds.x, 
             this.paperBounds.y, 
             this.paperBounds.width, 
             this.paperBounds.height
-        );
-        paperMask.endFill();
-        
+        )
+        .fill(0xFFFFFF);
+
         // 将遮罩应用到绘图容器
         this.table.drawingContainer.mask = paperMask;
         
