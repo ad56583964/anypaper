@@ -64,17 +64,25 @@ export default class PixiPencilTool {
         if (!this.table.paper) return null;
         
         const paper = this.table.paper;
-        const bounds = paper.getBounds();
-        console.log('paper bounds', bounds);
         
-        // 获取 paper 的全局位置
-        const globalPosition = paper.getGlobalPosition();
+        // 获取 paper 在 PixiTable 中的初始位置（createPaper 中计算的位置）
+        // 这个位置是 roundRect 的左上角坐标
+        const paperWidth = 1920;
+        const paperHeight = 1440;
+        const x = (this.table.width - paperWidth) / 2;
+        const y = (this.table.height - paperHeight) / 2;
+        
+        // 创建一个点表示 paper 图形内部 roundRect 的左上角
+        const roundRectTopLeft = new PIXI.Point(x, y);
+        
+        // 将该点从 paper 坐标系转换到 bgLayer 坐标系
+        const paperTopLeft = this.table.bgLayer.toLocal(roundRectTopLeft, paper);
         
         return {
-            x: globalPosition.x,
-            y: globalPosition.y,
-            width: bounds.width,
-            height: bounds.height
+            x: paperTopLeft.x,
+            y: paperTopLeft.y,
+            width: paperWidth,
+            height: paperHeight
         };
     }
 
@@ -85,7 +93,9 @@ export default class PixiPencilTool {
      * @returns {boolean} - 是否在 paper 范围内
      */
     isPointInPaper(x, y) {
-        if (!this.paperBounds) return false;
+        if (!this.paperBounds) {
+            return false;
+        }
         
         return x >= this.paperBounds.x && 
                x <= this.paperBounds.x + this.paperBounds.width &&
