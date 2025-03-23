@@ -12,7 +12,7 @@ export default class PixiPencilTool {
      * 创建一个新的 PixiPencilTool 实例
      * @param {PixiTable} table - 表格实例
      */
-    constructor(table) {
+    constructor(table, options) {
         this.table = table;
         this.isActive = false;
         
@@ -278,7 +278,7 @@ export default class PixiPencilTool {
         this.strokeData.totalDrawingTime += this.strokeData.lastStrokeTime;
         
         // 将当前图形添加到绘图列表
-        if (this.strokeData.currentStrokeGraphics) {
+        if (this.drawings && this.strokeData.currentStrokeGraphics) {
             this.drawings.push(this.strokeData.currentStrokeGraphics);
         }
         
@@ -424,4 +424,4 @@ export default class PixiPencilTool {
             this.table.drawingContainer.mask = this.paperMask;
         }
     }
-} 
+}
