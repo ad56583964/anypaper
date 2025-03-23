@@ -23,6 +23,10 @@ export default class PixiTable {
             height: 20, // 固定值 20 (替代 10 * this.pixel)
         };
         
+        // 固定 paper 的尺寸，以 4:3 比例
+        this.paperWidth = 1920;
+        this.paperHeight = 1440;
+        
         // 计算内容大小
         this.width = 240 * this.block.width;
         this.height = 240 * this.block.height;
@@ -544,18 +548,14 @@ export default class PixiTable {
      * 创建 paper
      */
     createPaper() {
-        // 固定 paper 的尺寸，以 4:3 比例
-        const paperWidth = 1920;
-        const paperHeight = 1440;
-        
         // 计算居中位置
-        const x = (this.width - paperWidth) / 2;
-        const y = (this.height - paperHeight) / 2;
+        const x = (this.width - this.paperWidth) / 2;
+        const y = (this.height - this.paperHeight) / 2;
         
         // 创建 paper 对象
         const paper = new PIXI.Graphics()
             .setStrokeStyle(1, 0x333333)
-            .roundRect(x, y, paperWidth, paperHeight, 5)
+            .roundRect(x, y, this.paperWidth, this.paperHeight, 5)
             .fill(0xffffff);
 
         // 添加阴影效果
@@ -564,7 +564,7 @@ export default class PixiTable {
         
         // 创建阴影
         const shadow = new PIXI.Graphics()
-            .roundRect(x + 5, y + 5, paperWidth, paperHeight, 5)
+            .roundRect(x + 5, y + 5, this.paperWidth, this.paperHeight, 5)
             .fill({
                 color: 0x000000,
                 alpha: 0.2
@@ -951,17 +951,15 @@ export default class PixiTable {
      */
     centerViewOnPaper() {
         // 获取 paper 的尺寸和位置
-        const paperWidth = 1920;
-        const paperHeight = 1440;
-        const paperX = (this.width - paperWidth) / 2;
-        const paperY = (this.height - paperHeight) / 2;
+        const paperX = (this.width - this.paperWidth) / 2;
+        const paperY = (this.height - this.paperHeight) / 2;
 
         // 获取当前缩放值
         const scale = this.contentLayer.scale.x;
         
         // 计算 paper 的中心点在内容坐标系中的位置
-        const paperCenterX = paperX + paperWidth / 2;
-        const paperCenterY = paperY + paperHeight / 2;
+        const paperCenterX = paperX + this.paperWidth / 2;
+        const paperCenterY = paperY + this.paperHeight / 2;
         
         // 计算视口中心
         const viewportCenterX = this.getScaledStageWidth() / 2;

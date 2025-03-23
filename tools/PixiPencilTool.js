@@ -105,8 +105,8 @@ export default class PixiPencilTool {
         
         // 获取 paper 在 PixiTable 中的初始位置（createPaper 中计算的位置）
         // 这个位置是 roundRect 的左上角坐标
-        const paperWidth = 1920;
-        const paperHeight = 1440;
+        const paperWidth = this.table.paperWidth;
+        const paperHeight = this.table.paperHeight;
         const x = (this.table.width - paperWidth) / 2;
         const y = (this.table.height - paperHeight) / 2;
         
