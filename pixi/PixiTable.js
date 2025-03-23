@@ -78,7 +78,8 @@ export default class PixiTable {
             height: window.innerHeight,
             backgroundColor: 0xdddddd, // 浅灰色背景
             resolution: 1,
-            antialias: true
+            antialias: true,
+            resizeTo: window // 自动监听窗口大小变化并调整
         });
         
         // 记录舞台尺寸
@@ -109,8 +110,19 @@ export default class PixiTable {
         // 初始化交互管理器
         this.initInteraction();
         
-        // 添加窗口大小变化监听
+        // 添加窗口大小变化监听 - 两种方式同时监听以确保可靠性
         window.addEventListener('resize', this.handleResize.bind(this));
+        
+        // 当 PixiJS 应用自己调整大小时也触发我们的处理
+        this.app.renderer.on('resize', (width, height) => {
+            console.log('PixiJS 应用内部 resize 事件', { width, height });
+            this.stageWidth = width;
+            this.stageHeight = height;
+            this.centerViewOnPaper();
+            if (this.stageBorder) {
+                this.updateStageBorder();
+            }
+        });
         
         // 跟踪活动的触摸点
         this.activePointers = new Map();
@@ -184,6 +196,14 @@ export default class PixiTable {
         const stageWidth = this.getScaledStageWidth();
         const stageHeight = this.getScaledStageHeight();
         
+        console.log('绘制舞台边框: 计算的舞台尺寸', {
+            stageWidth,
+            stageHeight,
+            paddedWidth: stageWidth - padding * 2,
+            paddedHeight: stageHeight - padding * 2,
+            padding
+        });
+        
         // 绘制矩形边框，确保边框完全在舞台内部
         border.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
         border.stroke();
@@ -200,7 +220,9 @@ export default class PixiTable {
             resolution: resolution,
             devicePixelRatio: window.devicePixelRatio,
             lineWidth: lineWidth,
-            effectiveLineWidth: lineWidth * resolution
+            effectiveLineWidth: lineWidth * resolution,
+            canvasWidth: this.app.canvas?.width,
+            canvasHeight: this.app.canvas?.height
         });
     }
     
@@ -263,7 +285,10 @@ export default class PixiTable {
      * 处理窗口大小变化
      */
     handleResize() {
-        this.resize(window.innerWidth, window.innerHeight);
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        console.log('Window resize 检测到窗口大小变化', { width, height });
+        this.resize(width, height);
     }
     
     /**
@@ -272,6 +297,14 @@ export default class PixiTable {
      * @param {number} height - 新高度
      */
     resize(width, height) {
+        console.log('开始调整大小', { width, height });
+        
+        // 确保 canvas 尺寸也被更新
+        if (this.app.canvas) {
+            this.app.canvas.style.width = width + 'px';
+            this.app.canvas.style.height = height + 'px';
+        }
+        
         // 调整渲染器大小 - 在 PixiJS v8 中使用 app.resize
         this.app.resize(width, height);
         
@@ -284,43 +317,17 @@ export default class PixiTable {
         
         // 更新舞台边框
         if (this.stageBorder) {
-            // 获取当前分辨率
-            const resolution = this.app.renderer.resolution;
-            
-            // 清除旧边框
-            this.stageBorder.clear();
-            
-            // 设置线条样式 - 深红色，宽度为3像素
-            const lineWidth = 3;
-            this.stageBorder.setStrokeStyle({
-                width: lineWidth,
-                color: 0x990000, // 深红色
-                alpha: 1,
-                alignment: 0 // 设置线条对齐方式为居中
-            });
-            
-            // 计算边框内边距，确保边框在视口内
-            const padding = Math.max(3, Math.ceil(lineWidth / 2));
-            
-            // 获取舞台的实际尺寸
-            const stageWidth = this.getScaledStageWidth();
-            const stageHeight = this.getScaledStageHeight();
-            
-            // 绘制矩形边框，确保边框完全在舞台内部
-            this.stageBorder.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
-            this.stageBorder.stroke();
-            
-            console.log('Border updated', { 
-                width: stageWidth, 
-                height: stageHeight, 
-                resolution: resolution,
-                devicePixelRatio: window.devicePixelRatio,
-                lineWidth: lineWidth,
-                effectiveLineWidth: lineWidth * resolution
-            });
+            this.updateStageBorder();
         }
         
-        console.log('Renderer resized', { width, height });
+        console.log('Renderer resized', { 
+            width, 
+            height,
+            canvasWidth: this.app.canvas?.width,
+            canvasHeight: this.app.canvas?.height,
+            viewWidth: this.app.renderer?.width,
+            viewHeight: this.app.renderer?.height
+        });
     }
     
     /**
@@ -458,7 +465,7 @@ export default class PixiTable {
                 gridGraphics.circle(
                     i * this.block.width,
                     j * this.block.height,
-                    1 // 点的半径
+                    2 // 点的半径
                 );
             }
         }
@@ -978,6 +985,57 @@ export default class PixiTable {
             viewportCenter: { x: viewportCenterX, y: viewportCenterY },
             scale,
             newPosition: { x: newContentX, y: newContentY }
+        });
+    }
+    
+    /**
+     * 更新舞台边框
+     * 当舞台大小变化时调用
+     */
+    updateStageBorder() {
+        if (!this.stageBorder) return;
+        
+        // 获取当前分辨率
+        const resolution = this.app.renderer.resolution;
+        
+        // 清除旧边框
+        this.stageBorder.clear();
+        
+        // 设置线条样式 - 深红色，宽度为3像素
+        const lineWidth = 3;
+        this.stageBorder.setStrokeStyle({
+            width: lineWidth,
+            color: 0x990000, // 深红色
+            alpha: 1,
+            alignment: 0 // 设置线条对齐方式为居中
+        });
+        
+        // 计算边框内边距，确保边框在视口内
+        const padding = Math.max(3, Math.ceil(lineWidth / 2));
+        
+        // 获取舞台的实际尺寸
+        const stageWidth = this.getScaledStageWidth();
+        const stageHeight = this.getScaledStageHeight();
+        
+        console.log('更新舞台边框: 计算的舞台尺寸', {
+            stageWidth,
+            stageHeight,
+            paddedWidth: stageWidth - padding * 2,
+            paddedHeight: stageHeight - padding * 2,
+            padding
+        });
+        
+        // 绘制矩形边框，确保边框完全在舞台内部
+        this.stageBorder.rect(padding, padding, stageWidth - padding * 2, stageHeight - padding * 2);
+        this.stageBorder.stroke();
+        
+        console.log('舞台边框已更新', {
+            width: stageWidth,
+            height: stageHeight,
+            resolution: resolution,
+            devicePixelRatio: window.devicePixelRatio,
+            canvasWidth: this.app.canvas?.width,
+            canvasHeight: this.app.canvas?.height
         });
     }
 }
