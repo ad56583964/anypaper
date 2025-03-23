@@ -104,18 +104,16 @@ export default class PixiPaper {
     getBounds() {
         if (!this.paperGraphics) return null;
         
-        // 直接从 paperGraphics 获取位置和大小信息
+        // 获取 paper 图形的边界（相对于其父容器的本地坐标系）
         const paperBounds = this.paperGraphics.getBounds();
-        console.log('paperBounds', paperBounds);
-        // 将该点从 paper 坐标系转换到 bgLayer 坐标系
-        const paperTopLeft = this.table.bgLayer.toLocal(
-            new PIXI.Point(paperBounds.x, paperBounds.y),
-            this.paperGraphics.parent
-        );
         
+        // 创建 paper 容器的全局变换（这会包含所有祖先容器的变换）
+        const paperGlobalPosition = this.paperContainer.getGlobalPosition();
+        
+        // 返回整合了容器位置的边界
         return {
-            x: paperTopLeft.x,
-            y: paperTopLeft.y,
+            x: paperGlobalPosition.x,
+            y: paperGlobalPosition.y,
             width: paperBounds.width,
             height: paperBounds.height
         };
@@ -144,8 +142,10 @@ export default class PixiPaper {
      * @returns {PIXI.Graphics} - 创建的遮罩图形
      */
     createMask() {
+        if (!this.paperGraphics) return null;
+        
+        // 在全局坐标系获取边界
         const bounds = this.getBounds();
-        if (!bounds) return null;
         
         // 创建一个用于遮罩的 Graphics 对象
         const mask = new PIXI.Graphics();
@@ -176,35 +176,32 @@ export default class PixiPaper {
     centerInView() {
         if (!this.paperGraphics) return;
         
-        // 获取 paper 的边界
-        const paperBounds = this.paperGraphics.getBounds();
-        
-        // 计算 paper 的中心点
-        const paperCenterX = paperBounds.x + paperBounds.width / 2;
-        const paperCenterY = paperBounds.y + paperBounds.height / 2;
-        
         // 获取当前缩放值
         const scale = this.table.contentLayer.scale.x;
+        
+        // 计算 paper 的中心点（在其自身的局部坐标系中）
+        const paperCenterX = this.width / 2;
+        const paperCenterY = this.height / 2;
         
         // 计算视口中心
         const viewportCenterX = this.table.getScaledStageWidth() / 2;
         const viewportCenterY = this.table.getScaledStageHeight() / 2;
         
-        // 将 paper 中心点转换到舞台坐标系
-        const paperCenterStage = this.paperGraphics.parent.toGlobal(new PIXI.Point(paperCenterX, paperCenterY));
+        // 将 paper 中心点转换到全局坐标系
+        const paperCenterGlobal = this.paperContainer.toGlobal(new PIXI.Point(paperCenterX, paperCenterY));
         
         // 计算新的内容层位置，使 paper 中心与视口中心对齐
-        const newContentX = viewportCenterX - paperCenterStage.x * scale;
-        const newContentY = viewportCenterY - paperCenterStage.y * scale;
+        const newContentX = viewportCenterX - paperCenterGlobal.x * scale;
+        const newContentY = viewportCenterY - paperCenterGlobal.y * scale;
         
         // 应用新位置
         this.table.contentLayer.position.set(newContentX, newContentY);
         this.table.bgLayer.position.set(newContentX, newContentY);
         
         console.log('视口已调整，Paper 居中显示', {
-            paperBounds,
+            paperSize: { width: this.width, height: this.height },
             paperCenter: { x: paperCenterX, y: paperCenterY },
-            paperCenterStage,
+            paperCenterGlobal,
             viewportCenter: { x: viewportCenterX, y: viewportCenterY },
             scale,
             newPosition: { x: newContentX, y: newContentY }

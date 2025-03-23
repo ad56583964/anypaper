@@ -38,9 +38,6 @@ export default class PixiPencilTool {
         // 允许的输入设备类型
         this.allowedInputTypes = ['mouse', 'pen'];
         
-        // 获取 paper 的边界
-        this.paperBounds = this.getPaperBounds();
-        
         // 创建 paper 遮罩
         this.createPaperMask();
         
@@ -65,17 +62,6 @@ export default class PixiPencilTool {
         }
     }
     
-    /**
-     * 获取 paper 的边界
-     * @returns {Object} - paper 的边界信息
-     */
-    getPaperBounds() {
-        if (!this.table.paper) return null;
-        
-        // 直接使用 PixiPaper 的方法获取边界
-        return this.table.paper.getBounds();
-    }
-
     /**
      * 检查点是否在 paper 范围内
      * @param {number} x - X 坐标
