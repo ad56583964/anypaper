@@ -16,19 +16,12 @@ export default class PixiPencilTool {
         this.table = table;
         this.isActive = false;
         
-        // 确保 paper 存在
-        if (!this.table.paper || !this.table.paper.paperContainer) {
-            console.error('PixiPencilTool 需要 PixiPaper 实例');
-            return;
+        // 创建绘图容器（如果不存在）
+        if (!this.table.drawingContainer) {
+            this.table.drawingContainer = new PIXI.Container();
+            this.table.drawingContainer.label = 'drawing';
+            this.table.contentLayer.addChild(this.table.drawingContainer);
         }
-        
-        // 创建绘图容器，并添加到 paper 容器中
-        this.drawingContainer = new PIXI.Container();
-        this.drawingContainer.label = 'drawing';
-        
-        // 将绘图容器添加到 paper 容器而不是 contentLayer
-        // 这样绘图坐标系将以 paper 的 (0,0) 点为原点
-        this.table.paper.paperContainer.addChild(this.drawingContainer);
         
         // 初始化笔触数据
         this.strokeData = {
@@ -45,38 +38,57 @@ export default class PixiPencilTool {
         // 允许的输入设备类型
         this.allowedInputTypes = ['mouse', 'pen'];
         
-        console.log('PixiPencilTool initialized with paper-based coordinate system');
+        // 获取 paper 的边界
+        this.paperBounds = this.getPaperBounds();
+        
+        // 创建 paper 遮罩
+        this.createPaperMask();
+        
+        console.log('PixiPencilTool initialized');
     }
     
     /**
-     * 将全局坐标转换为 paper 相对坐标
-     * @param {number} globalX - 全局 X 坐标
-     * @param {number} globalY - 全局 Y 坐标
-     * @returns {PIXI.Point} - paper 相对坐标
+     * 创建 paper 遮罩
      */
-    convertToPaperCoordinates(globalX, globalY) {
-        // 创建全局坐标点
-        const globalPoint = new PIXI.Point(globalX, globalY);
+    createPaperMask() {
+        if (!this.table.paper) return;
         
-        // 将全局坐标转换为 paper 容器中的本地坐标
-        return this.table.paper.paperContainer.toLocal(globalPoint);
+        // 使用 PixiPaper 的方法创建遮罩
+        this.paperMask = this.table.paper.createMask();
+        
+        if (this.paperMask) {
+            // 将遮罩应用到绘图容器
+            this.table.drawingContainer.mask = this.paperMask;
+            
+            // 将遮罩添加到绘图容器中，这样遮罩会跟随容器一起移动和缩放
+            this.table.drawingContainer.addChild(this.paperMask);
+        }
     }
     
+    /**
+     * 获取 paper 的边界
+     * @returns {Object} - paper 的边界信息
+     */
+    getPaperBounds() {
+        if (!this.table.paper) return null;
+        
+        // 直接使用 PixiPaper 的方法获取边界
+        return this.table.paper.getBounds();
+    }
+
     /**
      * 检查点是否在 paper 范围内
-     * @param {number} globalX - 全局 X 坐标
-     * @param {number} globalY - 全局 Y 坐标
+     * @param {number} x - X 坐标
+     * @param {number} y - Y 坐标
      * @returns {boolean} - 是否在 paper 范围内
      */
-    isPointInPaper(globalX, globalY) {
-        // 转换为 paper 相对坐标
-        const paperPoint = this.convertToPaperCoordinates(globalX, globalY);
+    isPointInPaper(x, y) {
+        if (!this.table.paper) {
+            return false;
+        }
         
-        // 判断点是否在 paper 的边界内（就是判断点是否在 0,0 到 width,height 之间）
-        return paperPoint.x >= 0 && 
-               paperPoint.x <= this.table.paper.width && 
-               paperPoint.y >= 0 && 
-               paperPoint.y <= this.table.paper.height;
+        // 使用 PixiPaper 的方法检查点是否在纸张内部
+        return this.table.paper.isPointInside(x, y);
     }
     
     /**
@@ -96,6 +108,11 @@ export default class PixiPencilTool {
      * @returns {Array} 中心线点及其对应的半径
      */
     getVariableWidthStroke(points, options = {}) {
+        // // 使用 perfect-freehand 的 getStroke 函数获取轮廓点
+        // const outlinePoints = getStroke(points, options);
+        
+        // if (!outlinePoints || outlinePoints.length < 2) return [];
+        
         // 原始输入点（用作中心线）
         const centerPoints = [];
         
@@ -129,6 +146,11 @@ export default class PixiPencilTool {
      * 激活工具
      */
     activate() {
+        // 确保 drawingContainer 使用了 paper 遮罩
+        if (this.paperMask && !this.table.drawingContainer.mask) {
+            this.table.drawingContainer.mask = this.paperMask;
+        }
+        
         console.log('PixiPencilTool activated');
     }
     
@@ -155,29 +177,22 @@ export default class PixiPencilTool {
             return;
         }
 
-        // 创建屏幕坐标点
-        const screenPoint = new PIXI.Point(e.clientX, e.clientY);
+        // 获取本地坐标
+        const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
         
-        // 转换为舞台坐标
-        const stagePoint = new PIXI.Point();
-        this.table.app.stage.worldTransform.applyInverse(screenPoint, stagePoint);
-        
-        // 检查点是否在 paper 范围内
-        if (!this.isPointInPaper(stagePoint.x, stagePoint.y)) {
+        // 检查是否在 paper 范围内 - 只在开始绘制时检查
+        if (!this.isPointInPaper(localPoint.x, localPoint.y)) {
             console.log('Pencil mode: 只能在 paper 范围内开始绘制');
             return;
         }
 
-        // 获取 paper 相对坐标
-        const paperPoint = this.convertToPaperCoordinates(stagePoint.x, stagePoint.y);
-        
         // 如果已经在绘制中，先结束当前笔画
         if (this.isActive) {
             this.finishStroke();
         }
         
-        // 开始新的笔画 - 使用 paper 相对坐标
-        this.startStroke(paperPoint.x, paperPoint.y, e.pressure || 0.5);
+        // 开始新的笔画
+        this.startStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
     }
     
     /**
@@ -192,18 +207,14 @@ export default class PixiPencilTool {
 
         if (!this.isActive) return;
         
-        // 创建屏幕坐标点
-        const screenPoint = new PIXI.Point(e.clientX, e.clientY);
+        // 获取本地坐标
+        const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
         
-        // 转换为舞台坐标
-        const stagePoint = new PIXI.Point();
-        this.table.app.stage.worldTransform.applyInverse(screenPoint, stagePoint);
+        // 不再进行边界检查，允许绘制超出边界
+        // 超出部分会被遮罩掉
         
-        // 获取 paper 相对坐标
-        const paperPoint = this.convertToPaperCoordinates(stagePoint.x, stagePoint.y);
-        
-        // 更新笔画 - 使用 paper 相对坐标
-        this.updateStroke(paperPoint.x, paperPoint.y, e.pressure || 0.5);
+        // 更新笔画
+        this.updateStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
     }
     
     /**
@@ -219,8 +230,8 @@ export default class PixiPencilTool {
     
     /**
      * 开始绘制笔画
-     * @param {number} x - X 坐标（相对于 paper）
-     * @param {number} y - Y 坐标（相对于 paper）
+     * @param {number} x - X 坐标
+     * @param {number} y - Y 坐标
      * @param {number} pressure - 压力值
      */
     startStroke(x, y, pressure = 0.5) {
@@ -234,8 +245,8 @@ export default class PixiPencilTool {
         this.strokeData.currentStrokeGraphics = new PIXI.Graphics();
         this.strokeData.currentStrokeGraphics.label = 'drawing'; // 添加标签，用于视口裁剪（在 PixiJS 8.0 中使用 label 代替 name）
         
-        // 添加到绘图层 - 现在是 paper 的绘图容器
-        this.drawingContainer.addChild(this.strokeData.currentStrokeGraphics);
+        // 添加到绘图层
+        this.table.drawingContainer.addChild(this.strokeData.currentStrokeGraphics);
         
         // 绘制初始点
         this.drawCurrentStroke(false);
@@ -246,8 +257,8 @@ export default class PixiPencilTool {
     
     /**
      * 更新笔画
-     * @param {number} x - X 坐标（相对于 paper）
-     * @param {number} y - Y 坐标（相对于 paper）
+     * @param {number} x - X 坐标
+     * @param {number} y - Y 坐标
      * @param {number} pressure - 压力值
      */
     updateStroke(x, y, pressure = 0.5) {
@@ -282,7 +293,6 @@ export default class PixiPencilTool {
         
         // 将当前图形添加到绘图列表
         if (this.strokeData.currentStrokeGraphics) {
-            this.drawings = this.drawings || [];
             this.drawings.push(this.strokeData.currentStrokeGraphics);
         }
         
@@ -318,38 +328,35 @@ export default class PixiPencilTool {
         
         if (centerPoints.length < 2) return;
         
-        // 绘制连接部分（点之间的多边形）
-        for (let i = 1; i < centerPoints.length; i++) {
-            const prev = centerPoints[i - 1];
-            const curr = centerPoints[i];
+        // 先绘制连接线
+        for (let i = 0; i < centerPoints.length - 1; i++) {
+            const current = centerPoints[i];
+            const next = centerPoints[i + 1];
             
-            // 计算线段的方向向量
-            const dx = curr.x - prev.x;
-            const dy = curr.y - prev.y;
+            // 计算连接线
+            const dx = next.x - current.x;
+            const dy = next.y - current.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // 线段长度
-            const length = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 0.1) continue; // 避免点太近时出现问题
             
-            // 避免除以零
-            if (length === 0) continue;
+            // 计算线段的法向量（垂直于线段的单位向量）
+            const nx = -dy / distance;
+            const ny = dx / distance;
             
-            // 单位向量
-            const ux = dx / length;
-            const uy = dy / length;
+            // 计算连接两点的多边形顶点
+            const radius1 = current.radius;
+            const radius2 = next.radius;
             
-            // 法线向量（垂直于线段）
-            const nx = -uy;
-            const ny = ux;
-            
-            // 计算四边形的四个顶点
-            const x1 = prev.x + nx * prev.radius;
-            const y1 = prev.y + ny * prev.radius;
-            const x2 = prev.x - nx * prev.radius;
-            const y2 = prev.y - ny * prev.radius;
-            const x3 = curr.x - nx * curr.radius;
-            const y3 = curr.y - ny * curr.radius;
-            const x4 = curr.x + nx * curr.radius;
-            const y4 = curr.y + ny * curr.radius;
+            // 创建连接多边形的四个顶点
+            const x1 = current.x + nx * radius1;
+            const y1 = current.y + ny * radius1;
+            const x2 = current.x - nx * radius1;
+            const y2 = current.y - ny * radius1;
+            const x3 = next.x - nx * radius2;
+            const y3 = next.y - ny * radius2;
+            const x4 = next.x + nx * radius2;
+            const y4 = next.y + ny * radius2;
             
             // 绘制连接多边形
             this.strokeData.currentStrokeGraphics.beginPath();
@@ -361,11 +368,8 @@ export default class PixiPencilTool {
             this.strokeData.currentStrokeGraphics.fill(0x000000);
         }
         
-        // 绘制端点（圆形）
+        // 然后绘制圆形端点（确保圆形绘制在连接线上方）
         for (let i = 0; i < centerPoints.length; i++) {
-            // 只绘制第一个点和最后一个点的端点
-            if (i > 0 && i < centerPoints.length - 1 && !isLast) continue;
-            
             const point = centerPoints[i];
             
             // 绘制圆形端点
@@ -413,9 +417,14 @@ export default class PixiPencilTool {
             this.finishStroke();
         }
         
-        // 移除所有图形
+        // 清除所有绘图 - PixiJS 8.0 风格
+        this.drawings.forEach(drawing => {
+            // 在 PixiJS 8.0 中，直接销毁图形对象
+            drawing.destroy();
+        });
+        
         this.drawings = [];
-        this.drawingContainer.removeChildren();
+        this.table.drawingContainer.removeChildren();
         
         // 重置统计信息
         this.strokeData.strokeCount = 0;
@@ -423,5 +432,10 @@ export default class PixiPencilTool {
         this.strokeData.lastStrokePoints = 0;
         this.strokeData.lastStrokeTime = 0;
         this.strokeData.totalDrawingTime = 0;
+        
+        // 重新添加遮罩
+        if (this.paperMask) {
+            this.table.drawingContainer.mask = this.paperMask;
+        }
     }
 } 
