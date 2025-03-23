@@ -19,8 +19,8 @@ export default class PixiTable {
     constructor(containerId = 'a4-table', options = {}) {
         // 设置 block 大小 - 使用固定值代替 this.pixel
         this.block = {
-            width: 20,  // 固定值 20 (替代 10 * this.pixel)
-            height: 20, // 固定值 20 (替代 10 * this.pixel)
+            width: 40,  // 固定值 20 (替代 10 * this.pixel)
+            height: 40, // 固定值 20 (替代 10 * this.pixel)
         };
         
         // 固定 paper 的尺寸，以 4:3 比例
