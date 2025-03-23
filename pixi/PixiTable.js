@@ -24,8 +24,8 @@ export default class PixiTable {
         };
         
         // 固定 paper 的尺寸，以 4:3 比例
-        this.paperWidth = 1920;
-        this.paperHeight = 1440;
+        this.paperWidth = 3840;
+        this.paperHeight = 2880;
         
         // 计算内容大小
         this.width = 240 * this.block.width;
