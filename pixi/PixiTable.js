@@ -1,8 +1,9 @@
 import * as PIXI from 'pixi.js';
-import HitPointer from './HitPointer';
+import HitPointer from './HitPointer.js';
 import { updateDebugInfo } from '../debug.jsx';
-import PixiPencilTool from '../tools/PixiPencilTool';
-import PixiZoomTool from '../tools/PixiZoomTool';
+import PixiPaper from './PixiPaper.js';
+import PixiPencilTool from '../tools/PixiPencilTool.js';
+import PixiZoomTool from '../tools/PixiZoomTool.js';
 import { convertPointToLocalCoordinates } from './utils';
 
 /**
@@ -23,7 +24,7 @@ export default class PixiTable {
             height: 40, // 固定值 20 (替代 10 * this.pixel)
         };
         
-        // 固定 paper 的尺寸，以 4:3 比例
+        // 固定 paper 的尺寸，以 4:3 比例 - 保留属性以便兼容旧代码
         this.paperWidth = 3840;
         this.paperHeight = 2880;
         
@@ -312,7 +313,7 @@ export default class PixiTable {
         this.stageWidth = width;
         this.stageHeight = height;
         
-        // 调整视口，使 Paper 居中显示（替代简单的居中内容）
+        // 调整视口，使 Paper 居中显示
         this.centerViewOnPaper();
         
         // 更新舞台边框
@@ -409,44 +410,49 @@ export default class PixiTable {
     
     /**
      * 初始化表格
-     * 在 PIXI 应用初始化完成后调用
      */
     initTable() {
-        // 创建容器，直接使用 PIXI.Container 替代 PixiLayer
-        // 背景层容器
-        this.bgContainer = new PIXI.Container();
-        this.bgContainer.label = 'background';
-        this.bgLayer.addChild(this.bgContainer);
-        
-        // 网格层容器
+        // 创建各个容器
         this.gridContainer = new PIXI.Container();
         this.gridContainer.label = 'grid';
+        this.bgContainer = new PIXI.Container();
+        this.bgContainer.label = 'bg';
+        
+        // 将容器添加到图层
+        this.bgLayer.addChild(this.bgContainer);
         this.bgLayer.addChild(this.gridContainer);
         
-        // 纸张层容器
-        this.paperContainer = new PIXI.Container();
-        this.paperContainer.label = 'paper';
-        this.bgLayer.addChild(this.paperContainer);
-        
-        // 绘图层容器
-        this.drawingContainer = new PIXI.Container();
-        this.drawingContainer.label = 'drawing';
-        this.contentLayer.addChild(this.drawingContainer);
-        
-        // 工具管理
-        this.tools = {};
-        this.currentTool = null;
-        
-        // 初始化表格
+        // 绘制背景
         this.drawBackground();
+        
+        // 绘制网格
         this.drawGrid();
-        this.createPaper();
-        this.drawBgLayerBorder();
+        
+        // 初始化 Paper
+        this.initPaper();
         
         // 设置事件监听器
         this.setupEventListeners();
         
+        // 初始化工具注册表
+        this.tools = {};
+        this.activeTool = null;
+        
         console.log('PixiTable initialized');
+    }
+    
+    /**
+     * 初始化 Paper
+     */
+    initPaper() {
+        // 创建 PixiPaper 实例
+        this.paper = new PixiPaper(this, {
+            width: this.paperWidth,
+            height: this.paperHeight
+        });
+        
+        // 暴露 paperContainer 以维持向后兼容
+        this.paperContainer = this.paper.paperContainer;
     }
     
     /**
@@ -549,47 +555,6 @@ export default class PixiTable {
             .fill(0xdddddd)
         
         this.bgContainer.addChild(bg);
-    }
-    
-    /**
-     * 创建 paper
-     */
-    createPaper() {
-        // 计算居中位置
-        const x = (this.width - this.paperWidth) / 2;
-        const y = (this.height - this.paperHeight) / 2;
-        
-        // 创建 paper 对象
-        const paper = new PIXI.Graphics()
-            .setStrokeStyle(1, 0x333333)
-            .roundRect(x, y, this.paperWidth, this.paperHeight, 5)
-            .fill(0xffffff);
-
-        // 添加阴影效果
-        const paperContainer = new PIXI.Container();
-        paperContainer.addChild(paper);
-        
-        // 创建阴影
-        const shadow = new PIXI.Graphics()
-            .roundRect(x + 5, y + 5, this.paperWidth, this.paperHeight, 5)
-            .fill({
-                color: 0x000000,
-                alpha: 0.2
-            });
-        
-        // 添加模糊滤镜
-        const blurFilter = new PIXI.BlurFilter();
-        blurFilter.strength = 5;
-        shadow.filters = [blurFilter];
-        
-        // 确保阴影在 paper 下方
-        paperContainer.addChildAt(shadow, 0);
-        
-        // 添加到 paper 图层
-        this.paperContainer.addChild(paperContainer);
-        
-        // 保存 paper 引用
-        this.paper = paper;
     }
     
     /**
@@ -701,8 +666,8 @@ export default class PixiTable {
         }
         
         // 如果有活动工具，将事件传递给工具
-        if (this.currentTool) {
-            this.currentTool.pointerdown(e);
+        if (this.activeTool) {
+            this.activeTool.pointerdown(e);
         }
     }
     
@@ -733,8 +698,8 @@ export default class PixiTable {
         }
         
         // 如果有活动工具，将事件传递给工具
-        if (this.currentTool) {
-            this.currentTool.pointermove(e);
+        if (this.activeTool) {
+            this.activeTool.pointermove(e);
         }
     }
     
@@ -762,8 +727,8 @@ export default class PixiTable {
         this.activePointers.delete(e.pointerId);
         
         // 如果有活动工具，将事件传递给工具
-        if (this.currentTool) {
-            this.currentTool.pointerup(e);
+        if (this.activeTool) {
+            this.activeTool.pointerup(e);
         }
     }
     
@@ -785,9 +750,9 @@ export default class PixiTable {
             if (this.tools.zoom && typeof this.tools.zoom.wheel === 'function') {
                 this.tools.zoom.wheel(e);
             }
-        } else if (this.currentTool && typeof this.currentTool.wheel === 'function') {
+        } else if (this.activeTool && typeof this.activeTool.wheel === 'function') {
             // 如果当前工具支持滚轮事件，则传递给当前工具处理
-            this.currentTool.wheel(e);
+            this.activeTool.wheel(e);
         }
         
         // 在缩放后更新光标位置
@@ -810,15 +775,15 @@ export default class PixiTable {
      */
     setActiveTool(name) {
         // 停用当前工具
-        if (this.currentTool) {
-            this.currentTool.deactivate();
+        if (this.activeTool) {
+            this.activeTool.deactivate();
         }
         
         // 激活新工具
-        this.currentTool = this.tools[name];
+        this.activeTool = this.tools[name];
         
-        if (this.currentTool) {
-            this.currentTool.activate();
+        if (this.activeTool) {
+            this.activeTool.activate();
             console.log(`Active tool set to: ${name}`);
             
             // 更新调试信息
@@ -829,6 +794,23 @@ export default class PixiTable {
         } else {
             console.warn(`Tool not found: ${name}`);
         }
+    }
+    
+    /**
+     * 清空表格
+     */
+    clear() {
+        // 移除绘制的内容
+        if (this.drawingContainer) {
+            this.drawingContainer.removeChildren();
+        }
+        
+        // 清除 paper 内容
+        if (this.paper) {
+            this.paper.clear();
+        }
+        
+        console.log('Table cleared');
     }
     
     /**
@@ -957,35 +939,9 @@ export default class PixiTable {
      * 在缩放后调用此方法可以确保 Paper 在视图中居中
      */
     centerViewOnPaper() {
-        // 获取 paper 的尺寸和位置
-        const paperX = (this.width - this.paperWidth) / 2;
-        const paperY = (this.height - this.paperHeight) / 2;
-
-        // 获取当前缩放值
-        const scale = this.contentLayer.scale.x;
-        
-        // 计算 paper 的中心点在内容坐标系中的位置
-        const paperCenterX = paperX + this.paperWidth / 2;
-        const paperCenterY = paperY + this.paperHeight / 2;
-        
-        // 计算视口中心
-        const viewportCenterX = this.getScaledStageWidth() / 2;
-        const viewportCenterY = this.getScaledStageHeight() / 2;
-        
-        // 计算新的内容层位置，使 paper 中心与视口中心对齐
-        const newContentX = viewportCenterX - paperCenterX * scale;
-        const newContentY = viewportCenterY - paperCenterY * scale;
-        
-        // 应用新位置
-        this.contentLayer.position.set(newContentX, newContentY);
-        this.bgLayer.position.set(newContentX, newContentY);
-        
-        console.log('视口已调整，Paper 居中显示', {
-            paperCenter: { x: paperCenterX, y: paperCenterY },
-            viewportCenter: { x: viewportCenterX, y: viewportCenterY },
-            scale,
-            newPosition: { x: newContentX, y: newContentY }
-        });
+        if (this.paper) {
+            this.paper.centerInView();
+        }
     }
     
     /**

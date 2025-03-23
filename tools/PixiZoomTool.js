@@ -104,8 +104,11 @@ export default class PixiZoomTool {
         this.table.contentLayer.scale.set(newScale, newScale);
         this.table.bgLayer.scale.set(newScale, newScale);
         
-        // 如果表格有 centerViewOnPaper 方法，则调用它来居中 paper
-        if (typeof this.table.centerViewOnPaper === 'function') {
+        // 调用 paper 的居中方法
+        if (this.table.paper && typeof this.table.paper.centerInView === 'function') {
+            this.table.paper.centerInView();
+        } else if (typeof this.table.centerViewOnPaper === 'function') {
+            // 向后兼容
             this.table.centerViewOnPaper();
         }
         
