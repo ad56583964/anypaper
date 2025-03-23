@@ -103,6 +103,12 @@ export default class PixiZoomTool {
         const newScale = Math.max(this.config.min, Math.min(this.config.max, scale));
         this.table.contentLayer.scale.set(newScale, newScale);
         this.table.bgLayer.scale.set(newScale, newScale);
+        
+        // 如果表格有 centerViewOnPaper 方法，则调用它来居中 paper
+        if (typeof this.table.centerViewOnPaper === 'function') {
+            this.table.centerViewOnPaper();
+        }
+        
         this.updateDebugInfo();
         return newScale;
     }

@@ -275,8 +275,8 @@ export default class PixiTable {
         this.stageWidth = width;
         this.stageHeight = height;
         
-        // 重新居中内容
-        this.centerContent();
+        // 调整视口，使 Paper 居中显示（替代简单的居中内容）
+        this.centerViewOnPaper();
         
         // 更新舞台边框
         if (this.stageBorder) {
@@ -479,6 +479,9 @@ export default class PixiTable {
         
         // 设置默认缩放值为 0.5
         zoomTool.setScale(0.5);
+        
+        // 调整视口，使 Paper 居中显示
+        this.centerViewOnPaper();
         
         // 设置默认工具为 pencil
         this.setActiveTool('pencil');
@@ -940,5 +943,43 @@ export default class PixiTable {
         this.bgLayer.addChild(border);
         
         console.log('bgLayer border drawn');
+    }
+    
+    /**
+     * 调整视口使 Paper 居中显示
+     * 在缩放后调用此方法可以确保 Paper 在视图中居中
+     */
+    centerViewOnPaper() {
+        // 获取 paper 的尺寸和位置
+        const paperWidth = 1920;
+        const paperHeight = 1440;
+        const paperX = (this.width - paperWidth) / 2;
+        const paperY = (this.height - paperHeight) / 2;
+
+        // 获取当前缩放值
+        const scale = this.contentLayer.scale.x;
+        
+        // 计算 paper 的中心点在内容坐标系中的位置
+        const paperCenterX = paperX + paperWidth / 2;
+        const paperCenterY = paperY + paperHeight / 2;
+        
+        // 计算视口中心
+        const viewportCenterX = this.getScaledStageWidth() / 2;
+        const viewportCenterY = this.getScaledStageHeight() / 2;
+        
+        // 计算新的内容层位置，使 paper 中心与视口中心对齐
+        const newContentX = viewportCenterX - paperCenterX * scale;
+        const newContentY = viewportCenterY - paperCenterY * scale;
+        
+        // 应用新位置
+        this.contentLayer.position.set(newContentX, newContentY);
+        this.bgLayer.position.set(newContentX, newContentY);
+        
+        console.log('视口已调整，Paper 居中显示', {
+            paperCenter: { x: paperCenterX, y: paperCenterY },
+            viewportCenter: { x: viewportCenterX, y: viewportCenterY },
+            scale,
+            newPosition: { x: newContentX, y: newContentY }
+        });
     }
 }
