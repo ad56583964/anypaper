@@ -477,6 +477,9 @@ export default class PixiTable {
         this.registerTool('pencil', pencilTool);
         this.registerTool('zoom', zoomTool);
         
+        // 设置默认缩放值为 0.5
+        zoomTool.setScale(0.5);
+        
         // 设置默认工具为 pencil
         this.setActiveTool('pencil');
         
