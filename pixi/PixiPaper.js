@@ -108,21 +108,37 @@ export default class PixiPaper {
         const containerGlobalPos = this.paperContainer.getGlobalPosition();
         const containerLocalPos = this.table.bgLayer.toLocal(containerGlobalPos);
         
-        // 获取实际画布（paperGraphics）的边界
-        const paperBounds = this.paperGraphics.getBounds();
-        console.log('Paper graphics bounds:', paperBounds);
+        // 获取 paperGraphics 相对于 viewport 的边界（包含所有变换）
+        const viewportBounds = this.paperGraphics.getBounds();
         
-        // 计算实际画布的尺寸（考虑缩放）
-        const scale = this.paperContainer.scale;
+        // 创建 viewport 中的点
+        const viewportTopLeft = new PIXI.Point(viewportBounds.x, viewportBounds.y);
+        const viewportBottomRight = new PIXI.Point(
+            viewportBounds.x + viewportBounds.width,
+            viewportBounds.y + viewportBounds.height
+        );
+        
+        // 将点从 viewport 坐标系转换为 bgLayer 的本地坐标系
+        const localTopLeft = this.table.bgLayer.toLocal(viewportTopLeft);
+        const localBottomRight = this.table.bgLayer.toLocal(viewportBottomRight);
+        
+        // 计算相对于 bgLayer 的尺寸
         const dimensions = {
-            width: paperBounds.width * Math.abs(scale.x),
-            height: paperBounds.height * Math.abs(scale.y)
+            width: Math.abs(localBottomRight.x - localTopLeft.x),
+            height: Math.abs(localBottomRight.y - localTopLeft.y)
         };
         
-        console.log('Dimensions calculation:', {
-            paperBounds,
-            scale,
-            finalDimensions: dimensions
+        console.log('Bounds calculation:', {
+            viewportBounds,
+            localPoints: {
+                topLeft: localTopLeft,
+                bottomRight: localBottomRight
+            },
+            localDimensions: dimensions,
+            calculation: {
+                width: `${localBottomRight.x} - ${localTopLeft.x} = ${dimensions.width}`,
+                height: `${localBottomRight.y} - ${localTopLeft.y} = ${dimensions.height}`
+            }
         });
         
         // 返回相对于 bgLayer 的边界信息
