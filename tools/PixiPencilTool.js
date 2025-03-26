@@ -165,7 +165,7 @@ export default class PixiPencilTool {
 
         // 获取本地坐标
         const localPoint = convertPointToLocalCoordinates(this.table.app, e.clientX, e.clientY, this.table.contentLayer);
-        
+        console.log('localPoint', localPoint);
         // 检查是否在 paper 范围内 - 只在开始绘制时检查
         if (!this.isPointInPaper(localPoint.x, localPoint.y)) {
             console.log('Pencil mode: 只能在 paper 范围内开始绘制');

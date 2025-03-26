@@ -98,25 +98,62 @@ export default class PixiPaper {
     }
     
     /**
-     * 获取 paper 的边界
+     * 获取 paper 的边界，返回相对于 bgLayer 的坐标
      * @returns {Object} - paper 的边界信息
      */
     getBounds() {
         if (!this.paperGraphics) return null;
         
-        // 获取 paper 图形的边界（相对于其父容器的本地坐标系）
+        // 获取 paperContainer 的全局位置（用于定位）
+        const containerGlobalPos = this.paperContainer.getGlobalPosition();
+        const containerLocalPos = this.table.bgLayer.toLocal(containerGlobalPos);
+        
+        // 获取实际画布（paperGraphics）的边界
         const paperBounds = this.paperGraphics.getBounds();
+        console.log('Paper graphics bounds:', paperBounds);
         
-        // 创建 paper 容器的全局变换（这会包含所有祖先容器的变换）
-        const paperGlobalPosition = this.paperContainer.getGlobalPosition();
-        
-        // 返回整合了容器位置的边界
-        return {
-            x: paperGlobalPosition.x,
-            y: paperGlobalPosition.y,
-            width: paperBounds.width,
-            height: paperBounds.height
+        // 计算实际画布的尺寸（考虑缩放）
+        const scale = this.paperContainer.scale;
+        const dimensions = {
+            width: paperBounds.width * Math.abs(scale.x),
+            height: paperBounds.height * Math.abs(scale.y)
         };
+        
+        console.log('Dimensions calculation:', {
+            paperBounds,
+            scale,
+            finalDimensions: dimensions
+        });
+        
+        // 返回相对于 bgLayer 的边界信息
+        return {
+            x: containerLocalPos.x,
+            y: containerLocalPos.y,
+            width: dimensions.width,
+            height: dimensions.height
+        };
+    }
+
+    /**
+     * 计算边界的宽度和高度
+     * @private
+     * @param {PIXI.Point} topLeft - 左上角点
+     * @param {PIXI.Point} bottomRight - 右下角点
+     * @returns {Object} 包含 width 和 height 的对象
+     */
+    _calculateBoundsDimensions(topLeft, bottomRight) {
+        const width = bottomRight.x - topLeft.x;
+        const height = bottomRight.y - topLeft.y;
+
+        console.log('Bounds calculation:', {
+            topLeft,
+            bottomRight,
+            width,
+            height,
+            scale: this.paperContainer.scale
+        });
+
+        return { width, height };
     }
     
     /**
@@ -189,7 +226,7 @@ export default class PixiPaper {
         
         // 将 paper 中心点转换到全局坐标系
         const paperCenterGlobal = this.paperContainer.toGlobal(new PIXI.Point(paperCenterX, paperCenterY));
-        
+        console.log('paperCenterGlobal', paperCenterGlobal);
         // 计算新的内容层位置，使 paper 中心与视口中心对齐
         const newContentX = viewportCenterX - paperCenterGlobal.x * scale;
         const newContentY = viewportCenterY - paperCenterGlobal.y * scale;
@@ -234,4 +271,4 @@ export default class PixiPaper {
         // 调整视口
         this.centerInView();
     }
-} 
+}
