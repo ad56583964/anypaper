@@ -38,28 +38,13 @@ export default class PixiPencilTool {
         // 允许的输入设备类型
         this.allowedInputTypes = ['mouse', 'pen'];
         
-        // 创建 paper 遮罩
-        this.createPaperMask();
+        // 应用 paper 遮罩
+        if (this.table.paper && this.table.paper.mask) {
+            this.table.drawingContainer.mask = this.table.paper.mask;
+            this.table.drawingContainer.addChild(this.table.paper.mask);
+        }
         
         console.log('PixiPencilTool initialized');
-    }
-    
-    /**
-     * 创建 paper 遮罩
-     */
-    createPaperMask() {
-        if (!this.table.paper) return;
-        
-        // 使用 PixiPaper 的方法创建遮罩
-        this.paperMask = this.table.paper.createMask();
-        
-        if (this.paperMask) {
-            // 将遮罩应用到绘图容器
-            this.table.drawingContainer.mask = this.paperMask;
-            
-            // 将遮罩添加到绘图容器中，这样遮罩会跟随容器一起移动和缩放
-            this.table.drawingContainer.addChild(this.paperMask);
-        }
     }
     
     /**

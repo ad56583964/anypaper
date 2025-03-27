@@ -29,12 +29,16 @@ export default class PixiPaper {
         this.paperGraphics = null; // paper 图形对象
         this.paperContainer = null; // paper 容器
         this.shadowGraphics = null; // 阴影图形对象
+        this.mask = null; // paper 遮罩
         
         // 创建 paper 容器
         this.createPaperContainer();
         
         // 创建 paper
         this.createPaper();
+        
+        // 创建遮罩
+        this.createMask();
     }
     
     /**
@@ -55,6 +59,41 @@ export default class PixiPaper {
         if (this.table.bgLayer) {
             this.table.bgLayer.addChild(this.paperContainer);
         }
+    }
+    
+    /**
+     * 创建 paper 遮罩
+     * @returns {PIXI.Graphics} 创建的遮罩对象
+     */
+    createMask() {
+        if (this.mask) return this.mask;
+        
+        // 创建遮罩图形
+        this.mask = new PIXI.Graphics();
+        this.mask.beginFill(0xffffff);
+        this.mask.drawRoundedRect(0, 0, this.width, this.height, this.cornerRadius);
+        this.mask.endFill();
+        
+        // 设置遮罩位置
+        this.mask.x = this.x;
+        this.mask.y = this.y;
+        
+        // 将遮罩添加到 paperContainer
+        if (this.paperContainer) {
+            this.paperContainer.addChild(this.mask);
+        }
+        
+        console.log('Paper mask created:', {
+            bounds: {
+                x: this.x,
+                y: this.y,
+                width: this.width,
+                height: this.height
+            },
+            cornerRadius: this.cornerRadius
+        });
+        
+        return this.mask;
     }
     
     /**
@@ -98,55 +137,26 @@ export default class PixiPaper {
     }
     
     /**
-     * 获取 paper 的边界，返回相对于 bgLayer 的坐标
-     * @returns {Object} - paper 的边界信息
+     * 获取 paper 的边界
+     * @returns {Object} - paper 的边界信息，相对于 paperContainer 的本地坐标系
      */
     getBounds() {
         if (!this.paperGraphics) return null;
         
-        // 获取 paperContainer 的全局位置（用于定位）
-        const containerGlobalPos = this.paperContainer.getGlobalPosition();
-        const containerLocalPos = this.table.bgLayer.toLocal(containerGlobalPos);
+        // 获取 paperGraphics 的本地边界（相对于 paperContainer）
+        const localBounds = this.paperGraphics.getLocalBounds();
         
-        // 获取 paperGraphics 相对于 viewport 的边界（包含所有变换）
-        const viewportBounds = this.paperGraphics.getBounds();
-        
-        // 创建 viewport 中的点
-        const viewportTopLeft = new PIXI.Point(viewportBounds.x, viewportBounds.y);
-        const viewportBottomRight = new PIXI.Point(
-            viewportBounds.x + viewportBounds.width,
-            viewportBounds.y + viewportBounds.height
-        );
-        
-        // 将点从 viewport 坐标系转换为 bgLayer 的本地坐标系
-        const localTopLeft = this.table.bgLayer.toLocal(viewportTopLeft);
-        const localBottomRight = this.table.bgLayer.toLocal(viewportBottomRight);
-        
-        // 计算相对于 bgLayer 的尺寸
-        const dimensions = {
-            width: Math.abs(localBottomRight.x - localTopLeft.x),
-            height: Math.abs(localBottomRight.y - localTopLeft.y)
-        };
-        
-        console.log('Bounds calculation:', {
-            viewportBounds,
-            localPoints: {
-                topLeft: localTopLeft,
-                bottomRight: localBottomRight
-            },
-            localDimensions: dimensions,
-            calculation: {
-                width: `${localBottomRight.x} - ${localTopLeft.x} = ${dimensions.width}`,
-                height: `${localBottomRight.y} - ${localTopLeft.y} = ${dimensions.height}`
-            }
+        console.log('Paper local bounds:', {
+            bounds: localBounds,
+            scale: this.paperContainer.scale
         });
         
-        // 返回相对于 bgLayer 的边界信息
+        // 返回相对于 paperContainer 的本地边界
         return {
-            x: containerLocalPos.x,
-            y: containerLocalPos.y,
-            width: dimensions.width,
-            height: dimensions.height
+            x: localBounds.x,
+            y: localBounds.y,
+            width: localBounds.width,
+            height: localBounds.height
         };
     }
 
@@ -174,53 +184,56 @@ export default class PixiPaper {
     
     /**
      * 检查点是否在 paper 范围内
-     * @param {number} x - X 坐标
-     * @param {number} y - Y 坐标
+     * @param {number} x - X 坐标（全局坐标）
+     * @param {number} y - Y 坐标（全局坐标）
      * @returns {boolean} - 是否在 paper 范围内
      */
     isPointInside(x, y) {
-        const bounds = this.getBounds();
-        if (!bounds) {
+        if (!this.paperGraphics || !this.paperContainer) {
             return false;
         }
+
+        // 先将点转换到 bgLayer 的本地坐标系
+        const bgLayerPoint = this.table.bgLayer.toLocal(new PIXI.Point(x, y));
+
+        // 然后再考虑 paperContainer 相对于 bgLayer 的位置和缩放
+        const containerPos = this.paperContainer.position;
+        const containerScale = this.paperContainer.scale;
         
-        return x >= bounds.x && 
-               x <= bounds.x + bounds.width &&
-               y >= bounds.y && 
-               y <= bounds.height;
+        const inside = (
+            bgLayerPoint.x >= containerPos.x && 
+            bgLayerPoint.x <= containerPos.x + this.width * containerScale.x &&
+            bgLayerPoint.y >= containerPos.y && 
+            bgLayerPoint.y <= containerPos.y + this.height * containerScale.y
+        );
+
+        // 记录详细的检查信息
+        console.log('Point inside check:', JSON.stringify({
+            globalPoint: { x, y },
+            bgLayerPoint: {
+                x: Math.round(bgLayerPoint.x),
+                y: Math.round(bgLayerPoint.y)
+            },
+            paperBounds: {
+                x: Math.round(containerPos.x),
+                y: Math.round(containerPos.y),
+                width: Math.round(this.width * containerScale.x),
+                height: Math.round(this.height * containerScale.y),
+                right: Math.round(containerPos.x + this.width * containerScale.x),
+                bottom: Math.round(containerPos.y + this.height * containerScale.y)
+            },
+            containerScale,
+            check: {
+                x: `${Math.round(bgLayerPoint.x)} >= ${Math.round(containerPos.x)} && ${Math.round(bgLayerPoint.x)} <= ${Math.round(containerPos.x + this.width * containerScale.x)}`,
+                y: `${Math.round(bgLayerPoint.y)} >= ${Math.round(containerPos.y)} && ${Math.round(bgLayerPoint.y)} <= ${Math.round(containerPos.y + this.height * containerScale.y)}`
+            },
+            inside
+        }, null, 2));
+
+        return inside;
     }
     
-    /**
-     * 创建用于限制绘制区域的 paper 遮罩
-     * @returns {PIXI.Graphics} - 创建的遮罩图形
-     */
-    createMask() {
-        if (!this.paperGraphics) return null;
-        
-        // 在全局坐标系获取边界
-        const bounds = this.getBounds();
-        
-        // 创建一个用于遮罩的 Graphics 对象
-        const mask = new PIXI.Graphics();
-        
-        // 绘制与 paper 相同大小和位置的矩形作为遮罩
-        mask.rect(
-            bounds.x, 
-            bounds.y, 
-            bounds.width, 
-            bounds.height
-        )
-        .fill(0xFFFFFF);
-        
-        console.log('Paper mask created at:', {
-            x: bounds.x,
-            y: bounds.y,
-            width: bounds.width,
-            height: bounds.height
-        });
-        
-        return mask;
-    }
+
     
     /**
      * 调整视口使 Paper 居中显示
