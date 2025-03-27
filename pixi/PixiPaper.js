@@ -159,28 +159,6 @@ export default class PixiPaper {
             height: localBounds.height
         };
     }
-
-    /**
-     * 计算边界的宽度和高度
-     * @private
-     * @param {PIXI.Point} topLeft - 左上角点
-     * @param {PIXI.Point} bottomRight - 右下角点
-     * @returns {Object} 包含 width 和 height 的对象
-     */
-    _calculateBoundsDimensions(topLeft, bottomRight) {
-        const width = bottomRight.x - topLeft.x;
-        const height = bottomRight.y - topLeft.y;
-
-        console.log('Bounds calculation:', {
-            topLeft,
-            bottomRight,
-            width,
-            height,
-            scale: this.paperContainer.scale
-        });
-
-        return { width, height };
-    }
     
     /**
      * 检查点是否在 paper 范围内
