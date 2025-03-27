@@ -18,6 +18,11 @@ export default class PixiTable {
      * @returns {Promise} - 初始化完成的Promise
      */
     constructor(containerId = 'a4-table', options = {}) {
+        // 禁用整个文档的右键菜单
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            return false;
+        });
         // 设置 block 大小 - 使用固定值代替 this.pixel
         this.block = {
             width: 40,  // 固定值 20 (替代 10 * this.pixel)
