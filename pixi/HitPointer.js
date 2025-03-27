@@ -20,7 +20,7 @@ export default class HitPointer {
             color: options.color || 0xFF0000, // 红色
             alpha: options.alpha || 1,
             borderWidth: options.borderWidth || 2,
-            borderColor: options.borderColor || 0x000000, // 黑色
+            borderColor: options.borderColor || 0x990000, // 深红色
             isDebug: options.isDebug || false,
             id: options.id || `pointer-${Math.floor(Math.random() * 10000)}` // 唯一标识符
         };

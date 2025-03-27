@@ -358,7 +358,7 @@ export default class PixiTable {
     initPointer(options = {}) {
         // 创建命中指示器，使用专门的指针层
         this.hitPointer = new HitPointer(this.pointerLayer, {
-            size: options?.size || 10,
+            size: options?.size || 3,
             color: options?.color || 0xFF0000, // 红色
             alpha: 1,
             id: "normal-pointer" // 正常指针的ID
