@@ -24,6 +24,15 @@ export default class PixiTable {
             height: 40, // 固定值 20 (替代 10 * this.pixel)
         };
         
+        // 平移状态
+        this.panning = {
+            active: false,
+            startX: 0,
+            startY: 0,
+            lastX: 0,
+            lastY: 0
+        };
+        
         // 固定 paper 的尺寸，以 4:3 比例 - 保留属性以便兼容旧代码
         this.paperWidth = 3840;
         this.paperHeight = 2880;
@@ -653,6 +662,15 @@ export default class PixiTable {
         // 更新红色指针位置
         this.updateHitPointer(e);
         
+        // 如果是鼠标右键，启用平移模式
+        if (e.button === 2) {
+            e.preventDefault(); // 阻止默认右键菜单
+            this.panning.active = true;
+            this.panning.lastX = e.clientX;
+            this.panning.lastY = e.clientY;
+            return;
+        }
+        
         // 特殊处理：检查是否有两个手指，如果是则优先使用缩放工具
         // 无论当前是什么工具模式，都允许双指缩放
         if (this.activePointers.size === 2 && e.pointerType === 'touch') {
@@ -689,6 +707,24 @@ export default class PixiTable {
         // 更新红色指针位置（仅追踪移动中的指针）
         this.updateHitPointer(e);
         
+        // 如果正在平移，处理平移逻辑
+        if (this.panning.active) {
+            const dx = e.clientX - this.panning.lastX;
+            const dy = e.clientY - this.panning.lastY;
+            
+            // 更新内容层和背景层的位置
+            this.contentLayer.position.x += dx;
+            this.contentLayer.position.y += dy;
+            this.bgLayer.position.x += dx;
+            this.bgLayer.position.y += dy;
+            
+            // 更新上一次的位置
+            this.panning.lastX = e.clientX;
+            this.panning.lastY = e.clientY;
+            
+            return; // 如果正在平移，不执行其他操作
+        }
+        
         // 特殊处理：如果有两个或更多的手指，优先把事件传递给缩放工具
         if (this.activePointers.size >= 2 && e.pointerType === 'touch') {
             const zoomTool = this.tools['zoom'];
@@ -710,6 +746,15 @@ export default class PixiTable {
     handlePointerUp(e) {
         // 更新调试信息
         this.updateDeviceTrackerInfo('pointerup', e);
+        
+        // 移除活动指针
+        this.activePointers.delete(e.pointerId);
+        
+        // 如果正在平移且是鼠标右键松开，停止平移
+        if (this.panning.active && e.button === 2) {
+            this.panning.active = false;
+            return;
+        }
         
         // 特殊处理：如果正在进行缩放操作，优先将事件传递给缩放工具
         if (e.pointerType === 'touch') {
