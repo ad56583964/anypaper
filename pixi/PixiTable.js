@@ -690,10 +690,6 @@ export default class PixiTable {
         
         // 如果是触摸设备的单指操作
         if (e.pointerType === 'touch' && this.activePointers.size === 1) {
-            // 获取视口大小
-            const viewportWidth = window.innerWidth;
-            const isInLeftHalf = e.clientX <= viewportWidth / 2;
-            
             // 记录触摸开始时间和位置
             this.panning.touchStartTime = Date.now();
             this.panning.startX = e.clientX;
@@ -701,10 +697,9 @@ export default class PixiTable {
             this.panning.lastX = e.clientX;
             this.panning.lastY = e.clientY;
             this.panning.touchStartDistance = 0;
-            this.panning.isRightSide = !isInLeftHalf;
             this.panning.accumulatedDx = 0;
             this.panning.accumulatedDy = 0;
-            this.panning.canStartPanning = true; // 允许开始平移，不管在哪一半屏
+            this.panning.canStartPanning = true; // 允许开始平移
         }
         
         // 如果是鼠标右键，启用平移模式
@@ -771,6 +766,7 @@ export default class PixiTable {
         if (e.pointerType === 'touch' && this.activePointers.size === 1) {
             const dx = e.clientX - this.panning.lastX;
             const dy = e.clientY - this.panning.lastY;
+            const currentTime = Date.now();
             
             // 更新累积移动距离
             if (!this.panning.active) {
@@ -781,18 +777,21 @@ export default class PixiTable {
                     this.panning.accumulatedDy * this.panning.accumulatedDy
                 );
                 
-                // 左半屏需要移动10像素，右半屏需要移动50像素
-                const threshold = this.panning.isRightSide ? 50 : 10;
+                // 检查是否在触摸开始后200ms内
+                const timeSinceStart = currentTime - this.panning.touchStartTime;
+                const isQuickMove = timeSinceStart <= 500; // 200ms内的移动被认为是平移意图
                 
-                if (totalDistance > threshold && this.panning.canStartPanning) {
+                // 如果在200ms内移动超过20像素，则激活平移
+                if (totalDistance > 20 && isQuickMove && this.panning.canStartPanning) {
                     this.panning.active = true;
-                    // 如果是右半屏，在激活时应用累积的移动距离
-                    if (this.panning.isRightSide) {
-                        this.contentLayer.position.x += this.panning.accumulatedDx;
-                        this.contentLayer.position.y += this.panning.accumulatedDy;
-                        this.bgLayer.position.x += this.panning.accumulatedDx;
-                        this.bgLayer.position.y += this.panning.accumulatedDy;
-                    }
+                    // 应用累积的移动距离
+                    this.contentLayer.position.x += this.panning.accumulatedDx;
+                    this.contentLayer.position.y += this.panning.accumulatedDy;
+                    this.bgLayer.position.x += this.panning.accumulatedDx;
+                    this.bgLayer.position.y += this.panning.accumulatedDy;
+                } else if (!isQuickMove) {
+                    // 如果超过200ms还没有激活平移，则取消平移意图
+                    this.panning.canStartPanning = false;
                 }
             }
             
