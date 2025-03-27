@@ -38,7 +38,10 @@ export default class PixiTable {
             lastY: 0,
             touchStartTime: 0, // 触摸开始时间
             touchStartDistance: 0, // 触摸开始时的移动距离
-            canStartPanning: false // 是否可以开始平移
+            canStartPanning: false, // 是否可以开始平移
+            isRightSide: false, // 是否从右半屏开始
+            accumulatedDx: 0, // 累积的x方向移动
+            accumulatedDy: 0  // 累积的y方向移动
         };
         
         // 固定 paper 的尺寸，以 4:3 比例 - 保留属性以便兼容旧代码
@@ -674,22 +677,19 @@ export default class PixiTable {
         if (e.pointerType === 'touch' && this.activePointers.size === 1) {
             // 获取视口大小
             const viewportWidth = window.innerWidth;
-            
-            // 检查是否在左半屏
             const isInLeftHalf = e.clientX <= viewportWidth / 2;
             
-            if (isInLeftHalf) {
-                // 记录触摸开始时间和位置
-                this.panning.touchStartTime = Date.now();
-                this.panning.startX = e.clientX;
-                this.panning.startY = e.clientY;
-                this.panning.lastX = e.clientX;
-                this.panning.lastY = e.clientY;
-                this.panning.touchStartDistance = 0;
-                this.panning.canStartPanning = true; // 标记可以开始平移
-            } else {
-                this.panning.canStartPanning = false; // 不在允许的区域内
-            }
+            // 记录触摸开始时间和位置
+            this.panning.touchStartTime = Date.now();
+            this.panning.startX = e.clientX;
+            this.panning.startY = e.clientY;
+            this.panning.lastX = e.clientX;
+            this.panning.lastY = e.clientY;
+            this.panning.touchStartDistance = 0;
+            this.panning.isRightSide = !isInLeftHalf;
+            this.panning.accumulatedDx = 0;
+            this.panning.accumulatedDy = 0;
+            this.panning.canStartPanning = true; // 允许开始平移，不管在哪一半屏
         }
         
         // 如果是鼠标右键，启用平移模式
@@ -738,16 +738,45 @@ export default class PixiTable {
         this.updateHitPointer(e);
         
         // 如果是触摸设备的单指操作
-        if (e.pointerType === 'touch' && this.activePointers.size === 1 && this.panning.canStartPanning) {
-            const dx = e.clientX - this.panning.startX;
-            const dy = e.clientY - this.panning.startY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            this.panning.touchStartDistance = distance;
+        if (e.pointerType === 'touch' && this.activePointers.size === 1) {
+            const dx = e.clientX - this.panning.lastX;
+            const dy = e.clientY - this.panning.lastY;
             
-            // 如果移动距离超过10像素，则启动平移
-            if (distance > 10 && !this.panning.active) {
-                this.panning.active = true;
+            // 更新累积移动距离
+            if (!this.panning.active) {
+                this.panning.accumulatedDx += dx;
+                this.panning.accumulatedDy += dy;
+                const totalDistance = Math.sqrt(
+                    this.panning.accumulatedDx * this.panning.accumulatedDx + 
+                    this.panning.accumulatedDy * this.panning.accumulatedDy
+                );
+                
+                // 左半屏需要移动10像素，右半屏需要移动50像素
+                const threshold = this.panning.isRightSide ? 50 : 10;
+                
+                if (totalDistance > threshold && this.panning.canStartPanning) {
+                    this.panning.active = true;
+                    // 如果是右半屏，在激活时应用累积的移动距离
+                    if (this.panning.isRightSide) {
+                        this.contentLayer.position.x += this.panning.accumulatedDx;
+                        this.contentLayer.position.y += this.panning.accumulatedDy;
+                        this.bgLayer.position.x += this.panning.accumulatedDx;
+                        this.bgLayer.position.y += this.panning.accumulatedDy;
+                    }
+                }
             }
+            
+            // 如果已经激活平移，则正常处理移动
+            if (this.panning.active) {
+                this.contentLayer.position.x += dx;
+                this.contentLayer.position.y += dy;
+                this.bgLayer.position.x += dx;
+                this.bgLayer.position.y += dy;
+            }
+            
+            // 更新上一次的位置
+            this.panning.lastX = e.clientX;
+            this.panning.lastY = e.clientY;
         }
         
         // 如果正在平移，处理平移逻辑
