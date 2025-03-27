@@ -148,36 +148,12 @@ export default class PixiPaper {
             return false;
         }
 
-        // 先将点转换到 bgLayer 的本地坐标系
-        const bgLayerPoint = this.table.bgLayer.toLocal(new PIXI.Point(x, y));
+        if (x < this.x || x > this.x + this.width ||
+            y < this.y || y > this.y + this.height) {
+            return false;
+        }
 
-        // 然后再考虑 paperContainer 相对于 bgLayer 的位置和缩放
-        const containerPos = this.paperContainer.position;
-        const containerScale = this.paperContainer.scale;
-        
-        const inside = (
-            bgLayerPoint.x >= containerPos.x && 
-            bgLayerPoint.x <= containerPos.x + this.width * containerScale.x &&
-            bgLayerPoint.y >= containerPos.y && 
-            bgLayerPoint.y <= containerPos.y + this.height * containerScale.y
-        );
-
-        // 记录详细的检查信息
-        // 记录点的位置和检查结果
-        console.log('Point inside check:', {
-            globalPoint: `(${Math.round(x)}, ${Math.round(y)})`,
-            localPoint: `(${Math.round(bgLayerPoint.x)}, ${Math.round(bgLayerPoint.y)})`,
-            paperBounds: {
-                x: Math.round(containerPos.x),
-                y: Math.round(containerPos.y),
-                width: Math.round(this.width * containerScale.x),
-                height: Math.round(this.height * containerScale.y)
-            },
-            scale: `(${containerScale.x.toFixed(2)}, ${containerScale.y.toFixed(2)})`,
-            inside
-        });
-
-        return inside;
+        return true;
     }
     
 
