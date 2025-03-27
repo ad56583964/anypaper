@@ -673,6 +673,21 @@ export default class PixiTable {
         // 更新红色指针位置
         this.updateHitPointer(e);
         
+        // 如果是触摸设备的第二个手指，且正在平移
+        if (e.pointerType === 'touch' && this.activePointers.size === 2 && this.panning.active) {
+            // 停止平移
+            this.panning.active = false;
+            this.panning.canStartPanning = false;
+            
+            // 获取缩放工具实例
+            const zoomTool = this.tools['zoom'];
+            if (zoomTool) {
+                console.log('从平移切换到缩放模式');
+                // 直接调用缩放工具的事件处理
+                return zoomTool.pointerdown(e);
+            }
+        }
+        
         // 如果是触摸设备的单指操作
         if (e.pointerType === 'touch' && this.activePointers.size === 1) {
             // 获取视口大小
@@ -736,6 +751,21 @@ export default class PixiTable {
         
         // 更新红色指针位置（仅追踪移动中的指针）
         this.updateHitPointer(e);
+        
+        // 如果是触摸设备的第二个手指，且正在平移
+        if (e.pointerType === 'touch' && this.activePointers.size === 2 && this.panning.active) {
+            // 停止平移
+            this.panning.active = false;
+            this.panning.canStartPanning = false;
+            
+            // 获取缩放工具实例
+            const zoomTool = this.tools['zoom'];
+            if (zoomTool) {
+                console.log('从平移切换到缩放模式');
+                // 直接调用缩放工具的事件处理
+                return zoomTool.pointermove(e);
+            }
+        }
         
         // 如果是触摸设备的单指操作
         if (e.pointerType === 'touch' && this.activePointers.size === 1) {
