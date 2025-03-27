@@ -136,29 +136,6 @@ export default class PixiPaper {
         });
     }
     
-    /**
-     * 获取 paper 的边界
-     * @returns {Object} - paper 的边界信息，相对于 paperContainer 的本地坐标系
-     */
-    getBounds() {
-        if (!this.paperGraphics) return null;
-        
-        // 获取 paperGraphics 的本地边界（相对于 paperContainer）
-        const localBounds = this.paperGraphics.getLocalBounds();
-        
-        console.log('Paper local bounds:', {
-            bounds: localBounds,
-            scale: this.paperContainer.scale
-        });
-        
-        // 返回相对于 paperContainer 的本地边界
-        return {
-            x: localBounds.x,
-            y: localBounds.y,
-            width: localBounds.width,
-            height: localBounds.height
-        };
-    }
     
     /**
      * 检查点是否在 paper 范围内
