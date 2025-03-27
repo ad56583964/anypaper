@@ -208,27 +208,19 @@ export default class PixiPaper {
         );
 
         // 记录详细的检查信息
-        console.log('Point inside check:', JSON.stringify({
-            globalPoint: { x, y },
-            bgLayerPoint: {
-                x: Math.round(bgLayerPoint.x),
-                y: Math.round(bgLayerPoint.y)
-            },
+        // 记录点的位置和检查结果
+        console.log('Point inside check:', {
+            globalPoint: `(${Math.round(x)}, ${Math.round(y)})`,
+            localPoint: `(${Math.round(bgLayerPoint.x)}, ${Math.round(bgLayerPoint.y)})`,
             paperBounds: {
                 x: Math.round(containerPos.x),
                 y: Math.round(containerPos.y),
                 width: Math.round(this.width * containerScale.x),
-                height: Math.round(this.height * containerScale.y),
-                right: Math.round(containerPos.x + this.width * containerScale.x),
-                bottom: Math.round(containerPos.y + this.height * containerScale.y)
+                height: Math.round(this.height * containerScale.y)
             },
-            containerScale,
-            check: {
-                x: `${Math.round(bgLayerPoint.x)} >= ${Math.round(containerPos.x)} && ${Math.round(bgLayerPoint.x)} <= ${Math.round(containerPos.x + this.width * containerScale.x)}`,
-                y: `${Math.round(bgLayerPoint.y)} >= ${Math.round(containerPos.y)} && ${Math.round(bgLayerPoint.y)} <= ${Math.round(containerPos.y + this.height * containerScale.y)}`
-            },
+            scale: `(${containerScale.x.toFixed(2)}, ${containerScale.y.toFixed(2)})`,
             inside
-        }, null, 2));
+        });
 
         return inside;
     }
