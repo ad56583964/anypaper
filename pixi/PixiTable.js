@@ -35,7 +35,10 @@ export default class PixiTable {
             startX: 0,
             startY: 0,
             lastX: 0,
-            lastY: 0
+            lastY: 0,
+            touchStartTime: 0, // 触摸开始时间
+            touchStartDistance: 0, // 触摸开始时的移动距离
+            canStartPanning: false // 是否可以开始平移
         };
         
         // 固定 paper 的尺寸，以 4:3 比例 - 保留属性以便兼容旧代码
@@ -667,6 +670,28 @@ export default class PixiTable {
         // 更新红色指针位置
         this.updateHitPointer(e);
         
+        // 如果是触摸设备的单指操作
+        if (e.pointerType === 'touch' && this.activePointers.size === 1) {
+            // 获取视口大小
+            const viewportWidth = window.innerWidth;
+            
+            // 检查是否在左半屏
+            const isInLeftHalf = e.clientX <= viewportWidth / 2;
+            
+            if (isInLeftHalf) {
+                // 记录触摸开始时间和位置
+                this.panning.touchStartTime = Date.now();
+                this.panning.startX = e.clientX;
+                this.panning.startY = e.clientY;
+                this.panning.lastX = e.clientX;
+                this.panning.lastY = e.clientY;
+                this.panning.touchStartDistance = 0;
+                this.panning.canStartPanning = true; // 标记可以开始平移
+            } else {
+                this.panning.canStartPanning = false; // 不在允许的区域内
+            }
+        }
+        
         // 如果是鼠标右键，启用平移模式
         if (e.button === 2) {
             e.preventDefault(); // 阻止默认右键菜单
@@ -712,6 +737,19 @@ export default class PixiTable {
         // 更新红色指针位置（仅追踪移动中的指针）
         this.updateHitPointer(e);
         
+        // 如果是触摸设备的单指操作
+        if (e.pointerType === 'touch' && this.activePointers.size === 1 && this.panning.canStartPanning) {
+            const dx = e.clientX - this.panning.startX;
+            const dy = e.clientY - this.panning.startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            this.panning.touchStartDistance = distance;
+            
+            // 如果移动距离超过10像素，则启动平移
+            if (distance > 10 && !this.panning.active) {
+                this.panning.active = true;
+            }
+        }
+        
         // 如果正在平移，处理平移逻辑
         if (this.panning.active) {
             const dx = e.clientX - this.panning.lastX;
@@ -755,9 +793,29 @@ export default class PixiTable {
         // 移除活动指针
         this.activePointers.delete(e.pointerId);
         
-        // 如果正在平移且是鼠标右键松开，停止平移
-        if (this.panning.active && e.button === 2) {
+        // 如果是触摸设备的单指操作
+        if (e.pointerType === 'touch') {
+            const endTime = Date.now();
+            const touchDuration = endTime - this.panning.touchStartTime;
+            
+            // 如果触摸时间小于300ms且移动距离小于10像素，认为是点击
+            if (touchDuration < 300 && this.panning.touchStartDistance < 10) {
+                // 处理点击事件
+                if (this.activeTool) {
+                    this.activeTool.pointerdown(e);
+                    this.activeTool.pointerup(e);
+                }
+            }
+        }
+        
+        // 如果正在平移，停止平移
+        if (this.panning.active) {
             this.panning.active = false;
+            if (e.pointerType === 'touch') {
+                // 重置触摸相关状态
+                this.panning.touchStartTime = 0;
+                this.panning.touchStartDistance = 0;
+            }
             return;
         }
         
