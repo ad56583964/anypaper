@@ -9,7 +9,7 @@ import { convertPointToLocalCoordinates } from '../pixi/utils';
 export default class PixiZoomTool {
     /**
      * 创建一个新的 PixiZoomTool 实例
-     * @param {PixiTable} table - 表格实例
+     * @param {Table} table - 表格实例
      */
     constructor(table) {
         this.table = table;

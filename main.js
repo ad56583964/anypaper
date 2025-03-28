@@ -2,7 +2,7 @@ import './style.css'
 import React from 'react';
 import ReactDOM from 'react-dom';
 import initDebugbar from "./debug.jsx";
-import PixiTable from './pixi/PixiTable';
+import Table from './pixi/table';
 var theme = {
     background_color: "#dff"
 }
@@ -29,11 +29,11 @@ function hideLoadingScreen() {
     }
 }
 
-// 初始化 PixiTable
+// 初始化 Table
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // 创建 PixiTable 实例并等待初始化完成
-        const table = await new PixiTable('a4-table');
+        // 创建 Table 实例并等待初始化完成
+        const table = await new Table('a4-table');
         
         // 将 table 实例暴露到全局，方便调试
         window.pixiTable = table;

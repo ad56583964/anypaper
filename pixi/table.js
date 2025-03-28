@@ -7,12 +7,12 @@ import PixiZoomTool from '../tools/PixiZoomTool.js';
 import { convertPointToLocalCoordinates } from './utils';
 
 /**
- * PixiTable 类 - 主要的表格组件
+ * Table 类 - 主要的表格组件
  * 替代原有的 Konva Table 组件
  */
-export default class PixiTable {
+export default class Table {
     /**
-     * 创建一个新的 PixiTable 实例
+     * 创建一个新的 Table 实例
      * @param {string} containerId - 容器元素的 ID
      * @param {Object} options - 表格选项
      * @returns {Promise} - 初始化完成的Promise
@@ -58,7 +58,7 @@ export default class PixiTable {
             throw new Error(`Container with id "${containerId}" not found`);
         }
         
-        console.log('PixiTable constructor', containerId, this.width, this.height);
+        console.log('Table constructor', containerId, this.width, this.height);
         
         // 使用Promise处理异步初始化
         return new Promise(async (resolve) => {
@@ -80,7 +80,7 @@ export default class PixiTable {
                 
                 resolve(this);
             } catch (error) {
-                console.error('PixiTable initialization error:', error);
+                console.error('Table initialization error:', error);
             }
         });
     }
@@ -151,7 +151,7 @@ export default class PixiTable {
         // 事件监听器
         this.eventListeners = {};
         
-        console.log('PixiTable app initialized', {
+        console.log('Table app initialized', {
             width: this.stageWidth,
             height: this.stageHeight,
             resolution: this.app.renderer.resolution,
@@ -458,7 +458,7 @@ export default class PixiTable {
         this.tools = {};
         this.activeTool = null;
         
-        console.log('PixiTable initialized');
+        console.log('Table initialized');
     }
     
     /**
@@ -1024,7 +1024,7 @@ export default class PixiTable {
         // 销毁应用
         this.app.destroy();
         
-        console.log('PixiTable destroyed');
+        console.log('Table destroyed');
     }
     
     /**

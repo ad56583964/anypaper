@@ -10,7 +10,7 @@ import { convertPointToLocalCoordinates } from '../pixi/utils';
 export default class PixiPencilTool {
     /**
      * 创建一个新的 PixiPencilTool 实例
-     * @param {PixiTable} table - 表格实例
+     * @param {Table} table - 表格实例
      */
     constructor(table, options) {
         this.table = table;
