@@ -1,12 +1,12 @@
 import * as PIXI from 'pixi.js';
 
 /**
- * PixiPaper 类 - 用于管理白板中的 Paper 组件
+ * Paper 类 - 用于管理白板中的 Paper 组件
  * 从 Table 中抽取，专门处理纸张相关的逻辑
  */
-export default class PixiPaper {
+export default class Paper {
     /**
-     * 创建一个新的 PixiPaper 实例
+     * 创建一个新的 Paper 实例
      * @param {Table} table - 父表格实例
      * @param {Object} options - Paper 选项
      */

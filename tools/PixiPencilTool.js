@@ -58,7 +58,7 @@ export default class PixiPencilTool {
             return false;
         }
         
-        // 使用 PixiPaper 的方法检查点是否在纸张内部
+        // 使用 Paper 的方法检查点是否在纸张内部
         return this.table.paper.isPointInside(x, y);
     }
     

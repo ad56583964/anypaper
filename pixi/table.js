@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 import HitPointer from './HitPointer.js';
 import { updateDebugInfo } from '../debug.jsx';
-import PixiPaper from './PixiPaper.js';
+import Paper from './paper.js';
 import PixiPencilTool from '../tools/PixiPencilTool.js';
 import PixiZoomTool from '../tools/PixiZoomTool.js';
 import { convertPointToLocalCoordinates } from './utils';
@@ -465,8 +465,8 @@ export default class Table {
      * 初始化 Paper
      */
     initPaper() {
-        // 创建 PixiPaper 实例
-        this.paper = new PixiPaper(this, {
+        // 创建 Paper 实例
+        this.paper = new Paper(this, {
             width: this.paperWidth,
             height: this.paperHeight
         });
