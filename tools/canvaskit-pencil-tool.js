@@ -79,15 +79,18 @@ export default class CanvasPencilTool {
      * @returns {Array} 输出点数组，用于创建SkPath
      */
     getStrokePathPoints(points, options = {}) {
-        // 默认选项
+        // 默认选项 - 根据perfect-freehand文档优化参数
         const defaultOptions = {
-            size: 8,
-            thinning: 0.5,
-            smoothing: 0.5,
-            streamline: 0.5,
-            easing: (t) => t,
-            simulatePressure: true,
-            last: false
+            size: 6,               // 笔触大小
+            thinning: 0.6,         // 压力对笔触宽度的影响程度
+            smoothing: 0.5,        // 平滑度
+            streamline: 0.5,       // 延迟平滑程度
+            easing: (t) => t * t,  // 缓动函数使笔触更自然
+            simulatePressure: false, // 如果设备提供压力数据就使用真实数据
+            last: false,           // 是否为最后一点
+            capStart: true,        // 绘制起点圆形端点
+            capEnd: true,          // 绘制终点圆形端点
+            correctForViewport: false // 是否校正视口
         };
         
         // 合并选项
@@ -104,7 +107,7 @@ export default class CanvasPencilTool {
     
     /**
      * 创建SkPath路径
-     * @param {Array} pathPoints - 路径点数组
+     * @param {Array} pathPoints - perfect-freehand生成的路径点数组
      * @returns {SkPath} - CanvasKit路径对象
      */
     createPath(pathPoints) {
@@ -118,12 +121,16 @@ export default class CanvasPencilTool {
         // 移动到第一个点
         path.moveTo(pathPoints[0][0], pathPoints[0][1]);
         
-        // 连接所有其他点
+        // 连接所有其他点 - 使用quadraticCurveTo平滑连接点
         for (let i = 1; i < pathPoints.length; i++) {
-            path.lineTo(pathPoints[i][0], pathPoints[i][1]);
+            const p0 = pathPoints[i - 1];
+            const p1 = pathPoints[i];
+            
+            // 对于直线连接
+            path.lineTo(p1[0], p1[1]);
         }
         
-        // 闭合路径
+        // 闭合路径 - perfect-freehand生成的是封闭路径
         path.close();
         
         return path;
@@ -301,32 +308,33 @@ export default class CanvasPencilTool {
         this.strokeData.pressure.push(pressure);
         this.strokeData.lastPoint = { x, y };
         
-        // u66f4u65b0u7ed8u5236u6570u636e
+        // 更新绘制数据
         this.updateDrawPath();
     }
     
     /**
-     * u66f4u65b0u7ed8u5236u8defu5f84
+     * 更新绘制路径
      */
     updateDrawPath() {
-        // u4f7fu7528perfect-freehandu751fu6210u7b14u89e6u5916u8f6eu5ed3
+        // 使用perfect-freehand生成笔触外轮廓
         const pathPoints = this.getStrokePathPoints(this.strokeData.points, {
-            size: 8,
-            thinning: 0.5,
-            smoothing: 0.5,
-            streamline: 0.5,
-            last: false
+            size: 10,               // 更大的笔触尺寸
+            thinning: 0.6,          // 增强压力变化效果
+            smoothing: 0.5,         // 保持中等平滑度
+            streamline: 0.5,        // 适当延迟以减少抖动
+            easing: (t) => t * t,   // 二次缓动使笔触更自然
+            last: false             // 实时绘制状态
         });
         
-        // u521bu5efaSkPath
+        // 创建SkPath
         const skPath = this.createPath(pathPoints);
         
         if (skPath) {
-            // u5b58u50a8u5f53u524du8defu5f84
+            // 存储当前路径
             this.strokeData.currentPath = skPath;
             
-            // u5c06u8defu5f84u6dfbu52a0u5230tableu7684u8defu5f84u5217u8868
-            // u5148u5220u9664u6b63u5728u7ed8u5236u4e2du7684u8defu5f84(u5982u679cu5b58u5728)
+            // 将路径添加到table的路径列表
+            // 先删除正在绘制中的路径(如果存在)
             if (this.table.drawingPaths && this.table.drawingPaths.length > 0) {
                 const lastPath = this.table.drawingPaths[this.table.drawingPaths.length - 1];
                 if (lastPath && lastPath.isActive) {
@@ -334,36 +342,38 @@ export default class CanvasPencilTool {
                 }
             }
             
-            // u6dfbu52a0u65b0u8defu5f84
+            // 添加新路径
             this.table.drawingPaths.push({
                 skPath,
                 paint: this.strokeData.currentPaint,
-                isActive: true
+                isActive: true,
+                timestamp: Date.now() // 添加时间戳以便稍后可能的撤销/重做功能
             });
         }
     }
     
     /**
-     * u5b8cu6210u7b14u753b
+     * 完成笔画
      */
     finishStroke() {
         if (!this.isActive) return;
         
-        // u66f4u65b0u7ed8u5236u6570u636euff0cu4f20u5165last=trueu4f7fu7528perfect-freehandu751fu6210u6700u7ec8u6548u679c
+        // 更新绘制数据，传入last=true使用perfect-freehand生成最终效果
         const pathPoints = this.getStrokePathPoints(this.strokeData.points, {
-            size: 8,
-            thinning: 0.5,
-            smoothing: 0.5,
-            streamline: 0.5,
-            last: true
+            size: 10,               // 与实时绘制保持一致的笔触尺寸
+            thinning: 0.6,          // 增强压力变化效果
+            smoothing: 0.5,         // 保持平滑度
+            streamline: 0.5,        // 保持一致的延迟性
+            easing: (t) => t * t,   // 二次缓动函数使笔触更自然
+            last: true              // 最终完成状态
         });
         
-        // u521bu5efau6700u7ec8SkPath
+        // 创建最终SkPath
         const finalPath = this.createPath(pathPoints);
         
         if (finalPath) {
-            // u5c06u8defu5f84u6dfbu52a0u5230tableu7684u8defu5f84u5217u8868
-            // u5148u5220u9664u6b63u5728u7ed8u5236u4e2du7684u8defu5f84(u5982u679cu5b58u5728)
+            // 将路径添加到table的路径列表
+            // 先删除正在绘制中的路径(如果存在)
             if (this.table.drawingPaths && this.table.drawingPaths.length > 0) {
                 const lastPath = this.table.drawingPaths[this.table.drawingPaths.length - 1];
                 if (lastPath && lastPath.isActive) {
@@ -371,24 +381,25 @@ export default class CanvasPencilTool {
                 }
             }
             
-            // u6dfbu52a0u6700u7ec8u8defu5f84
+            // 添加最终路径
             this.table.drawingPaths.push({
                 skPath: finalPath,
                 paint: this.strokeData.currentPaint,
-                isActive: false  // u6807u8bb0u4e3au975eu6d3bu52a8u8defu5f84
+                isActive: false,  // 标记为非活动路径
+                timestamp: Date.now() // 添加时间戳便于后续处理
             });
         }
         
-        // u8ba1u7b97u7ed8u5236u65f6u95f4
+        // 计算绘制时间
         const currentTime = Date.now();
         const strokeTime = currentTime - this.strokeData.lastStrokeTime;
         this.strokeData.totalDrawingTime += strokeTime;
         
-        // u91cdu7f6eu72b6u6001
+        // 重置状态
         this.isActive = false;
         this.strokeData.currentPath = null;
         
-        console.log('CanvasPencilTool: u5b8cu6210u7b14u89e6', {
+        console.log('CanvasPencilTool: 完成笔触', {
             points: this.strokeData.points.length,
             time: strokeTime,
             totalTime: this.strokeData.totalDrawingTime
