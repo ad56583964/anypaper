@@ -28,6 +28,7 @@
         "@capacitor/android": "^7.0.1",
         "@capacitor/cli": "^7.0.1",
         "@capacitor/core": "^7.0.1",
+        "canvaskit-wasm": "^0.40.0",
         "konva": "^9.2.0",
         "perfect-freehand": "^1.2.0",
         "pixi.js": "^8.8.1",
