@@ -2,7 +2,7 @@ import * as PIXI from 'pixi.js';
 import HitPointer from './HitPointer.js';
 import { updateDebugInfo } from '../debug.jsx';
 import Paper from './paper.js';
-import PixiPencilTool from '../tools/PixiPencilTool.js';
+import PencilTool from '../tools/pencil-tool.js';
 import PixiZoomTool from '../tools/PixiZoomTool.js';
 import { convertPointToLocalCoordinates } from './utils';
 
@@ -507,7 +507,7 @@ export default class Table {
      */
     initTools() {
         // 创建工具
-        const pencilTool = new PixiPencilTool(this);
+        const pencilTool = new PencilTool(this);
         const zoomTool = new PixiZoomTool(this);
         
         // 注册工具

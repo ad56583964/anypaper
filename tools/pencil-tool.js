@@ -3,13 +3,13 @@ import { getStroke } from '../lib/perfect-freehand/packages/perfect-freehand/src
 import { convertPointToLocalCoordinates } from '../pixi/utils';
 
 /**
- * PixiPencilTool 类 - 处理绘图功能
+ * PencilTool 类 - 处理绘图功能
  * 替代原有的 Konva PencilTool
  * 使用 PixiJS 8.0 API
  */
-export default class PixiPencilTool {
+export default class PencilTool {
     /**
-     * 创建一个新的 PixiPencilTool 实例
+     * 创建一个新的 PencilTool 实例
      * @param {Table} table - 表格实例
      */
     constructor(table, options) {
@@ -44,7 +44,7 @@ export default class PixiPencilTool {
             this.table.drawingContainer.addChild(this.table.paper.mask);
         }
         
-        console.log('PixiPencilTool initialized');
+        console.log('PencilTool initialized');
     }
     
     /**
@@ -122,14 +122,14 @@ export default class PixiPencilTool {
             this.table.drawingContainer.mask = this.paperMask;
         }
         
-        console.log('PixiPencilTool activated');
+        console.log('PencilTool activated');
     }
     
     /**
      * 停用工具
      */
     deactivate() {
-        console.log('PixiPencilTool deactivated');
+        console.log('PencilTool deactivated');
         
         // 确保在工具停用时结束任何进行中的绘画
         if (this.isActive) {
