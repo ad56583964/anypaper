@@ -1,23 +1,23 @@
 import { getStroke } from '../lib/perfect-freehand/packages/perfect-freehand/src';
 
 /**
- * CanvasPencilTool u7c7b - u5904u7406u7ed8u56feu529fu80fd
- * u4f7fu7528CanvasKitu66ffu4ee3u539fu6709u7684Pixi.jsu5b9eu73b0
+ * CanvasPencilTool 类 - 处理绘图功能
+ * 使用CanvasKit替代原有的Pixi.js实现
  */
 export default class CanvasPencilTool {
     /**
-     * u521bu5efau4e00u4e2au65b0u7684CanvasPencilToolu5b9eu4f8b
-     * @param {CanvasTable} table - u8868u683cu5b9eu4f8b
+     * 创建一个新的CanvasPencilTool实例
+     * @param {CanvasTable} table - 表格实例
      */
     constructor(table, options) {
         this.table = table;
         this.CanvasKit = table.CanvasKit;
         this.isActive = false;
         
-        // u521du59cbu5316u7b14u89e6u6837u5f0f
+        // 初始化笔触样式
         this.initStrokeStyles();
         
-        // u521du59cbu5316u7b14u89e6u6570u636e
+        // 初始化笔触数据
         this.strokeData = {
             points: [],
             pressure: [],
@@ -29,19 +29,19 @@ export default class CanvasPencilTool {
             totalDrawingTime: 0
         };
 
-        // u5141u8bb8u7684u8f93u5165u8bbeu5907u7c7bu578b
+        // 允许的输入设备类型
         this.allowedInputTypes = ['mouse', 'pen'];
         
         console.log('CanvasPencilTool initialized');
     }
     
     /**
-     * u521du59cbu5316u7b14u89e6u6837u5f0f
+     * 初始化笔触样式
      */
     initStrokeStyles() {
-        // u521bu5efaSkPaintu5bf9u8c61u7528u4e8eu7ed8u5236u7b14u89e6
+        // 创建SkPaint对象用于绘制笔触
         this.defaultPaint = new this.CanvasKit.Paint();
-        this.defaultPaint.setColor(this.CanvasKit.Color4f(0, 0, 0, 1.0)); // u9ed1u8272
+        this.defaultPaint.setColor(this.CanvasKit.Color4f(0, 0, 0, 1.0)); // 黑色
         this.defaultPaint.setAntiAlias(true);
         this.defaultPaint.setStyle(this.CanvasKit.PaintStyle.Fill);
         this.defaultPaint.setStrokeJoin(this.CanvasKit.StrokeJoin.Round);
@@ -49,37 +49,37 @@ export default class CanvasPencilTool {
     }
     
     /**
-     * u68c0u67e5u70b9u662fu5426u5728paperu8303u56f4u5185
-     * @param {number} x - Xu5750u6807
-     * @param {number} y - Yu5750u6807
-     * @returns {boolean} - u662fu5426u5728paperu8303u56f4u5185
+     * 检查点是否在paper范围内
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @returns {boolean} - 是否在paper范围内
      */
     isPointInPaper(x, y) {
         if (!this.table.paper) {
             return false;
         }
         
-        // u4f7fu7528Paperu7684u65b9u6cd5u68c0u67e5u70b9u662fu5426u5728u7eb8u5f20u5185u90e8
+        // 使用Paper的方法检查点是否在纸张内部
         return this.table.paper.isPointInside(x, y);
     }
     
     /**
-     * u68c0u67e5u8f93u5165u8bbeu5907u662fu5426u88abu5141u8bb8
-     * @param {PointerEvent} e - u6307u9488u4e8bu4ef6
-     * @returns {boolean} - u662fu5426u5141u8bb8u8be5u8f93u5165u8bbeu5907
+     * 检查输入设备是否被允许
+     * @param {PointerEvent} e - 指针事件
+     * @returns {boolean} - 是否允许该输入设备
      */
     isInputAllowed(e) {
         return this.allowedInputTypes.includes(e.pointerType);
     }
     
     /**
-     * u83b7u53d6u5f62u6210u7b14u89e6u8defu5f84u7684u70b9
-     * @param {Array} points - u8f93u5165u70b9u6570u7ec4
-     * @param {Object} options - u9009u9879
-     * @returns {Array} u8f93u51fau70b9u6570u7ec4uff0cu7528u4e8eu521bu5efaSkPath
+     * 获取形成笔触路径的点
+     * @param {Array} points - 输入点数组
+     * @param {Object} options - 选项
+     * @returns {Array} 输出点数组，用于创建SkPath
      */
     getStrokePathPoints(points, options = {}) {
-        // u9ed8u8ba4u9009u9879
+        // 默认选项
         const defaultOptions = {
             size: 8,
             thinning: 0.5,
@@ -90,55 +90,55 @@ export default class CanvasPencilTool {
             last: false
         };
         
-        // u5408u5e76u9009u9879
+        // 合并选项
         const mergedOptions = {...defaultOptions, ...options};
         
-        // u4f7fu7528perfect-freehandu83b7u53d6u7b14u89e6u8f68u8ff9u5916u8f6eu5ed3u8defu5f84
+        // 使用perfect-freehand获取笔触轨迹外轮廓路径
         const outlinePoints = getStroke(points, mergedOptions);
         
         if (!outlinePoints || outlinePoints.length < 2) return [];
         
-        // u8fd4u56deu5f62u6210u8defu5f84u7684u70b9
+        // 返回形成路径的点
         return outlinePoints;
     }
     
     /**
-     * u521bu5efaSkPathu8defu5f84
-     * @param {Array} pathPoints - u8defu5f84u70b9u6570u7ec4
-     * @returns {SkPath} - CanvasKitu8defu5f84u5bf9u8c61
+     * 创建SkPath路径
+     * @param {Array} pathPoints - 路径点数组
+     * @returns {SkPath} - CanvasKit路径对象
      */
     createPath(pathPoints) {
         if (!pathPoints || pathPoints.length < 2) {
             return null;
         }
         
-        // u521bu5efau65b0u7684SkPath
+        // 创建新的SkPath
         const path = new this.CanvasKit.Path();
         
-        // u79fbu52a8u5230u7b2cu4e00u4e2au70b9
+        // 移动到第一个点
         path.moveTo(pathPoints[0][0], pathPoints[0][1]);
         
-        // u8fdeu63a5u6240u6709u5176u4ed6u70b9
+        // 连接所有其他点
         for (let i = 1; i < pathPoints.length; i++) {
             path.lineTo(pathPoints[i][0], pathPoints[i][1]);
         }
         
-        // u95edu5408u8defu5f84
+        // 闭合路径
         path.close();
         
         return path;
     }
     
     /**
-     * u521bu5efau7b14u89e6u7684SkPaint
-     * @param {Object} options - u7b14u89e6u9009u9879
-     * @returns {SkPaint} - CanvasKitu753bu7b14u5bf9u8c61
+     * 创建笔触的SkPaint
+     * @param {Object} options - 笔触选项
+     * @returns {SkPaint} - CanvasKit画笔对象
      */
     createStrokePaint(options = {}) {
-        // u590du5236u9ed8u8ba4u7b14u89e6u6837u5f0f
+        // 复制默认笔触样式
         const paint = this.defaultPaint.copy();
         
-        // u8bbeu7f6eu989cu8272
+        // 设置颜色
         if (options.color) {
             paint.setColor(this.CanvasKit.Color4f(
                 ((options.color >> 16) & 0xff) / 255,
@@ -152,111 +152,111 @@ export default class CanvasPencilTool {
     }
     
     /**
-     * u6fc0u6d3bu5de5u5177
+     * 激活工具
      */
     activate() {
-        // u6fc0u6d3bu7ed8u56feu5de5u5177
+        // 激活绘图工具
         console.log('CanvasPencilTool activated');
     }
     
     /**
-     * u505cu7528u5de5u5177
+     * 停用工具
      */
     deactivate() {
         console.log('CanvasPencilTool deactivated');
         
-        // u7ed3u675fu8fdbu884cu4e2du7684u7ed8u5236
+        // 结束进行中的绘制
         if (this.isActive) {
             this.finishStroke();
         }
     }
     
     /**
-     * u5904u7406u6307u9488u6309u4e0bu4e8bu4ef6
-     * @param {PointerEvent} e - u6307u9488u4e8bu4ef6
+     * 处理指针按下事件
+     * @param {PointerEvent} e - 指针事件
      */
     pointerdown(e) {
-        // u68c0u67e5u8f93u5165u8bbeu5907u662fu5426u88abu5141u8bb8
+        // 检查输入设备是否被允许
         if (!this.isInputAllowed(e)) {
-            console.log('CanvasPencilTool: u4e0du5141u8bb8u4f7fu7528u624bu6307u89e6u6478u8fdbu884cu7ed8u5236');
+            console.log('CanvasPencilTool: 不允许使用手指触摸进行绘制');
             return;
         }
 
-        // u5c06u5ba2u6237u7aefu5750u6807u8f6cu6362u4e3au753bu5e03u5750u6807
+        // 将客户端坐标转换为画布坐标
         const x = e.clientX;
         const y = e.clientY;
         
-        // u5e94u7528u53cdu5411u53d8u6362u77e9u9635u83b7u53d6u5185u5bb9u5c42u5750u6807
+        // 应用反向变换矩阵获取内容层坐标
         const localPoint = this.viewToContentCoordinates(x, y);
         
-        // u68c0u67e5u662fu5426u5728paperu8303u56f4u5185
+        // 检查是否在paper范围内
         if (!this.isPointInPaper(localPoint.x, localPoint.y)) {
-            console.log('CanvasPencilTool: u53eau80fdu5728paperu8303u56f4u5185u5f00u59cbu7ed8u5236');
+            console.log('CanvasPencilTool: 只能在paper范围内开始绘制');
             return;
         }
 
-        // u5982u679cu5df2u7ecfu5728u7ed8u5236u4e2duff0cu5148u7ed3u675fu5f53u524du7b14u753b
+        // 如果已经在绘制中，先结束当前笔画
         if (this.isActive) {
             this.finishStroke();
         }
         
-        // u5f00u59cbu65b0u7684u7b14u753b
+        // 开始新的笔画
         this.startStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
     }
     
     /**
-     * u5904u7406u6307u9488u79fbu52a8u4e8bu4ef6
-     * @param {PointerEvent} e - u6307u9488u4e8bu4ef6
+     * 处理指针移动事件
+     * @param {PointerEvent} e - 指针事件
      */
     pointermove(e) {
-        // u68c0u67e5u8f93u5165u8bbeu5907u662fu5426u88abu5141u8bb8
+        // 检查输入设备是否被允许
         if (!this.isInputAllowed(e)) {
             return;
         }
 
         if (!this.isActive) return;
         
-        // u5c06u5ba2u6237u7aefu5750u6807u8f6cu6362u4e3au753bu5e03u5750u6807
+        // 将客户端坐标转换为画布坐标
         const x = e.clientX;
         const y = e.clientY;
         
-        // u5e94u7528u53cdu5411u53d8u6362u77e9u9635u83b7u53d6u5185u5bb9u5c42u5750u6807
+        // 应用反向变换矩阵获取内容层坐标
         const localPoint = this.viewToContentCoordinates(x, y);
         
-        // u66f4u65b0u7b14u753b
+        // 更新笔画
         this.updateStroke(localPoint.x, localPoint.y, e.pressure || 0.5);
     }
     
     /**
-     * u5904u7406u6307u9488u62acu8d77u4e8bu4ef6
-     * @param {PointerEvent} e - u6307u9488u4e8bu4ef6
+     * 处理指针抬起事件
+     * @param {PointerEvent} e - 指针事件
      */
     pointerup(e) {
         if (!this.isActive) return;
         
-        // u5b8cu6210u7b14u753b
+        // 完成笔画
         this.finishStroke();
     }
     
     /**
-     * u5c06u89c6u56feu5750u6807u8f6cu6362u4e3au5185u5bb9u5750u6807
-     * @param {number} viewX - u89c6u56fe X u5750u6807
-     * @param {number} viewY - u89c6u56fe Y u5750u6807
-     * @returns {Object} u5185u5bb9u5c42u5750u6807
+     * 将视图坐标转换为内容坐标
+     * @param {number} viewX - 视图 X 坐标
+     * @param {number} viewY - 视图 Y 坐标
+     * @returns {Object} 内容层坐标
      */
     viewToContentCoordinates(viewX, viewY) {
-        // u83b7u53d6u5f53u524du53d8u6362u4fe1u606f
+        // 获取当前变换信息
         const { scale, translateX, translateY } = this.table.transform;
         
-        // u8ba1u7b97u5c45u4e2du504fu79fb
+        // 计算居中偏移
         const centerX = (this.table.stageWidth - this.table.width * scale) / 2;
         const centerY = (this.table.stageHeight - this.table.height * scale) / 2;
         
-        // u8ba1u7b97u5b9eu9645u5e73u79fb
+        // 计算实际平移
         const actualTranslateX = centerX + translateX;
         const actualTranslateY = centerY + translateY;
         
-        // u5e94u7528u53cdu5411u53d8u6362
+        // 应用反向变换
         const contentX = (viewX - actualTranslateX) / scale;
         const contentY = (viewY - actualTranslateY) / scale;
         
@@ -264,39 +264,39 @@ export default class CanvasPencilTool {
     }
     
     /**
-     * u5f00u59cbu65b0u7684u7b14u753b
-     * @param {number} x - Xu5750u6807
-     * @param {number} y - Yu5750u6807
-     * @param {number} pressure - u538bu529bu503c(0-1)
+     * 开始新的笔画
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} pressure - 压力值(0-1)
      */
     startStroke(x, y, pressure) {
         this.isActive = true;
         
-        // u521du59cbu5316u7b14u89e6u6570u636e
+        // 初始化笔触数据
         this.strokeData.points = [[x, y, pressure]];
         this.strokeData.pressure = [pressure];
         this.strokeData.lastPoint = { x, y };
         this.strokeData.lastStrokeTime = Date.now();
         
-        // u521bu5efaSkPaint
+        // 创建SkPaint
         this.strokeData.currentPaint = this.createStrokePaint({
-            color: 0x000000,  // u9ed1u8272
+            color: 0x000000,  // 黑色
             opacity: 1.0
         });
         
-        console.log('CanvasPencilTool: u5f00u59cbu7b14u89e6', { x, y, pressure });
+        console.log('CanvasPencilTool: 开始笔触', { x, y, pressure });
     }
     
     /**
-     * u66f4u65b0u7b14u753b
-     * @param {number} x - Xu5750u6807
-     * @param {number} y - Yu5750u6807
-     * @param {number} pressure - u538bu529bu503c(0-1)
+     * 更新笔画
+     * @param {number} x - X坐标
+     * @param {number} y - Y坐标
+     * @param {number} pressure - 压力值(0-1)
      */
     updateStroke(x, y, pressure) {
         if (!this.isActive) return;
         
-        // u6dfbu52a0u65b0u70b9
+        // 添加新点
         this.strokeData.points.push([x, y, pressure]);
         this.strokeData.pressure.push(pressure);
         this.strokeData.lastPoint = { x, y };
