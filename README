@@ -26,7 +26,7 @@ AnyA4
 
 使用的技术选型
 
-目前是 vite + javascript + pixijs + chatgpt...(不是提供AI能力,而是托它的福我才坚持写下去) ,希望能借此先理顺接触 事件处理 问题
+目前是 vite + javascript + pixijs + chatgpt + cursor...(不是提供AI能力,而是托它的福我才坚持写下去) ,希望能借此先理顺接触 事件处理 问题
 
 (这算是一个工作之余的学习项目，以及自己的一个实现电子化笔记的心愿)
 
